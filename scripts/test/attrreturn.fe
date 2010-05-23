@@ -1,0 +1,18 @@
+uses "console";
+
+class Test
+{
+   public string test = "Test Class";
+   
+   function getTest()
+     return .test;
+   
+   function returnTest()
+     return new Test();
+}
+
+object o = new Test();
+Console.println( o.returnTest().test );
+Console.println( o.returnTest().getTest() );
+   
+   

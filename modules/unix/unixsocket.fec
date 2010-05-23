@@ -1,0 +1,230 @@
+/*
+ * Copyright (C) 2001-2007 Chris Ross, Stephan Engstrom, Alex Holden et al
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "stream";
+uses "network";
+
+module-header {
+#include "../network/util_network.h"
+}
+
+/**
+ * @namespace Network
+ * @modifies Network
+ */
+namespace modifies Network 
+{
+    
+    /** @namespace Unix @brief The Unix namespace provides a set of tools to access unix domain socket streams */
+    namespace Unix {
+        
+        /**
+        * @class Stream
+         * @extends Stream.StdioStream
+         * @brief Provides a Unix domain socket implementation of the Stream object
+         */
+        class Stream extends Stream.StdioStream
+        {
+            /**
+             * @variable path @type string @brief The path the unix domain socket is connected on */
+            string path;
+                            
+            /**
+                * @function accept
+             * @declaration function accept()
+             * @brief Accept an incoming connection
+             * @description This function will accept a connection and return a
+             *              UnixStream object which can be used. This function will
+             *              only work if the socket was initially created using
+             *              Network.unix_bind().
+             */
+            native function accept()
+            {
+                FeriteVariable *obj, **args, *fv;
+                FeriteClass *cls;
+                int sock;
+                
+                do
+                {
+                    sock = accept(StreamObject->file_descriptor, NULL, NULL);
+                }
+                while(sock == -1 && errno == EINTR);
+                
+                if(sock == -1)
+                {
+                    ferite_set_error(script, errno, "%s", strerror(errno));
+                    FE_RETURN_NULL_OBJECT;
+                }
+                
+                if((cls = ferite_find_class(script, script->mainns, "Network.Unix.Stream")))
+                {
+                    args = ferite_create_parameter_list(script,4);
+                    args = ferite_add_to_parameter_list(args, fe_new_lng_static("socket", sock));
+                    MARK_VARIABLE_AS_DISPOSABLE(args[0]);
+                    obj = ferite_new_object(script, cls, args);
+                    ferite_delete_parameter_list(script, args);
+                    fv = ferite_object_get_var(script, self, "path");
+                    fv = ferite_create_string_variable(script, "path", VAS(fv),
+                                                       FE_STATIC);
+                    ferite_object_set_var(script, VAO(obj), "path", fv);
+                    FE_RETURN_VAR(obj);
+                }
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            /**
+                * @function listen
+             * @declaration function listen(number backlog)
+             * @brief Set the number of slots the system listens on for connections.
+             * @param number backlog The number of slots
+             */
+            native function listen(number backlog)
+            {
+                int sock = StreamObject->file_descriptor;
+                int retval = listen(sock, (long)backlog);
+                FE_RETURN_LONG(retval);
+            }
+        }
+        /**
+        * @end
+         */
+        
+        /**
+        * @function connect
+         * @declaration function connect(string path)
+         * @brief Connect to a Unix domain socket at the specified location
+         * @param string path The full path to the named socket
+         * @return An object connected to the named socket, or null if the
+         *         connection could not be established
+         */
+        native function connect(string path)
+        {
+            FeriteVariable *obj, **args, *fv;
+            FeriteClass *cls;
+            struct sockaddr *sa;
+            struct sockaddr_un un;
+            int sock;
+            
+            if((sock = socket(PF_LOCAL, SOCK_STREAM, 0)) == -1)
+                FE_RETURN_NULL_OBJECT;
+            
+            un.sun_family = AF_UNIX;
+            if(path->length + 1 > sizeof(un.sun_path))
+            {
+                ferite_set_error(script, 0, "Path too long");
+                FE_RETURN_NULL_OBJECT;
+            }
+            memcpy(un.sun_path, path->data, path->length + 1);
+            sa = (struct sockaddr*)&un;
+            
+            if(connect(sock, sa, sizeof(struct sockaddr_un)) == -1)
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                close(sock);
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if((cls = ferite_find_class(script, script->mainns, "Network.Unix.Stream")))
+            {
+                args = ferite_create_parameter_list(script,4);
+                args = ferite_add_to_parameter_list(args, fe_new_lng_static("socket", sock));
+                MARK_VARIABLE_AS_DISPOSABLE(args[0]); /* automatically clear up */
+                obj = ferite_new_object(script, cls, args);
+                ferite_delete_parameter_list(script, args);
+                fv = ferite_create_string_variable(script, "path", path, FE_STATIC);
+                ferite_object_set_var(script, VAO(obj), "path", fv);
+                FE_RETURN_VAR(obj);
+            }
+            FE_RETURN_NULL_OBJECT;
+        }
+
+        /**
+        * @function bind
+         * @declaration function bind(string path)
+         * @brief Bind to a Unix domain socket
+         * @param string path The full path to the file to use as the named socket
+         * @return An object that can accept connections, or null on error
+         * @description Creates a UnixStream object bound to the specified
+         *              Unix domain socket. Note that the bind will fail if the
+         *              file already exists, and Unix domain sockets are not
+         *              automatically deleted when the server closes them, so
+         *              you may need to delete a stale socket file before you can
+         *              bind to it.
+         */
+        native function bind(string path)
+        {
+            FeriteVariable *obj, **args, *fv;
+            FeriteClass *cls;
+            struct sockaddr *sa;
+            struct sockaddr_un un;
+            int sock;
+            
+            if((sock = socket(PF_LOCAL, SOCK_STREAM, 0)) == -1)
+                FE_RETURN_NULL_OBJECT;
+            
+            un.sun_family = AF_UNIX;
+            if(path->length + 1 > sizeof(un.sun_path))
+            {
+                ferite_set_error(script, 0, "Path too long");
+                FE_RETURN_NULL_OBJECT;
+            }
+            memcpy(un.sun_path, path->data, path->length + 1);
+            sa = (struct sockaddr*)&un;
+            
+            if(bind(sock, sa, sizeof(struct sockaddr_un)))
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                close(sock);
+                FE_RETURN_NULL_OBJECT;
+            }
+            if(listen(sock, 10))
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                close(sock);
+                FE_RETURN_NULL_OBJECT;
+            }
+            if((cls = ferite_find_class(script, script->mainns, "Network.Unix.Stream")))
+            {
+                args = ferite_create_parameter_list(script,4);
+                args = ferite_add_to_parameter_list(args, fe_new_lng_static("socket", sock));
+                obj = ferite_new_object(script, cls, args);
+                ferite_delete_parameter_list(script, args);
+                fv = ferite_create_string_variable(script, "path", path, FE_STATIC);
+                ferite_object_set_var(script, VAO(obj), "path", fv);
+                FE_RETURN_VAR(obj);
+            }
+            close(sock);
+            FE_RETURN_NULL_OBJECT;
+        }
+    }
+    /** @end */
+}
+/**
+ *  @end
+ */

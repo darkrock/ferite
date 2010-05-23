@@ -1,0 +1,173 @@
+uses "test", "filesystem", "posix", "unix", "console", "thread", "regexp";
+
+/*
+ * Written by Chris Ross <chris@ferite.org>
+ */
+
+global {
+    string testpath = "ferite-unix-test.socket";
+}
+
+class NetworkTestThread extends Thread {
+    
+    atomic number running;
+    atomic number success;
+    number action;
+    void   ns;
+    
+    function constructor( void ns, number action ) {
+        super();
+        .ns = ns;
+        .action = action;
+        .success = 99;
+    }
+    
+    function start() {
+        .success = 99;
+        .running = false;
+        super.start();
+    }
+    
+    function run() {        
+        switch( .action ) {
+            case 1: /* connect */
+            {
+                object o = null;                
+                .sleep(1000);
+                o = .ns.connect(testpath);
+                if( o == null )
+                    .success = 11;
+                else
+                {
+                    .success = Test.SUCCESS;
+                    o.close();
+                }
+                break;
+            }
+            case 2: /* bind, & accept */
+            {
+                object o = null;
+                
+                File.remove(testpath);
+                o = .ns.bind(testpath);
+                if( o == null )
+                    .success = 12;
+                else
+                {
+                    object p = null;
+                    if( o instanceof Network.Unix.Stream )
+                    {
+                        o.listen(5);
+                        p = o.accept();
+                    }
+                    else
+                        p = o;
+                    while( .running == false ) ;
+                    if( p == null )
+                        .success = 13;
+                    else
+                    {
+                        string s = p.readln();
+                        if( s == "TEST?\n" )
+                        {
+                            .success = Test.SUCCESS;
+                            p.writeln("YES THIS IS");
+                        }
+                        .running = false;
+                        .sleep(500);
+                        p.close();
+                        o.close();
+                    }
+                }
+                break;
+            }
+        }        
+    }    
+}
+global {
+    number NetworkUnixTestValue = -1;
+}
+function RunNetworkTest( void ns )
+{
+    object o = new NetworkTestThread(ns, 2);
+    object p = null;
+    string s = "";
+    
+    o.start();
+    Sys.sleep(2);
+    if( o.success != 99 )
+    {
+        Console.println( "Error: ${err.str}" );
+        return o.success;
+    }
+    
+    p = ns.connect(testpath);
+    if( p == null ) {
+        Console.println( "Error: ${err.str}" );
+        return 1;
+    }    
+    p.writeln("TEST?");
+    o.running = true;
+    
+    while( o.running == true );
+    s = p.readln();
+    if( s != "YES THIS IS\n" )
+        return 2;
+    
+    File.remove(testpath);
+    p = ns.connect(testpath);
+    if( p != null ) 
+        return 3;
+
+    return Test.SUCCESS;
+}    
+function RunNetworkUnixTest()
+{
+    if( NetworkUnixTestValue == -1 )
+        NetworkUnixTestValue = RunNetworkTest(Network.Unix);
+    return NetworkUnixTestValue;
+}
+class NetworkUnixTest extends Test {
+    function connect() { return RunNetworkUnixTest(); }
+    function bind() { return RunNetworkUnixTest(); }
+}
+class NetworkUnixStreamTest extends Test {
+    function listen() { return RunNetworkUnixTest(); }
+    function accept() { return RunNetworkUnixTest(); }
+}
+class UnixTest extends Test {
+    function openlog() { 
+        object l = Unix.openlog('ferite-unix-test', Unix.LOG_CONS, Unix.LOG_LOCAL0);
+        
+        if( l == null )
+            return 1;
+    
+        return Test.SUCCESS;
+    }    
+}
+class UnixSyslogStreamTest extends Test {
+    
+    function __read__() { return Test.IGNORE; }
+    function __write__() { return Test.IGNORE; }
+    function __close__() { return Test.IGNORE; }
+
+    function emerg() { return Test.IGNORE; } // We could upset people with this one ;)
+    function debug() { return Test.IGNORE; }
+    function notice() { return Test.IGNORE; }
+    function error() { return Test.IGNORE; }
+    function warning() { return Test.IGNORE; }
+    function alert() { return Test.IGNORE; }
+    function info() { return Test.IGNORE; }
+    function critical() { return Test.IGNORE; }    
+}
+
+object o = new NetworkUnixTest();
+object p = new NetworkUnixStreamTest();
+object q = new UnixTest();
+object r = new UnixSyslogStreamTest();
+
+return 
+o.run('Network.Unix') + 
+p.run('Network.Unix.Stream') +
+q.run('Unix') +
+r.run('Unix.SyslogStream');

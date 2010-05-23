@@ -1,0 +1,19 @@
+#!/usr/bin/env ferite
+
+uses "string", "array", "console";
+
+function Ack( number M, number N )
+{
+    if (M == 0)
+	return N + 1;
+    if (N == 0)
+	return Ack( M - 1, 1 );
+    return Ack( M - 1, Ack( M,  N - 1));
+}
+number num;
+Console.println( ":" + Array.size( argv ) );
+if( Array.size( argv ) > 0 )
+    num = String.toLong( argv[0] );
+else
+    num = 1;
+Console.println("Ack( 3, $num ): " + Ack( 3, num ) );

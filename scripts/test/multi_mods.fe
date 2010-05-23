@@ -1,0 +1,5 @@
+class Foo {
+   
+   final final number foo = 2;
+   
+}

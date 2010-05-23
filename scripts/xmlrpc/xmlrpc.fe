@@ -1,0 +1,421 @@
+#!/usr/bin/env ferite
+
+uses "console", "date", "network", "string", "array", "sys", "reflection", "regexp", "xml", "number";
+
+/**
+ * @group XMLRPC
+ * @brief A XMLRPC client implementation
+ */
+
+/**
+ * @class XMLRPCBase64
+ * @brief Wrap data held within a string and encode it as base64
+ */
+class XMLRPCBase64
+{
+	string data;
+
+	/**
+	 * @function XMLRPCBase64
+	 * @brief The constructor
+	 * @param string data The data to wrap
+	 */
+	function constructor( string data )
+		.data = data;
+
+	function base64encode( string data ) {
+		.data = data;
+		return String.base64encode( .data );
+	}
+
+	function toString()
+		return .base64encode( .data );
+}
+/**
+ * @end
+ */
+
+/**
+ * @function Base64
+ * @declaration function Base64( string data )
+ * @brief Wrap a string with a XMLRPCBase64 object to be trasmistted via XML-RPC
+ * @param string data The string to be encoded
+ * @return A XMLRPCBase64 object
+ */
+function Base64( string data ) {
+	return new XMLRPCBase64(data);
+}
+
+/**
+ * @class XMLRPCClient
+ * @brief An XML-RPC client object
+ */
+class XMLRPCClient {
+
+	private string userAgent;
+	private string host;
+	private number port;
+	private string path;
+	private string methodcall;
+	private string objectName;
+	boolean debug = false;
+	
+	/**
+	 * @function constructor
+	 * @declaration function constructor( string server )
+	 * @brief The constructor takes a http url that specifies the location of the remote rpc system
+	 * @param string server A string in the format of http://host:port/path@object
+	 */
+	function constructor( string server ) {
+		object regexp = new Regexp("(http:\/\/)?([^:]*)(:([0-9]+))?([^@]*)(@(.*))?", "i");
+		object match = regexp.match( server );
+		self.host = "";
+		self.port = 80;
+		self.path = "/";
+
+		self.userAgent = "ferite xml-RPC/1.0";
+		self.host = match.capture( 1 );
+		if( match.capture( 3 ) != "" )
+			self.port = String.toLong( match.capture( 3 ) );
+		if( match.capture( 4 ) != "" )
+			self.path = match.capture( 4 );
+		if( match.capture( 6 ) != "" )
+			.objectName = match.capture( 6 ) + ".";
+	}
+
+	function generateHeader()
+	{
+		 string header = "";
+
+		 header  = "POST " + self.path + " HTTP/1.0\r\n";
+		 header += "User-Agent: " + self.userAgent + "\r\n";
+		 header += "Host: " + self.host + "\r\n";
+		 header += "Content-Type: text/xml\r\n";
+
+		 return header;
+	}
+
+	string encoding = 'UTF-8';
+	function setEncoding( string value ) {
+		.encoding = value;
+	}
+	function startMethodCall( string methodName )
+	{
+		 self.methodcall  = "<?xml version=\"1.0\" encoding=\"${.encoding}\" ?>";
+		 self.methodcall += "<methodCall>";
+		 self.methodcall += "<methodName>$methodName</methodName>";
+		 self.methodcall += "<params>";
+	}
+
+	public function addParameter( string data )
+	{
+		 self.methodcall += "<param>$data</param>";
+	}
+
+	function generateString( string var )
+		return "<string>$var</string>";
+
+	function generateInteger( number var )
+		return "<int>$var</int>";
+
+	function generateDouble( number var )
+		return "<double>$var</double>";
+
+	function generateBoolean( boolean var )
+		return "<boolean>${(var ? '1' : '0')}</boolean>";
+
+	function generateTime( object var )
+		return "<dateTime.iso8601>${var.strftime('%G%I%dT%H:%M:%S')}</dateTime.iso8601>";
+
+	function generateBase64( object var )
+		return "<base64>$var</base64>";
+
+	function generateArray( array a )
+	{
+		 number i = 0;
+		 string value = "";
+
+		 value += "<array><data>";
+		 for( i = 0; i < Array.size(a); i++ )
+			value += "${.generateValue( a[i] )}";
+		 value += "</data></array>";
+
+		 return value;
+	}
+
+	function generateStructure( object var )
+	{
+		string body = "";
+		object o;
+		array members, keys;
+		number i = 0;
+
+		body += "<struct>";
+		if( var != null )
+		{
+			o = new Object(var);
+			members = o.getVariables();
+			members.map() using ( key, value ) {
+				body += "<member><name>$key</name>${.generateValue(value)}</member>";
+			};
+		}
+		body += "</struct>";
+		return body;
+	}
+
+	function generateValue( void var ) {
+		string value = "";
+
+		if( var isa string )
+			value = .generateString( var );
+		else if( var isa number ) {
+			if( Number.isLong( var ) )
+				value = .generateInteger( var );
+			else
+				value = .generateDouble( var );
+		}
+		else if( var isa array )
+			value = .generateArray( var );
+		else if( var isa boolean )
+			value = .generateBoolean( var );
+		else if( var isa object ) {
+			if( var instanceof Date )
+				value = .generateTime( var );
+			else if( var instanceof XMLRPCBase64 )
+				value = .generateBase64( var );
+			else
+				value = .generateStructure( var );
+		}
+
+		if( value != "" )
+			return "<value>$value</value>";
+		return "";
+	}
+
+	function endMethodCall() {
+		 self.methodcall += "</params>";
+		 self.methodcall += "</methodCall>\r\n";
+	}
+	function generateReturn( void value ) {
+		string v = .generateValue(value);
+		string r = '';
+		r += "<?xml version=\"1.0\" encoding=\"${.encoding}\" ?>";
+		r += "<methodResponse><params><param>$v</param></params></methodResponse>";
+		return r;
+	}
+	function generateFault( string fault, number id ) {
+		string r = '';
+		r += "<?xml version=\"1.0\" encoding=\"${.encoding}\" ?>";
+		r += "<methodResponse>
+				<fault>
+					<value>
+						<struct>
+							<member>
+								<name>faultCode</name>
+								${.generateValue(id)}
+							</member>
+							<member>
+								<name>faultString</name>
+								${.generateValue(fault)}
+							</member>
+						</struct>
+					</value>
+				</fault>
+			</methodResponse>";
+		return r;
+	}
+	function debug( string value ) {
+		if( .debug ) 
+			Console.println(value);
+	}
+	function executeCall()
+	{
+		string message = "", key, value, response = "";
+		string header = .generateHeader();
+		number toRead = 0, started_xml = false;
+		object server = null;
+		array headers;
+
+		header += "Content-length: " + String.length( self.methodcall ) + "\r\n\r\n";
+		message = header + self.methodcall;
+		server = Network.TCP.connect( self.host, self.port );
+
+		.debug(message);
+		if( server != null )
+		{
+			server.write( message );
+			while( !server.eos() )
+			{
+				message = server.readln();
+				.debug("Message: $message");
+				if( !started_xml )
+				{
+					/* strip end of line markers */
+					message = message.trim("\r\n \t");
+
+					/* do some processing */
+					if( Regexp.match("HTTP/1\.[10] 200 OK", message) ) {
+						.debug( "Got a correct response" );
+					}
+					else
+					{
+						object match = null;
+						if( match = Regexp.match( "([^:]+): (.*)", message ) )
+						{
+							key = match.capture( 0 );
+							value = match.capture( 1 );
+							.debug( "key: $key, value: $value" );
+							headers[key] = value;
+						}
+						else
+						{
+							if( message == "" )
+							{
+								 started_xml = true;
+								 if( Array.keyExists( headers, "Content-Length" ) )
+									toRead = String.toLong( headers["Content-Length"] );
+								 else
+									toRead = 1000000;
+								.debug("ToRead: $toRead");
+							}
+						}
+					}
+				}
+				else
+				{
+					response += message;
+					if( String.length(response) >= toRead )
+						break; /* we have read the entire response */
+				}
+			}
+			server.close();
+			.debug( "Got response: '$response'" );
+			return response;
+		}
+		else
+			Sys.error( "Cant connect to XML-RPC server ${.host}:${.port}\n", 0 );
+	}
+
+	function processValue( object element ) {
+		object child = element.getFirstChild();
+		switch( child.getElementName() ) {
+			case 'text':
+				return child.getElementData();
+			case 'string':
+				return child.getFirstChild().getElementData();
+			case 'boolean':
+				return (child.getFirstChild().getElementData().toLong() ? true : false);
+			case 'i4':
+			case 'int':
+				return child.getFirstChild().getElementData().toLong();
+			case 'double':
+				return child.getFirstChild().getElementData().toDouble();
+			case 'dateTime.iso8601': {
+				string time = child.getFirstChild().getElementData();
+				object date = Date.parse( time, '%G%I%dT%H:%M:%S' );
+				return date;
+			}
+			case 'base64':
+				return String.base64decode(child.getFirstChild().getElementData());
+			case 'array': {
+				array returnArray;
+				array children = child.getFirstChild().getChildren();
+				children.each() using ( node ) {
+					returnArray[] = .processValue(node);
+				};
+				return returnArray;
+			}
+			case 'struct': {
+				object o = new Obj();
+				object wrapper = new Object(o);
+				array  children = child.getChildren();
+				children.each() using ( node ) {
+					string name = node.getFirstChild().getElementData();
+					void	value = .processValue(node.getFirstChild().getNextSibling());
+					wrapper.setVariable( name, value );
+				};
+				return o;
+			}
+		}
+	}
+	
+	array registeredFunctions;
+	function registerFunction( string name, object fObject ) {
+		.registeredFunctions[name] = fObject;
+	}
+	function processRequest( string request ) {
+		object tree = new XML.TreeParser();
+		tree.keepBlanks(false);
+		monitor {
+			tree.parseChunk(request);
+			.debug("The response is: " + request);
+		} handle {
+			return .generateFault("Invalid XML, Unable to parse: '$request' [${(err.str - "\n")}]", 0);
+		} else {
+			object root = tree.getDocumentElement();
+			array  m_nodes = root.getElementsByTagName('methodName');
+			object methodname = m_nodes[0];
+			array  p_nodes = root.getElementsByTagName('params');
+			object params = p_nodes[0];
+
+			string f_name = methodname.getElementData();
+			array  f_params;
+			
+			params.getChildren().each() using ( node ) {
+				f_params[] = .processValue( node.getFirstChild() );
+			};
+			
+			if( .registeredFunctions.keyExists(f_name) ) {
+				object func = .registeredFunctions[f_name];
+				monitor {
+					void rval = func.execWithArray(f_params);
+					return .generateReturn(rval);
+				} handle( e ) {
+					return .generateFault(e.str, e.num);
+				}
+			}
+		}
+		return '';
+	}
+	function processResponse( string response ) {
+		object tree = new XML.TreeParser();
+		tree.keepBlanks(false);
+		monitor {
+			tree.parseChunk(response);
+			.debug("The response is: "+response);
+		} handle {
+			raise new Error("Invalid XML, Unable to parse: $response [${(err.str - "\n")}]");
+		} else {
+			object root = tree.getDocumentElement();
+			string type = root.getFirstChild().getElementName();
+			switch( type ) {
+				case 'params':
+					return .processValue( root.getFirstChild().getFirstChild().getFirstChild());
+				case 'fault': {
+					object fault = .processValue( root.getFirstChild().getFirstChild() );
+					Sys.error( fault.faultString + "\n", fault.faultCode );
+					break;
+				}
+			}
+		}
+		return false;
+	}
+	function method_missing( ... ) {
+		array fncArgs = arguments();
+		string method_name = fncArgs[Array.size(fncArgs)-1];
+		number i = 0;
+		string response = "";
+
+		.startMethodCall( "${.objectName}$method_name" );
+		for( i = 0; i < Array.size(fncArgs)-1; i++ )
+			.addParameter( .generateValue( fncArgs[i] ) );
+		.endMethodCall();
+		response = .executeCall();
+		return .processResponse(response);
+	}
+}
+
+/**
+ * @end
+ */
+

@@ -1,0 +1,1290 @@
+/*
+ * Copyright (C) 1999-2007 Chris Ross
+ * Copyright (C) 2004 Christian M. Stamgren
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "xml.lib";
+
+module-header {    
+	#include "sax_handlers.h"
+	#include "tree_handlers.h"
+	#include "xpath_handlers.h"
+}
+
+module-deinit {
+    xmlCleanupParser(); /* cleanup global vars in libxml2 */
+}
+
+/**
+ * @namespace XML
+ * @brief This namespace holds the various XML tools that can be used within ferite.
+ * @warning Due to the nature of libxml2, xml parsing, unlike ferite, is not currently completely thread safe.
+            This is exhibited within the error reporting of the parsers and is currently unavoidable.
+ */
+namespace XML {
+	/**
+	 * @class Element
+	 * @brief This class hold an xml element and its sub tree.
+	 */
+	class Element {
+	    native function constructor( ) 
+	    {
+	        XMLDoc *tree = fmalloc( sizeof(XMLDoc) ); 	
+	        self->odata = tree;	
+	    }
+    
+	    native function destructor( ) 
+	    {
+	        XMLDoc *tree = self->odata;
+	        if(tree != NULL) ffree(tree);
+	    }
+    
+	    /**
+	     * @function getElementName
+	     * @brief Retrieve the name of an element node.
+	     * @declaration function getElementName( )
+	     * @return a string containing the name of the element.
+	     */
+	    native function getElementName( ) : string
+	    {
+	        XMLDoc *tree = self->odata;
+	        FeriteString *str = NULL;	
+	
+	        str = ferite_str_new( script, (char *)tree->node->name, 0, FE_CHARSET_DEFAULT );
+	        FE_RETURN_STR( str, FE_TRUE );
+	    }    
+    
+	    /**
+	     * @function getElementData
+	     * @brief Retrieve the data of an element node.
+	     * @declaration function getElementData() 
+	     * @return a string with the data of the element node.
+	     */
+	    native function getElementData( ) : string
+	    {
+	        FeriteString *str = NULL;
+	        xmlChar *key = NULL;			
+	        XMLDoc *tree = self->odata;  
+        
+	        key = xmlNodeGetContent(tree->node); /*xmlNodeListGetString(tree->doc, tree->node, 1);*/
+	        if( key != NULL ) {
+	            str = ferite_str_new( script, (char *)key, 0, FE_CHARSET_DEFAULT );
+	            xmlFree( key );
+	        }
+	        FE_RETURN_STR( str, FE_TRUE );
+	    }
+    
+	    /**
+	     * @function getElementsByTagName
+	     * @brief Retrieve all elements matching name, name could be an xpath expression.
+	     * @declaration function getElementsByTagName( string name ) 
+	     * @param string name The name of the element to retrieve.
+	     * @return an array of object of type XML.Element.
+	     */
+	    native function getElementsByTagName( string name ) : array<XML.Element>
+	    {
+	        FeriteVariable *array = NULL;
+	        FeriteVariable *obj = NULL;
+		xmlXPathObjectPtr res = NULL;
+	        xmlNodeSetPtr cur = NULL;
+	        register int i = 0;
+	 	XMLDoc *tree = self->odata;	        
+
+		res = get_nodes_with_name_xpath( tree, name );        
+		switch ( res->type ) {
+	            case XPATH_NODESET:
+	                cur = res->nodesetval;
+	                array = ferite_create_uarray_variable( script, "Nodes", FE_ARRAY_DEFAULT_SIZE, FE_STATIC );
+                
+	                for (i = 0 ; i < cur->nodeNr ; i++) {
+	                    obj = create_element_node( script, tree->doc, cur->nodeTab[i] );		
+	                    ferite_uarray_add( script, VAUA( array ), obj, NULL, FE_ARRAY_ADD_AT_END );
+	                }
+	                break;
+				default:
+					printf("Unknown node type: %d\n", res->type );
+	        }	
+	        xmlXPathFreeObject( res );	
+		FE_RETURN_VAR( array );
+	    }
+    
+	    /**
+	     * @function hasAttributes
+	     * @brief Check if the current element has any attributes.
+	     * @declaration function hasAttributes( ) 
+	     * @return true if there the element has attributes, false otherwise.
+	     */
+	    native function hasAttributes( ) : boolean
+	    {
+	        XMLDoc *tree = self->odata;	        
+			if( tree->node->properties ) {
+				FE_RETURN_TRUE;
+			}
+			FE_RETURN_FALSE;
+	    }
+    
+	    /**
+	     * @function hasAttribute
+	     * @brief Check if the current element an attributes with name.
+	     * @declaration function hasAttribute( string name ) 
+	     * @param string the attribute name.
+	     * @return true if the attribute exists, false if otherwise.
+	     */
+	    native function hasAttribute( string name ) : boolean
+	    {
+			XMLDoc *tree = self->odata;	
+			if( xmlHasProp( tree->node, (xmlChar*)name->data ) ) 
+	            FE_RETURN_TRUE;
+			FE_RETURN_FALSE;
+	    }
+
+	    /**
+	     * @function getAttributeByName
+	     * @brief Fetch the value of the attribute with name attr.
+	     * @declaration function hasAttributes( ) 
+	     * @param string attr The attribute name.
+	     * @return a string with the value of the atttribute.
+	     */
+	    native function getAttributeByName( string attr ) : string {
+	        FeriteString *str = NULL;
+	        xmlChar *value = NULL;
+	        XMLDoc *tree = self->odata;	        
+        
+	        value = xmlGetProp( tree->node, (xmlChar*)attr->data );
+	        if( value != NULL ) {
+	            str = ferite_str_new( script, (char *)value, 0, FE_CHARSET_DEFAULT );
+	            xmlFree( value );
+	        }
+	        FE_RETURN_STR( str, FE_TRUE );
+	    }
+    
+	    /**
+	     * @function getAttributes
+	     * @brief Get all the elements attributes as an array
+	     * @declaration function getAttributes( ) 
+	     * @return an array of strings with the attributes.
+	     */
+	    native function getAttributes( ) : array<string>
+	    {
+	        xmlAttrPtr attr = NULL;
+	        xmlChar *key = NULL; 
+	        FeriteVariable *str = NULL;
+	        FeriteVariable *array = NULL;
+	        XMLDoc *tree = self->odata;
+        
+	        attr = tree->node->properties;
+	        array = ferite_create_uarray_variable( script, "Attributes", FE_ARRAY_DEFAULT_SIZE, FE_STATIC );
+        
+	        while ( attr != NULL ) {
+	            key = xmlGetProp(tree->node, attr->name);
+            
+	            str = ferite_create_string_variable_from_ptr( script, (char *)attr->name, (char *) key, 
+	                                                          0, FE_CHARSET_DEFAULT, FE_STATIC );
+	            ferite_uarray_add( script, VAUA( array ), str, (char*)attr->name, FE_ARRAY_ADD_AT_END );
+	            xmlFree( key );
+            
+	            attr = attr->next;
+	        }
+	        FE_RETURN_VAR( array );
+	    }
+    
+	    /**
+	     * @function hasChildren
+	     * @brief Check if an element has children.
+	     * @declaration function hasChildren( ) 
+	     * @return true if the element has children, false otherwise.
+	     */
+	    native function hasChildren( ) : boolean
+	    {
+	        XMLDoc *tree = self->odata;
+			if( tree->node->children ) {
+				FE_RETURN_TRUE;
+			}
+			FE_RETURN_FALSE;
+	    } 
+    
+	    /**
+	     * @function getChildren
+	     * @brief Get all the elements children. 
+	     * @declaration function getChildren( ) 
+	     * @return an array of objects of type XML.Element.
+	     */
+	    native function getChildren( ) : array<XML.Element> {
+	        FeriteVariable *obj;
+	        FeriteVariable *array = NULL;
+	        xmlNodePtr cur = NULL;
+	        XMLDoc *tree = self->odata;	        
+        
+	        cur = tree->node->children;
+	        array = ferite_create_uarray_variable( script, "Children", FE_ARRAY_DEFAULT_SIZE, FE_STATIC );
+        
+	        while ( cur ) {
+	            obj = create_element_node( script, tree->doc, cur );
+	            ferite_uarray_add( script, VAUA( array ), obj, NULL, FE_ARRAY_ADD_AT_END );
+	            cur = cur->next;
+	        }
+	        FE_RETURN_VAR( array );
+	    }
+    
+	    /**
+	     * @function getFirstChild
+	     * @brief Get the first child of an element node.
+	     * @declaration function getFirstChild( )
+	     * @return an object of type XML.Element.
+	     */
+	    native function getFirstChild( ) : XML.Element
+	    {
+	        XMLDoc *tree = self->odata;	        
+	        if( tree->node->children )
+	        {
+	            FeriteVariable *obj = NULL;
+	            obj = create_element_node( script, tree->doc, tree->node->children );
+	            FE_RETURN_VAR( obj ); 
+	        }
+	        FE_RETURN_NULL_OBJECT;
+	    }
+    
+	    /**
+	     * @function getLastChild
+	     * @brief Get the last child of an element node.
+	     * @declaration function getLastChild( )
+	     * @return an object of type XML.Element.
+	     */
+	    native function getLastChild( ) : XML.Element
+	    {
+	        XMLDoc *tree = self->odata;	        
+	        if( tree->node->last )
+	        {
+	            FeriteVariable *obj = NULL;
+	            obj = create_element_node( script, tree->doc, tree->node->last );
+	            FE_RETURN_VAR( obj ); 
+	        }
+	        FE_RETURN_NULL_OBJECT;
+	    }
+    
+	    /**
+	     * @function getParent
+	     * @brief Get the parent element of an element node.
+	     * @declaration function getParent( )
+	     * @return an object of type XML.Element.
+	     */
+	    native function getParent( ) : XML.Element
+	    {
+	        XMLDoc *tree = self->odata;	        
+	        if( tree->node->parent )
+	        {
+	            FeriteVariable *obj = NULL;
+	            obj = create_element_node( script, tree->doc, tree->node->parent );
+	            FE_RETURN_VAR( obj ); 	                
+	        }
+	        FE_RETURN_NULL_OBJECT;
+	    }
+    
+	    /**
+	     * @function getPreviousSibling
+	     * @brief Get the previous sibling  of an element node.
+	     * @declaration function getPreviousSibling( ) 
+	     * @return an object of type XML.Element.
+	     */
+	    native function getPreviousSibling( ) : XML.Element
+	    {
+	        XMLDoc *tree = self->odata;	        
+	        if( tree->node->prev )
+	        {
+	            FeriteVariable *obj = NULL;
+	            obj = create_element_node( script, tree->doc, tree->node->prev );
+	            FE_RETURN_VAR( obj ); 
+	        }
+	        FE_RETURN_NULL_OBJECT;
+	    }
+    
+	    /**
+	     * @function getNextSibling
+	     * @brief Get the next sibling  of an element node.
+	     * @declaration function getNextSibling( ) 
+	     * @return an object of type XML.Element.
+	     */
+	    native function getNextSibling( ) : XML.Element
+	    {
+	        XMLDoc *tree = self->odata;	        
+	        if( tree->node->next )
+	        {
+	            FeriteVariable *obj = NULL;
+	            obj = create_element_node( script, tree->doc, tree->node->next );
+	            FE_RETURN_VAR( obj ); 
+	        }
+	        FE_RETURN_NULL_OBJECT;
+	    }
+    
+	    /**
+	     * @function getNamespace
+	     * @brief Get the namespace of an element node.
+	     * @declaration function getNamespace( ) 
+	     * @return an array with the name of the namespace.
+	     */
+	    native function getNamespace( ) : array //<string>
+	    {
+	        FeriteVariable *arr = NULL;
+	        XMLDoc *tree = self->odata;	        
+	        int i = 0;
+        
+	        arr = ferite_create_uarray_variable( script, "NamespaceList", FE_ARRAY_DEFAULT_SIZE, FE_STATIC );
+	        if( tree->node->ns != NULL )
+	        {
+	            FeriteVariable *str = ferite_create_string_variable_from_ptr( script, "URL", (char *)(tree->node->ns->href), 
+	                                                                          0, FE_CHARSET_DEFAULT, FE_STATIC );
+	            ferite_uarray_add( script, VAUA( arr ), str, (char *)(tree->node->ns->prefix), FE_ARRAY_ADD_AT_END );
+	        }
+	        FE_RETURN_VAR( arr );
+	    }    
+    
+	    /* Functions for manipulation of the tree */
+    
+	    /**
+	     * @function addChild
+	     * @brief Add a child element to the tree as a child to the current element.
+	     * @declaration function addChild( string name, string data ) 
+	     * @param string name The element name.
+	     * @param string data The element value.
+	     * @return an object of type XML.Element on success, null otherwise.
+	     */ 
+	    native function addChild( string name, string data ) : XML.Element
+	    {
+			FeriteVariable *obj = NULL;
+			XMLDoc *tree = self->odata;
+			xmlNodePtr node = NULL;
+			xmlNodePtr ret = NULL;
+			xmlChar *value = NULL;	
+        
+			if( data->length ) 
+	            value = (xmlChar*)data->data;	
+        
+			node = xmlNewDocNode( tree->doc, NULL, (xmlChar*)name->data, value );
+			if( node != NULL ) {
+	            ret = xmlAddChild( tree->node, node );
+	            recursive_namespace_copy( ret, tree->node );
+	            obj = create_element_node( script, tree->doc, ret );
+	            FE_RETURN_VAR( obj );
+			}
+			FE_RETURN_NULL_OBJECT;
+	    }
+    
+	    /**
+	     * @function addSibling
+	     * @brief Add a sibling element to the current element.
+	     * @declaration function addSibling( string name, string data ) 
+	     * @param string name The element name.
+	     * @param string data The element value.
+	     * @return an object of type XML.Element on success, null otherwise.
+	     * @warning You can't add a sibling to the root node within a document
+	     */ 
+	    native function addSibling( string name, string data ) : XML.Element {
+			FeriteVariable *obj = NULL;
+			XMLDoc *tree = self->odata;
+			xmlNodePtr node = NULL;
+			xmlNodePtr ret = NULL;
+			xmlChar *value = NULL;	
+        
+	        if( (void*)(tree->node->parent) != (void*)(tree->doc) )
+	        {
+	            if( data->length ) 
+	                value = (xmlChar*)data->data;	
+            
+	            node = xmlNewDocNode( tree->doc, NULL, (xmlChar*)name->data, value );
+	            if( node != NULL ) {
+	                node->doc = tree->doc;
+	                ret = xmlAddSibling( tree->node, node );
+	                recursive_namespace_copy( ret, tree->node->parent );
+	                obj = create_element_node( script, tree->doc, ret );
+	                FE_RETURN_VAR( obj );
+	            }
+	        }
+			FE_RETURN_NULL_OBJECT;
+	    }
+
+	    /**
+	     * @function addNextSibling
+	     * @brief Add an element as the next sibling of the to the current element.
+	     * @declaration function addNextSibling( string name, string data ) 
+	     * @param string name The element name.
+	     * @param string data The element value.
+	     * @return an object of type XML.Element on success, null otherwise.
+	     * @warning You can't add a sibling to the root node within a document.
+	     */     
+	    native function addNextSibling( string name, string data ) : XML.Element {
+			FeriteVariable *obj = NULL;
+			XMLDoc *tree = self->odata;
+			xmlNodePtr node = NULL;
+			xmlNodePtr ret = NULL;
+			xmlChar *value = NULL;	
+        
+	        if( (void*)(tree->node->parent) != (void*)(tree->doc) )
+	        {
+	            if( data->length ) 
+	                value = (xmlChar*)data->data;	
+        
+	            node = xmlNewDocNode( tree->doc, NULL, (xmlChar*)name->data, value );
+	            if( node != NULL ) {
+	                node->doc = tree->doc;
+	                ret = xmlAddNextSibling( tree->node, node );
+	                recursive_namespace_copy( ret, tree->node->parent );
+	                obj = create_element_node( script, tree->doc, ret );
+	                FE_RETURN_VAR( obj );
+	            }
+	        }
+			FE_RETURN_NULL_OBJECT;
+	    }
+
+	    /**
+	     * @function addPreviousSibling
+	     * @brief Add an element as the previous sibling of the to the current element.
+	     * @declaration function addPreviousSibling( string name, string data ) 
+	     * @param string name The element name.
+	     * @param string data The element value.
+	     * @return an object of type XML.Element on success, null otherwise.
+	     * @warning You can't add a sibling to the root node within a document.
+	     */     
+	    native function addPreviousSibling( string name, string data ) : XML.Element {
+			FeriteVariable *obj = NULL;
+			XMLDoc *tree = self->odata;
+			xmlNodePtr node = NULL;
+			xmlNodePtr ret = NULL;
+			xmlChar *value = NULL;	
+        
+	        if( (void*)(tree->node->parent) != (void*)(tree->doc) )
+	        {
+	            if( data->length ) 
+	                value = (xmlChar*)data->data;	
+            
+	            node = xmlNewDocNode( tree->doc, NULL, (xmlChar*)name->data, value );
+	            if( node != NULL ) {
+	                node->doc = tree->doc;
+	                ret = xmlAddPrevSibling( tree->node, node );
+	                recursive_namespace_copy( ret, tree->node->parent );
+	                obj = create_element_node( script, tree->doc, ret );
+	                FE_RETURN_VAR( obj );
+	            }
+	        }
+			FE_RETURN_NULL_OBJECT;
+	    }
+    
+	    /**
+	     * @function addComment
+	     * @brief Add an xml comment as a child to the current element.
+	     * @declaration  native function addComment( string comment ) 
+	     * @param string comment The comment.
+	     * @return true on success, false otherwise.
+	     */     
+	    native function addComment( string comment ) : boolean
+	    {
+			XMLDoc *tree = self->odata;
+			xmlNodePtr node = NULL, ret = NULL;
+		
+			node = xmlNewComment( (xmlChar*)comment->data );	
+			if( node != NULL ) {
+	            ret = xmlAddChild(tree->node, node);
+	            recursive_namespace_copy( ret, tree->node );
+	            FE_RETURN_TRUE;
+			}
+			FE_RETURN_FALSE;
+	    }
+    
+	    /**
+	     * @function addCDATASection
+	     * @brief Add an xml cdata section as a child to the current element.
+	     * @declaration  native function addCDATASection( string cdata ) 
+	     * @param string cdata The value of the cdata section.
+	     * @return true on success, false otherwise.
+	     */     
+	    native function addCDATASection( string cdata ) : boolean
+	    {
+			XMLDoc *tree = self->odata;
+			xmlNodePtr node = NULL, ret = NULL;
+		
+			node = xmlNewCDataBlock( NULL , (xmlChar*)cdata->data, cdata->length );
+			if( node != NULL ) {
+	            ret = xmlAddChild(tree->node, node);
+	            recursive_namespace_copy( ret, tree->node );
+	            FE_RETURN_TRUE;
+			}
+			FE_RETURN_FALSE;
+	    }
+    
+	    /**
+	     * @function addPI
+	     * @brief Add an xml proccessing intructionas a child to the current element.
+	     * @declaration function addPI( string name, string value )
+	     * @param string name The name of the pi.
+	     * @param string value the value of the pi.
+	     * @return true on success, false otherwise.
+	     */     
+	    native function addPI( string name, string value ) : boolean
+	    {
+			XMLDoc *tree = self->odata;
+			xmlNodePtr node = NULL;
+	        xmlNodePtr ret = NULL;
+	
+			node = xmlNewPI( (xmlChar*)name->data, (xmlChar*)value->data );
+			if( node != NULL ) {
+	            ret = xmlAddChild(tree->node, node);
+	            recursive_namespace_copy( ret, tree->node );
+	            FE_RETURN_TRUE;
+			}
+			FE_RETURN_FALSE;
+	    }
+    
+	    /**
+	     * @function setElementName
+	     * @brief Change the name of the current element.
+	     * @declaration function setElementName( string name ) 
+	     * @param string name The new elements name.
+	     */     
+	    native function setElementName( string name ) : undefined
+	    {
+			XMLDoc *tree = self->odata;
+			xmlNodeSetName(tree->node, (xmlChar*)name->data);
+	    }
+    
+	    /**
+	     * @function setElementData
+	     * @brief Change the content of the current element.
+	     * @declaration function setElementData( string value ) 
+	     * @param string value The data to set as element content.
+	     */     
+	    native function setElementData( string value ) : undefined
+	    {
+	        XMLDoc *tree = self->odata;
+	        xmlNodeSetContent( tree->node, (xmlChar*)value->data );		
+	    }
+    
+	    /**
+	     * @function setAttribute
+	     * @brief Set the value of an attribute on the current element. 
+	              If the attribute does not exist it will be created. 
+	     * @declaration function setAttribute( string name, string value ) 
+	     * @param string name The name of the attribute to change or add.
+	     * @param string value The value to give to attribute.
+	     */     
+	    native function setAttribute( string name, string value ) : undefined
+	    {
+	        XMLDoc *tree = self->odata;
+	        xmlAttrPtr attr = NULL;
+        
+			if( xmlHasProp( tree->node, (xmlChar*)name->data ) ) {
+	            xmlSetProp( tree->node, (xmlChar*)name->data, (xmlChar*)value->data );
+	        } else {
+	            attr = xmlNewProp( tree->node, (xmlChar*)name->data, (xmlChar*)value->data );
+	            xmlAddChild( tree->node, (xmlNodePtr)attr );
+	        }
+	    }
+    
+	    /**
+	     * @function removeAttribute
+	     * @brief Remove an attribute
+	     * @declaration function removeAttribute( string name ) 
+	     * @param string name The name of the attribute to remove.
+	     */     
+	    native function removeAttribute( string name ) : boolean
+	    {
+	        xmlAttrPtr attr = NULL;
+	        XMLDoc *tree = self->odata;
+    	
+	        attr = xmlHasProp( tree->node,(xmlChar*)name->data );
+        
+	        if( attr != NULL ) {
+	            xmlUnlinkNode((xmlNodePtr)attr);
+	            xmlFreeProp(attr);
+	            FE_RETURN_TRUE;
+	        }
+			FE_RETURN_FALSE;
+	    }
+
+	    /**
+	     * @function removeChildren
+	     * @brief Remove all children element to the current node.
+	     * @declaration function removeChildren( )
+	     * @return the number of element that has been removed.
+	     */     
+	    native function removeChildren( ) : number
+	    {
+	          XMLDoc *tree = self->odata;
+		  xmlNodePtr elem = NULL;
+		  int count = 0;
+
+		  elem = tree->node->children;
+		  while ( elem ) {
+	                xmlUnlinkNode( elem );
+		        count++;
+	                elem = elem->next;
+		  }
+
+		  tree->node->children = tree->node->last = NULL;
+		  FE_RETURN_LONG( count ); 
+	    }
+
+	    /**
+	     * @function removeChildWithName
+	     * @brief Remove all children elements with a specific name.
+	     * @declaration function removeChildWithName( string name )
+	     * @param string name The name of the element to remove.
+	     * @return the number of element that has been removed.
+	     */     
+	    native function removeChildWithName( string name ) : number
+	    {
+		  XMLDoc *tree = self->odata;
+		  xmlNodePtr elem = NULL;
+		  int count = 0;	
+
+		  elem = tree->node->children;
+		  while ( elem ) {
+			  if(! strncmp( (char*)elem->name, name->data, name->length ) ) {
+				  xmlUnlinkNode( elem );
+				  count++;
+			  }
+			  elem = elem->next;
+		  }
+		  FE_RETURN_LONG( count );
+	    } 
+
+	    /**
+	     * @function removeSelf
+	     * @brief Remove the current element.
+	     * @declaration function removeSelf( ) 
+	     */     
+	    native function removeSelf( ) : undefined
+	    {
+		  XMLDoc *tree = self->odata;
+		  xmlNodePtr elem = NULL;
+	
+		  elem = tree->node;
+		  tree->node = tree->node->next;
+		
+		  xmlUnlinkNode( elem );	  
+	    }
+
+	    /**
+	     * @function removeElementsByTagName
+	     * @brief Remove all elements with identified by an xpath string.
+	     * @declaration function removeElementsByTagName( string name )
+	     * @param string name The string which identifies the lement to be removed.
+	     * @return the number of element that has been removed.
+	     */     
+	    native function removeElementsByTagName( string name ) : number
+	    {
+	        XMLDoc *tree = self->odata;	        
+	        xmlXPathObjectPtr res = NULL; 
+		xmlNodeSetPtr cur = NULL;
+		register int i = 0;
+		
+		res = get_nodes_with_name_xpath( tree, name );
+	        switch( res->type )
+	        { 
+	            case XPATH_NODESET:
+	                cur = res->nodesetval;
+                
+	                for (i = 0 ; i < cur->nodeNr ; i++) {
+	                    xmlUnlinkNode( cur->nodeTab[i] );
+	                }
+	                break;		
+		}
+	        xmlXPathFreeObject( res );
+		FE_RETURN_LONG( i );	
+	    }
+    
+	    /* functions for merging of xml tree's */
+
+	    /**
+	     * @function mergeAsChild
+	     * @brief Merge one xml tree into another as a child tree. 
+	     * @declaration function mergeAsChild( object chk )
+	     * @param object xml the XML.TreeParser object to merge 
+	     * @return an object of type XML.Element on success, null otherwise.
+	     */     
+	    native function mergeAsChild( object chk ) : XML.Element
+	    {
+	        if( chk != NULL )
+	        {
+	            FeriteVariable *obj = NULL;
+	            XMLDoc *tree = self->odata;
+	            XMLDoc *chunk = chk->odata;
+	            xmlNodePtr ret = NULL;
+            
+	            ret = xmlCopyNode( chunk->node, 1 ); 
+	            if( ret != NULL ) {
+	                xmlAddChild(tree->node, ret);
+	                recursive_namespace_copy( ret, tree->node );
+	                obj = create_element_node( script, tree->doc, ret );
+	                FE_RETURN_VAR( obj );
+	            }
+	        }
+	        FE_RETURN_NULL_OBJECT;
+	    } 
+
+	    /**
+	     * @function mergeAsSibling
+	     * @brief Merge one xml tree into another as a child tree. As a sibling.
+	     * @declaration function mergeAsSibling( object chk ) 
+	     * @param object xml The XML.TreeParser object to merge.
+	     * @return an object of type XML.Element on success, null otherwise.
+	     * @warning You can't add a sibling to the root node within a document.
+	     */     
+	    native function mergeAsSibling( object chk ) : XML.Element
+	    {
+	        if( chk != NULL )
+	        {
+	            FeriteVariable *obj = NULL;
+	            XMLDoc *tree = self->odata;
+	            XMLDoc *chunk = chk->odata;
+	            xmlNodePtr ret = NULL;
+            
+	            if( (void*)(tree->node->parent) != (void*)(tree->doc) )
+	            {
+	                ret = xmlCopyNode( chunk->node, 1 ); 
+	                if( ret != NULL ) {
+	                    xmlAddSibling(tree->node, ret);
+	                    recursive_namespace_copy( ret, tree->node->parent );
+	                    obj = create_element_node( script, tree->doc, ret );
+	                    FE_RETURN_VAR( obj );
+	                }
+	            }
+	        }
+	        FE_RETURN_NULL_OBJECT;          
+	    } 
+
+	    /**
+	     * @function mergeAsNextSibling
+	     * @brief Merge one xml tree into another as a child tree. As the next sibling.
+	     * @declaration function mergeAsNextSibling( object chk ) 
+	     * @param object xml The XML.TreeParser object to merge
+	     * @return an object of type XML.Element on success, null otherwise.
+	     * @warning You can't add a sibling to the root node within a document.
+	     */     
+	    native function mergeAsNextSibling( object chk ) : XML.Element
+	    {
+	        if( chk != NULL )
+	        {
+	            FeriteVariable *obj = NULL;
+	            XMLDoc *tree = self->odata;
+	            XMLDoc *chunk = chk->odata;
+	            xmlNodePtr ret = NULL;
+            
+	            if( (void*)(tree->node->parent) != (void*)(tree->doc) )
+	            {
+	                ret = xmlCopyNode( chunk->node, 1 ); 
+	                if( ret != NULL ) {
+	                    xmlAddNextSibling(tree->node, ret);
+	                    recursive_namespace_copy( ret, tree->node->parent );
+	                    obj = create_element_node( script, tree->doc, ret );
+	                    FE_RETURN_VAR( obj );
+	                }
+	            }
+	        }
+	        FE_RETURN_NULL_OBJECT;
+	    } 
+
+	    /**
+	     * @function mergeAsPreviousSibling
+	     * @brief Merge one xml tree into another tree as the next sibling.
+	     * @declaration function mergeAsPreviousSibling( object chk ) 
+	     * @param object xml The XML.TreeParser object to merge
+	     * @warning You can't add a sibling to the root node within a document.
+	     * @return an object of type XML.Element on success, null otherwise.
+	     */     
+	    native function mergeAsPreviousSibling( object chk ) : XML.Element
+	    {
+	        if( chk != NULL )
+	        {
+	            FeriteVariable *obj = NULL;
+	            XMLDoc *tree = self->odata;
+	            XMLDoc *chunk = chk->odata;
+	            xmlNodePtr ret = NULL;
+            
+	            if( (void*)(tree->node->parent) != (void*)(tree->doc) )
+	            {
+	                ret = xmlCopyNode( chunk->node, 1 ); 
+	                if( ret != NULL ) {
+	                    xmlAddPrevSibling(tree->node, ret);
+	                    recursive_namespace_copy( ret, tree->node->parent );
+	                    obj = create_element_node( script, tree->doc, ret );
+	                    FE_RETURN_VAR( obj );
+	                }
+	            }
+	        }
+	        FE_RETURN_NULL_OBJECT;
+	    } 
+    
+	    /**
+	     * @function toString
+	     * @brief return the content of an element and its children as a string.
+	     * @declaration function toString( )
+	     * @return a string with the xml data.
+	     */     
+	    native function toString( ) : string
+	    {
+	        XMLDoc *tree = self->odata;
+	        FeriteVariable *v = NULL;
+        
+	        if( tree->doc )
+	        {
+	            xmlChar *xmlstring = NULL;
+		    xmlBufferPtr buffer = xmlBufferCreate();
+	            int len;
+            
+	            xmlIndentTreeOutput = 1;
+	            xmlNodeDump( buffer, tree->doc, tree->node, 100, 1);
+	
+	            xmlstring = xmlBufferContent( buffer );
+		    len = xmlBufferLength( buffer );
+	            v = fe_new_str_static( "xml", (char *)xmlstring, len, FE_CHARSET_DEFAULT );
+            
+		    xmlBufferFree( buffer );
+
+	        }
+	        else
+	            v = fe_new_str_static( "xml", "", 0, FE_CHARSET_DEFAULT );
+        
+
+	        FE_RETURN_VAR( v );
+	    }    
+
+
+	    /**
+	     * @function xpathArray
+	     * @brief Retrive an array of values from the tree using XPath.
+	     * @param string axpr The XPath expression.
+	     * @declaration function xpathArray( string expr )
+	     * @return An array containing the result of the xpath expression.
+	     */
+	    native function xpathArray( string expr ) : array<XML.Element> {
+	        FeriteVariable *v = NULL;
+	        XMLDoc *tree = self->odata;
+        
+	        if( tree->doc ) 
+	            v = ParseXPath( script, tree , (const char *) expr->data);
+	        else 
+	            v = fe_new_array_static( "xpathArray", 0 );
+        
+	        FE_RETURN_VAR( v );
+	    }
+	    /**
+	     * @function xpathNode
+	     * @brief Retrive a string from the tree using XPath.
+	     * @param string txpath The XPath expression.
+	     * @declaration function xpathNode( string expr )
+	     * @return A XML.Element node, or null
+	     */
+	    function xpathNode( string expr ) {
+			array a = self.xpathArray( expr );
+			if( Array.size(a) < 1 )
+				return null;
+			return a[0]; 
+	    }
+	}
+	/**
+	 * @end
+	 */
+
+	/** 
+	 * @class SAXParser
+	 * @brief Implements a SAXParser.
+	 * @warning Due to the nature of libxml2, xml parsing, unlike ferite, is not currently completely thread safe.
+	    This is exhibited within the error reporting of the parsers and is currently unavoidable.
+	 */
+	class SAXParser {
+	    native function constructor()
+	    {
+	        /* quickly nullify stuff */
+	        self->odata = fmalloc( sizeof( xmlSAXHandler ) );
+	        memset( SAXObj, '\0', sizeof( xmlSAXHandler ) ); 
+	        SAXObj->internalSubset = sax_internalSubset;
+	        SAXObj->isStandalone = sax_isStandalone;
+	        SAXObj->hasInternalSubset = sax_hasInternalSubset;
+	        SAXObj->hasExternalSubset = sax_hasExternalSubset;
+	        SAXObj->resolveEntity = sax_resolveEntity;
+	        SAXObj->getEntity = sax_getEntity;
+	        SAXObj->entityDecl = sax_entityDecl;
+	        SAXObj->notationDecl = sax_notationDecl;
+	        SAXObj->attributeDecl = sax_attributeDecl;
+	        SAXObj->elementDecl = sax_elementDecl;
+	        SAXObj->unparsedEntityDecl = sax_unparsedEntityDecl;
+	        SAXObj->setDocumentLocator = sax_setDocumentLocator;
+	        SAXObj->startDocument = sax_startDocument;
+	        SAXObj->endDocument = sax_endDocument;
+	        SAXObj->startElement = sax_startElement;
+	        SAXObj->endElement = sax_endElement;
+	        SAXObj->reference = sax_reference;
+	        SAXObj->characters = sax_characters;
+	        SAXObj->ignorableWhitespace = sax_ignorableWhitespace;
+	        SAXObj->processingInstruction = sax_processingInstruction;
+	        SAXObj->comment = sax_comment;
+	        SAXObj->warning = sax_warning;
+	        SAXObj->error = sax_error;
+	        SAXObj->fatalError = sax_fatalError;
+	        SAXObj->getParameterEntity = sax_getParameterEntity;
+	        SAXObj->cdataBlock = sax_cdataBlock;
+	        SAXObj->externalSubset = sax_externalSubset;
+	    }
+    
+	    native function destructor()
+	    {
+	        if( SAXObj )
+	            ffree( self->odata );
+	    }
+    
+	    /**
+	     * @function parseFile
+	     * @brief Parse an xmlfile using SAX.
+	     * @param string filename The XML to parse.
+	     * @declaration function parseFile( string filename )
+	     */
+	    native function parseFile( string filename ) : boolean
+	    {
+	        int retval = FE_FALSE;
+	        SaxRecord *sr = fmalloc( sizeof( SaxRecord ) );
+        
+	        sr->script = script;
+	        sr->obj = self;
+	        xmlSetGenericErrorFunc(script, (xmlGenericErrorFunc)tree_error_handler);
+	        retval = sax_xmlParseFile( SAXObj, sr, filename->data );
+	        ffree( sr );
+			if( retval ) {
+				FE_RETURN_TRUE;
+			}
+			FE_RETURN_FALSE;
+	    }
+    
+	    /**
+	     * @function parseChunk
+	     * @brief Parse an xml chunk using SAX.
+	     * @param string chunk The XML string to parse.
+	     * @declaration function parseChunk( string chunk )
+	     */
+	    native function parseChunk( string chunk ) : boolean
+	    {
+	        int retval = FE_FALSE;
+	        SaxRecord *sr = fmalloc( sizeof( SaxRecord ) );
+        
+	        sr->script = script;
+	        sr->obj = self;
+	        retval = sax_xmlParseChunk( SAXObj, sr, chunk );
+	        ffree( sr );
+			if( retval ) {
+				FE_RETURN_TRUE;
+			}
+			FE_RETURN_FALSE;
+	    }    
+	}
+	/**
+	 * @end
+	 */	
+
+	/**
+	 * @class TreeParser
+	 * @brief Implements a TreeParser.
+	 * @description Parse XML into a tree.
+	 * @example <code>
+	 <keyword>uses</keyword> "xml";<nl/>
+	 <keyword>uses</keyword> "console";<nl/>
+	 <keyword>uses</keyword> "<type>array</type>";<nl/>
+	 <keyword>uses</keyword> "<type>string</type>";<nl/>
+	 <nl/>
+	 <keyword>global</keyword> {<nl/>
+	 <tab/><type>number</type> dumpElements = 1;<nl/>
+	 }<nl/>
+	 <nl/>
+	 <keyword>function</keyword> whitespace( <type>number</type> count ) {<nl/>
+	 <tab/><type>string</type> s = "";<nl/>
+	 <tab/><keyword>while</keyword>( count &gt; 0 )<nl/>
+	 <tab/>{<nl/>
+	 <tab/><tab/>s += "<tab/>";<nl/>
+	 <tab/><tab/>count--;<nl/>
+	 <tab/>}<nl/>
+	 <tab/><keyword>return</keyword> s;<nl/>
+	 }<nl/>
+	 <nl/>
+	 <nl/>
+	 <keyword>function</keyword> processElement( <type>object</type> element, <type>number</span> depth ) {<nl/>
+	 <tab/><type>string</type> ed = String.trim( element.getElementData(), " \t\n\r" );<nl/>
+	 <tab/><nl/>
+	 <tab/><keyword>if</keyword>( dumpElements )<nl/>
+	 <tab/><tab/>Console.println( whitespace(depth) + "&gt;&gt;&gt;&gt;&lt; Element: " + <nl/>
+	 <tab/><tab/><tab/><tab/>element.getElementName() + " Ns:" + element.getNamespace() + <nl/>
+	 <tab/><tab/><tab/><tab/>" Attr:" + element.getAttributes() );<nl/>
+	 <tab/><nl/>
+	 <tab/><keyword>if</keyword>( ed != "" &amp;&amp; dumpElements )<nl/>
+	 <tab/><tab/>Console.println( whitespace(depth + 1) + "---- '$ed'" );<nl/>
+	 <tab/><nl/>
+	 <tab/><keyword>if</keyword>( element.hasChildren() )<nl/>
+	 <tab/>{<nl/>
+	 <tab/><tab/><type>array</type> children = element.getChildren();<nl/>
+	 <tab/><tab/>Array.each( children ) <keyword>using</keyword> ( child ) {<nl/>
+	 <tab/><tab/><tab/>processElement( child, depth + 1 );<nl/>
+	 <tab/><tab/>};<nl/>
+	 <tab/>}<nl/>
+	 <tab/><nl/>
+	 <tab/><keyword>if</keyword>( dumpElements )<nl/>
+	 <tab/><tab/>Console.println( whitespace(depth) + "&lt;&lt;&lt;&lt; Element: " + <nl/>
+	 <tab/><tab/><tab/><tab/>element.getElementName() );<nl/>
+	 }<nl/>
+	 <nl/>
+	 <type>object</type> o = <keyword>new</keyword> XML.TreeParser();<nl/>
+	 o.parseFile( <keyword>argv</keyword>[0] );<nl/>
+	 <nl/>
+	 processElement( o.getDocumentElement(), 0 );<nl/>
+	 <nl/>
+	 <keyword>if</keyword>( !dumpElements )<nl/>
+	 <tab/>Console.println( o.toString() );<nl/>
+	 </code><nl/>
+	 * @warning Due to the nature of libxml2, xml parsing, unlike ferite, is not currently completely thread safe.
+	            This is exhibited within the error reporting of the parsers and is currently unavoidable.
+	 */
+	class TreeParser {
+	    native function constructor( ) 
+	    {
+			XMLDoc *tree = fcalloc( 1, sizeof( XMLDoc ) );
+
+			tree->doc = NULL;
+			tree->node = NULL;
+			tree->keepBlanks = 1;
+	        self->odata = tree;
+        
+	        /* set default parser behavior */
+	        xmlSubstituteEntitiesDefault(1);
+	        xmlDoValidityCheckingDefaultValue = 0;
+	        xmlPedanticParserDefaultValue = 0;
+	        xmlKeepBlanksDefault(tree->keepBlanks);	
+	    }
+
+	    native function destructor( ) 
+	    {
+	        XMLDoc *tree = self->odata;
+        
+	        if( tree && tree->doc ) 
+	            xmlFreeDoc( tree->doc );
+        
+	        if( tree )
+	            ffree( tree );
+        
+	        xmlDoValidityCheckingDefaultValue = 0;
+	        xmlPedanticParserDefaultValue = 0;
+	        xmlKeepBlanksDefault(1);
+        
+	        xmlSetGenericErrorFunc(NULL, NULL);
+	    }
+    
+	    /**
+	     * @function parseFile
+	     * @brief Parse an xmlfile into a tree.
+	     * @param string filename The XML to parse.
+	     * @declaration function parseFile( string filename )
+	     */
+	    native function parseFile( string filename ) : boolean
+	    {
+	        XMLDoc *tree = self->odata;
+        
+	        if( tree->doc ) { 
+	            xmlFreeDoc( tree->doc );
+	            tree->doc = NULL;
+	        }
+	        xmlKeepBlanksDefault(tree->keepBlanks);	
+	        xmlSetGenericErrorFunc(script, (xmlGenericErrorFunc)tree_error_handler);
+	        tree->doc = xmlParseFile( filename->data );
+	        if (tree->doc == NULL ) {
+	            ferite_error( script, 1, "Document was not parsed successfully. \n");
+	            FE_RETURN_FALSE;
+	        }
+	        tree->node = xmlDocGetRootElement( tree->doc );
+	        FE_RETURN_TRUE;
+	    }
+    
+	    /**
+	     * @function parseChunk
+	     * @brief Parse an xml chunk into a tree.
+	     * @param string chunk The XML string to parse.
+	     * @declaration function parseChunk( string chunk )
+	     */
+	    native function parseChunk( string chunk ) : boolean
+	    {
+	        XMLDoc *tree = self->odata;
+        
+	        if( tree->doc ) { 
+	            xmlFreeDoc( tree->doc );
+	            tree->doc = NULL;
+	        }
+	        xmlKeepBlanksDefault(tree->keepBlanks);	
+	        xmlSetGenericErrorFunc(script, (xmlGenericErrorFunc)tree_error_handler);
+	        tree->doc = xmlParseMemory( chunk->data, chunk->length );
+	        if (tree->doc == NULL ) {
+	            ferite_error( script, 1, "Chunk was not parsed successfully. \n");
+	            FE_RETURN_FALSE;
+	        }
+	        tree->node = xmlDocGetRootElement( tree->doc );
+	        FE_RETURN_TRUE;
+	    }
+    
+	    /**
+	     * @function xpathArray
+	     * @brief Retrive an array of values from the tree using XPath.
+	     * @param string axpr The XPath expression.
+	     * @declaration function xpathArray( string expr )
+	     * @return An array containing the result of the xpath expression.
+	     */
+	    native function xpathArray( string expr ) : array
+	    {
+	        FeriteVariable *v = NULL;
+	        XMLDoc *tree = self->odata;
+        
+	        if( tree->doc ) 
+	            v = ParseXPath( script, tree , (const char *) expr->data);
+	        else 
+	            v = fe_new_array_static( "xpathArray", 0 );
+        
+	        FE_RETURN_VAR( v );
+	    }
+	    /**
+	     * @function xpathNode
+	     * @brief Retrive a string from the tree using XPath.
+	     * @param string txpath The XPath expression.
+	     * @declaration function xpathNode( string expr )
+	     * @return A XML.Element node, or null
+	     */
+	    function xpathNode( string expr )
+	    {
+	        array a = self.xpathArray( expr );
+			 if( Array.size(a) < 1 )
+		            return null;
+    	
+			return a[0]; 
+	    }		
+    
+	    /**	
+	    * @function toString
+	    * @brief Return the XML tree as a string.
+	    * @declaration function toString( )
+	    * @return a string containing the XML data.
+	    */
+	    native function toString( ) : string
+	    {
+	        XMLDoc *tree = self->odata;
+	        FeriteVariable *v = NULL;
+        
+	        if( tree->doc )
+	        {
+	            xmlChar *string = NULL;
+	            int len;
+            
+	            xmlIndentTreeOutput = 1;
+	            if( tree->doc ) 
+	                xmlDocDumpMemoryEnc( tree->doc, &string, &len, NULL);
+            
+	            v = fe_new_str_static( "xml", (char *)string, len, FE_CHARSET_DEFAULT );
+	            xmlFree( string );
+	        }
+	        else
+	            v = fe_new_str_static( "xml", "", 0, FE_CHARSET_DEFAULT );
+        
+	        FE_RETURN_VAR( v );
+	    }
+    
+	    /**
+	     * @function saveToFile
+	     * @brief Save the parser tree to a file.
+	     * @param string filename The name of the file to save to.
+	     * @declaration function saveToFile( string filename )
+	     * @return true on success false on failure.
+	     */
+	    native function saveToFile( string filename ) : boolean
+	    {
+	        XMLDoc *tree = self->odata;
+        
+	        if( tree->doc )
+	        {
+	            if( xmlSaveFormatFile( filename->data, tree->doc, 1 ))
+	                FE_RETURN_TRUE;
+	        }
+	        FE_RETURN_FALSE;
+	    }
+    
+	    /**
+	     * @function getDocumentElement
+	     * @brief Retrieve the document element from a parsed xml entity.
+	     * @declaration function getDocumentElement( ) 
+	     * @return The document element as an XML Element object or a null object on failure.
+	     */
+	    native function getDocumentElement( ) : XML.Element
+	    {
+	        XMLDoc *tree = (XMLDoc *)self->odata;
+	        if( tree->doc )
+	        {
+			    FeriteVariable *obj;
+			    xmlNode *root_element = NULL;
+	    
+			    root_element = xmlDocGetRootElement(tree->doc);
+	    
+			    obj = create_element_node( script, tree->doc, root_element );
+			    FE_RETURN_VAR( obj );       	
+	        }
+	        FE_RETURN_NULL_OBJECT;
+	    } 
+    
+	    /*
+	     *  Functions to change the way the parser works internaly.
+	     */ 
+	    /**
+	     * @function validation
+	     * @brief Should we validate the XML agains the DTD in the DOCTYPE element?
+	     * @param boolean bool true for validate and false for no validation (default).
+	     * @declaration function validation( boolean bool )
+	     */
+	    native function validation( boolean bool ) : undefined
+	    {
+	        if( bool == FE_FALSE )
+	            xmlDoValidityCheckingDefaultValue = 0;
+	        else
+	            xmlDoValidityCheckingDefaultValue = 1;
+	    }
+    
+	    /**
+	     * @function keepBlanks
+	     * @brief Make the parser keep all whitespace.
+	     * @param boolean bool true (default) for yes  and false for no.
+	     * @declaration function keepBlanks( boolean bool )
+	     */
+	    native function keepBlanks( boolean bool ) : undefined {
+			XMLDoc *tree = (XMLDoc*)self->odata;
+			tree->keepBlanks = bool;	
+	    }
+	}
+	/**
+	 * @end
+	 */
+}
+
+/**
+ * @end
+ */

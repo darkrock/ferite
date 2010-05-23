@@ -1,0 +1,181 @@
+
+namespace modifies Farm {
+	
+	namespace RuleSet {
+
+		// Invoked on source files
+		abstract class SourceRule {
+			
+			// Returns the source files that this rule deals with
+			function types() {
+				return [];
+			}
+			
+			// Whether this source rule translates
+			function doesTranslate() {
+				return false;
+			}
+			
+			// Takes a source file and returns an array of tranlated files
+			function translate( object target, string source, string prefix ) {
+				return [ source ];
+			}
+			
+			// Takes a source file, builds it and then returns
+			function build( object target, string file ) {
+				return .build( target, file, [] );
+			}
+			function build( object target, string file, array specialOptions ) {
+				return '';
+			}
+			function buildOutput( object target, string file ) {
+				return '';
+			}
+		}
+		
+		abstract class BuildRule {
+			
+			function type() {
+				return "";
+			}
+		
+			function specialBuildOptions( object target ) {
+				return [];
+			}
+		
+			function combinationName( object target ) {
+				return "";
+			}
+			
+			function combine( object target, array files ) {
+				return false;
+			}
+		}
+		
+		final string Executable	= "Farm.Executable";
+		final string StaticLibrary = "Farm.StaticLibrary";
+		final string SharedLibrary = "Farm.SharedLibrary";
+		final string ModuleLibrary = "Farm.ModuleLibrary";
+		
+		array sourceHandlers;
+		array buildHandlers;
+		
+		function registerSourceHandler( object h ) {
+			Array.each( h.types() ) using ( type ) {
+				.sourceHandlers[String.toLower(type)] = h;
+			};
+		}
+		function registerBuildHandler( object h ) {
+			.buildHandlers[h.type()] = h;
+		}
+				
+		function needsUpdating( object target, string source ) {
+			string dest = Farm.RuleSet.combinationName(target, target.getProperty('type'));
+			object sstat = Posix.stat(source);
+			object dstat = Posix.stat(dest);
+			
+			if( sstat == null or dstat == null or (dstat.getModifiedTime() < sstat.getModifiedTime()) )
+				return true;
+			return false;
+		}
+		
+		function translate( object target, string source ) {
+			string ext = Farm.sourceFileType(source);
+			if( Array.keyExists(.sourceHandlers, ext) ) {
+				string prefix = Farm.derivedSourcesDirForTarget(target) + "/" + Farm.generateDerivedSourcesTag(Farm.basename(source));
+				
+				if( .sourceHandlers[ext].doesTranslate() ) {
+					if( .needsUpdating( target, source ) ) {
+						array r = [];
+						Farm.destroyPath( prefix );
+						Farm.createPath( prefix );			
+						r = .sourceHandlers[ext].translate(target,source,prefix);
+						if( r != [ source ] )
+							Farm.displayAction("$ext", Farm.basename(source));
+						return r;
+					} else {
+						Farm.displayAction('skip', Farm.basename(source));
+						return Farm.sourceDirectoryContents( prefix );
+					}
+				}
+			}
+			return [ source ];
+		}
+		function build( object target, string source ) {
+			string ext = Farm.sourceFileType(source);
+			if( Array.keyExists(.sourceHandlers, ext) ) {
+				if( .needsUpdating( target, source ) ) {
+					Farm.createPath( Farm.compiledObjectsDirForTarget(target), 0755 );
+					Farm.displayAction("build:$ext", Farm.basename(source) + (Regexp.match('DerivedSources',source) ? " *" : "") );
+					return .sourceHandlers[ext].build( target, source, .buildHandlers[target.type()].specialBuildOptions( target ) );
+				} else {
+					Farm.displayAction('skip', Farm.basename(source) + (Regexp.match('DerivedSources',source) ? " *" : ""));
+					return .sourceHandlers[ext].buildOutput( target, source );
+				}
+			}
+			return "";
+		}
+		function combine( object target, array files, string type ) {
+			if( Array.keyExists(.buildHandlers, type) ) {
+				object o = .buildHandlers[type];
+				Farm.displayAction("combine", Farm.basename(o.combinationName(target)));
+				return o.combine( target, files );
+			}
+			Farm.displayAction('error', "Unable to combine target ${target.uid} (no build handler)");
+			return false;
+		}
+		function combinationName( object target, string type ) {
+			if( Array.keyExists(.buildHandlers, type) ) {
+				object o = .buildHandlers[type];
+				return o.combinationName( target );
+			}
+			return "";
+		}
+		function sourceTypes() {
+			return '\.(' + Array.join( Array.keys(.sourceHandlers), '|' ) + ')$';
+		}
+	}
+}
+
+namespace GeneralRules {
+	
+	class Builder extends Farm.RuleSet.SourceRule {
+		
+		static function constructor() { Farm.RuleSet.registerSourceHandler( new GeneralRules.Builder() ); }
+		
+		function types() {
+			return [ 'fec' ];
+		}
+		
+		function doesTranslate() {
+			return true;
+		}
+		
+		function translate( object target, string file, string prefix ) {
+			
+			string filename = Farm.basename(file);						
+			string filelocation = Farm.dirname(file);
+			string module = target.getProperty('name');
+				
+			// Go to the file location
+			Directory.setCurrent(filelocation);
+			
+			Directory.build(prefix);
+			
+			// Generate the various files
+			Farm.invokeExternalProgram( "builder -m $module -f -nc -fp $prefix/ $filename" );
+			
+			// Move the xml to the products dir
+			File.move( "$prefix/$module.xml", "${Farm.productsDirForTarget(target)}/$module.xml" );
+			
+			// Go back up the tree
+			Directory.setCurrent(Farm.toplevelDirectory);
+
+		// Sort out the include path
+			target.addProperty('C', "-I$prefix");
+			target.addProperty('C', "-I$prefix");
+			   
+			return Farm.sourceDirectoryContents( prefix );	
+		}
+	}		
+}

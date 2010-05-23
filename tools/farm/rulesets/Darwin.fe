@@ -1,0 +1,126 @@
+
+namespace Darwin {
+	
+	class C extends Farm.RuleSet.SourceRule {
+		
+		static function constructor() { Farm.RuleSet.registerSourceHandler( new Darwin.C() ); }
+		
+		function types() {
+			return [ 'c' ];
+		}
+		function build( object target, string file, array specialOptions ) {
+			string objectPath = .buildOutput( target, file );
+			string flags = target.getProperty('C');
+			specialOptions['C'] and flags = "$flags ${specialOptions['C']}";
+			if( Farm.invokeExternalProgram( "gcc $flags -o $objectPath -c $file" ) )
+				return objectPath;
+			return "";   
+		}
+		function buildOutput( object target, string file ) {
+			return "${Farm.compiledObjectsDirForTarget(target)}/${(Farm.basename(file) - '.c')}.o";
+		}
+	}
+	
+	class CPP extends Farm.RuleSet.SourceRule {	 
+		
+		static function constructor() { Farm.RuleSet.registerSourceHandler( new Darwin.CPP() ); }
+		
+		function types() {
+			return [ 'cpp', 'cc', 'c++' ];
+		}
+		function build( object target, string file, array specialOptions ) {
+			string objectPath = .buildOutput( target, file );
+			string flags = target.getProperty('CPP');
+			specialOptions['CPP'] and flags = "$flags ${specialOptions['CPP']}";
+			if( Farm.invokeExternalProgram( "g++ $flags -o $objectPath -c $file" ) )
+				return objectPath;
+			return "";   
+		}
+		function buildOutput( object target, string file ) {
+			return "${Farm.compiledObjectsDirForTarget(target)}/${(Farm.basename(file) - '.cpp')}.o";
+		}
+	}
+	
+	class SharedLibrary extends Farm.RuleSet.BuildRule {
+		
+		static function constructor() { Farm.RuleSet.registerBuildHandler( new Darwin.SharedLibrary() ); }
+
+		function type() {
+			return Farm.RuleSet.SharedLibrary;
+		}
+
+		function _Name( object target ) {
+			return "lib${target.getProperty('name')}.${target.getProperty('version')}.dylib";
+		}
+		function combinationName( object target ) {
+			return "${Farm.productsDirForTarget(target)}/" + ._Name(target);
+		}
+
+		function specialBuildOptions( object target ) {
+			return [ 'C' => '-fPIC -fno-common', 'CPP' => '-fPIC -fno-common' ];
+		}
+		
+		function combine( object target, array files ) {
+			string objects = Array.join( files, " " );
+			string flags = target.getProperty( 'LD' );
+			number built = Farm.invokeExternalProgram( "gcc -dynamiclib ${'${wl}-flat_namespace ${wl}-undefined ${wl}suppress'} -o ${.combinationName(target)} $flags -install_name ${target.getProperty('prefix')}/${._Name(target)} $objects" );
+			if( built and true ) { 
+				// disable this for the moment
+				string c = Directory.getCurrent();
+				string targetFilename = '';
+				array  vparts = String.toArray(target.getProperty('version'), '.');
+				Directory.setCurrent("${Farm.productsDirForTarget(target)}");
+				for( number i = 0; i < (Array.size(vparts) - 1); i++ ) {
+					targetFilename = "lib${target.getProperty('name')}.${Array.join(vparts[0..i], '.')}.dylib";
+					if( not Posix.stat(targetFilename) ) {
+						Farm.invokeExternalProgram( "ln -s lib${target.getProperty('name')}.${target.getProperty('version')}.dylib $targetFilename" ); 
+					}
+				}
+				targetFilename = "lib${target.getProperty('name')}.dylib";
+				if( not Posix.stat(targetFilename) ) {
+					Farm.invokeExternalProgram( "ln -s lib${target.getProperty('name')}.${target.getProperty('version')}.dylib $targetFilename" ); 
+				}
+				Directory.setCurrent(c);
+			}
+			return built;
+		}		
+	}
+
+	class ModuleLibrary extends Farm.RuleSet.BuildRule {
+		
+		static function constructor() { Farm.RuleSet.registerBuildHandler( new Darwin.ModuleLibrary() ); }
+
+		function type() {
+			return Farm.RuleSet.ModuleLibrary;
+		}
+
+		function combinationName( object target ) {
+			return "${Farm.productsDirForTarget(target)}/${target.getProperty('name')}.so";
+		}
+
+		function combine( object target, array files ) {
+			string objects = Array.join( files, " " );
+			target.addProperty('LD', ' ${wl}-flat_namespace ${wl}-undefined ${wl}suppress' );
+			return Farm.invokeExternalProgram( "gcc -o ${.combinationName(target)} -bundle ${target.getProperty( 'LD' )} $objects" );
+		}		
+	}
+	
+	class Executable extends Farm.RuleSet.BuildRule {
+		
+		static function constructor() { Farm.RuleSet.registerBuildHandler( new Darwin.Executable() ); }
+		
+		function type() {
+			return Farm.RuleSet.Executable;
+		}
+		
+		function combinationName( object target ) {
+			return "${Farm.productsDirForTarget(target)}/${target.getProperty('name')}";
+		}
+		
+		function combine( object target, array files ) {
+			string objects = Array.join( files, " " );
+			string flags = target.getProperty( 'LD' );
+			return Farm.invokeExternalProgram( "gcc -o ${.combinationName(target)} $flags $objects" );
+		}		
+	}	
+}

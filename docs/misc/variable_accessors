@@ -1,0 +1,71 @@
+Variable Accessors________________________________________________________
+
+These are used to provide a mechanism for an application to have special
+access to individual variables allowing for transparent control of data
+and lazy updating of information. The mechanism provides three callbacks:
+'get', 'set', and 'cleanup'. It also provides a means of tagging data to
+variables in a similar fashion of objects with an ->odata pointer that
+is not touched by ferite. Please see include/ferite/fstructs.h for the 
+actual structures used.
+
+How They Work:
+
+Get_______________________________________________________________________
+
+  When a variable is accessed in ferite either to just read or assign - it
+  is 'gotten'. This means that in both of the statements below, the variable
+  'foo' it 'gotten'.
+
+    x = bar.foo;
+    bar.foo = 2 * x;
+  
+  When a variable is 'gotten', and it has accessors on it, the 'get' method
+  will be run on it. This will pass the script and the variable to the method.
+  The method can then modify the variable as it wants, and then return. It
+  does not return the variable. 
+  
+  The get function has the prototype:
+  
+    void get( FeriteScript *script, FeriteVariable *var )
+
+Set_______________________________________________________________________
+
+  When a variable is assigned to [after it has been gotten], it will have the
+  'set' method called on it, this gets passed the script, the variable and
+  the variable that is to be assigned to it [known as RHS var]. Note: ferite 
+  will already have updated the variable with the RHS var. This means that the
+  programmer need only to the minial amount of work. You must not modify the
+  rhs variable, it is only given to you so that you can do your own special
+  assignment if you _have_ to. I warn against it greatly.
+
+  The set function has the prototype:
+
+    void set( FeriteScript *script, FeriteVariable *lhs, FeriteVariable *rhs )
+  
+Cleanup____________________________________________________________________
+
+  The final mechanism is for cleaning up the ->odata information. It simply
+  calls the cleanup function with the script and the ->odata pointer so it
+  can be cleaned up.
+  
+  The cleanup function has the prototype:
+  
+    void cleanup( FeriteScript *script, void *odata );
+    
+You need not register all of these. To create the structures on a variable
+call the function:
+
+  void ferite_create_variable_accessors( FeriteScript *script, 
+                                         FeriteVariable *var, 
+                                         void *get, 
+                                         void *set, 
+                                         void *cleanup, 
+                                         void *odata )
+                                         
+Where 'var' is the variable to attach to, 'get', 'set' and 'cleanup' are 
+pointers to the functions, and odata is the initial odata. You can pass the
+function NULL's to just not have them setup.
+
+Hope this helps,
+
+Chris

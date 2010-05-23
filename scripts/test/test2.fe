@@ -1,0 +1,75 @@
+#!/usr/bin/env ferite
+
+uses "console";
+
+class modifies Obj
+{
+   function toString()
+   {
+       return "Obj.toString()";
+   }
+}
+
+class TestClass
+{
+   number i;
+   string blah;
+
+   function constructor()
+   {
+       Console.println( "TestClass Constructor Called" );
+   }
+
+   function testfunction( number blip )
+   {
+       self.i = blip;
+       self.blah = "Init";
+   }
+
+   function toString()
+   {
+       return "TestClass";
+   }
+}
+
+class TestClassTwo extends TestClass
+{
+   number j;
+
+   function constructor()
+   {
+       Console.println( "Testing super()" );
+       super();
+       Console.println( "TestClassTwo Constructor Called" );
+       self.j = 10;
+       self.i = 101;
+       self.blah = "Test Class 2";
+   }
+
+   function printclass()
+   {
+       Console.println( "" + self.j +","+self.i+","+self.blah );
+   }
+
+   function toString()
+   {
+       return "TestClassTwo < TestClass";
+   }
+}
+
+class TestClassThree
+{
+}
+
+function blah()
+{
+    Console.println( "In Blah" );
+}
+
+object one = new TestClass();
+object two = new TestClassTwo();
+object three = new TestClassThree();
+
+Console.println( "one: '$one' [should be 'TestClass']" );
+Console.println( "two: '$two' [should be 'TestClassTwo < TestClass']" );
+Console.println( "thr: '$three' [should be 'Obj.toString()']" );

@@ -1,0 +1,157 @@
+uses "regexp";
+
+class PDFDocumentFilter extends DocumentFilter {
+    
+    string title;
+    number sectionDepth = 0;
+    
+    function documentStart() {
+        return '\documentclass[11pt]{article}
+        \usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+        \geometry{a4paper}                   % ... or a4paper or a5paper or ... 
+        \usepackage[parfill]{parskip}
+        \usepackage{graphicx}
+        \usepackage{amssymb}
+        \usepackage{epstopdf}
+        \usepackage{latexsym,amsmath,amsfonts}        \usepackage{ulem}
+        \DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+        \usepackage{eso-pic}
+        \usepackage{graphicx}
+        \usepackage{color}
+        \usepackage{type1cm}
+        \makeatletter
+        \AddToShipoutPicture{%
+            \setlength{\@tempdimb}{.5\paperwidth}%
+            \setlength{\@tempdimc}{.5\paperheight}%
+            \setlength{\unitlength}{1pt}%
+            \put(\strip@pt\@tempdimb,\strip@pt\@tempdimc){%
+                \makebox(0,0){\includegraphics[scale=2.0]{docs-background.png}}
+            }
+        }
+        \makeatother
+        ';
+    }
+    function documentEnd() {
+        return '\end{document}';
+    }
+    
+    function sectionStart( string id ) {
+        .sectionDepth++;
+        return '';
+    }
+    function sectionEnd( string id ) {
+        .sectionDepth--;
+        return '';
+    }
+        
+    function title( string title, string id ) {
+        number size = .sectionDepth;
+        
+        switch( size ) {
+            case 0:
+                return "\\title{$title} \\begin{document} \\maketitle{} \\tableofcontents \\pagebreak{} \n";
+            case 1:
+                return "\\pagebreak{}\\section{$title}\n";
+            case 2:
+                return "\\subsection{$title}\n";
+            case 3:
+                return "\\subsubsection{$title}\n";
+            case 4:
+                return "{\\bf{$title}}\n\n";
+            default:
+                return "$title\n\n";
+        }
+        return "";
+    }
+    function externalLink( string title, string target ) {
+        return " $title ";
+    }
+    function internalLink( string title, void target ) {
+        return " {\\bf{$title}} ";
+    }
+    function image( string image ){
+        return "IMAGE: $image";
+    }
+    function newLine() {
+        return " \\\\\n";
+    }
+    
+    function paragraph( string para ) {
+        return "\n\n$para\n\n";
+    }
+    function normalText( string text ) {
+        object o = new Regexp( '(\$|\^|\\|_|&|\||{|}|%|#|<|>)' );
+        text = o.replaceAll( text ) using ( match ) {
+            switch( match.capture(0) ) {
+                case '^':
+                    return '$\ \hat{}\ $';
+                case '|':
+                    return '$|$';
+                case "\\":
+                    return '$\backslash{}$';
+				case '<':
+					return '$<$';
+				case '>':
+					return '$>$';
+                default:
+                    return "\\" + match.capture(0);
+            }
+        };
+        return text;
+    }
+    function strongText( string text ) {
+        return "{\\bf{$text}}";
+    }
+    function emphasisText( string text ) {
+        return "{\\it{$text}}";
+    }
+    function monospaceText( string text ) {
+        return "{\\tt{$text}}";
+    }
+    function codeText( string code, string lines ) {
+        object o = new Regexp( '^( +)', 'm' );
+        code = String.trim( code, " \n" );
+        code = Regexp.replaceAll( "\n", code, " \\newline\n" );
+        code = o.replaceAll( code ) using ( match ) {
+            number l = String.length(match.capture(0));
+            return '\makebox[' + (0.03 * l) + 'in]{\hfill}';
+        };
+        code = Regexp.replaceAll( "\t", code, '\makebox[0.125in]{\hfill}' );
+        return "\n\n\\begin{quotation}\\noindent{\\tt{$code}}\\end{quotation}\n\n";
+    }
+    function quoteText( string code ) {
+        return "\n\n\\begin{quotation}\n" + String.trim( code, " \n" ) + "\n\\end{quotation}\n\n";
+    }
+    function colourText( string text, string fg, string bg ) {
+        return text;        
+    }
+    function strikeText( string text ) {
+        return '\sout{' + text + '}';
+    }
+    function underlineText( string text ) {
+        return "\\uline{$text}";
+    }
+    
+    function rule() {
+        return '--------------';
+    }
+    
+    function listStart() {
+        return "\n\n\\begin{itemize}\n";
+    }
+    function listEnd() {
+        return '\end{itemize}';
+    }
+    function listItemStart() {
+        return '\item ';
+    }
+    function listItemEnd() {
+        return "\n\n";
+    }
+    
+    function convertFromDocumentToType( string doc ) {
+        object document = .generateDocumentTree( doc );        
+        string walkedDocument = .walkDocumentTree( document );
+        return walkedDocument;
+    }    
+}

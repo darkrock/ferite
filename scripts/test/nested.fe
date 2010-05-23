@@ -1,0 +1,18 @@
+uses "console";
+
+
+number i = 0;
+Console.println( "Outer i=$i [should be 0]" );
+{
+    number i = 666;
+    Console.println( "Inner i=$i [should be 666]" );    
+    {
+        number i = 999;
+        Console.println( "Inner-Inner i=$i [should be 999]" );
+    }
+    Console.println( "Inner i=$i [should be 666]" );
+}
+Console.println( "Outer i=$i [should be 0]" );
+
+for( number i = 0; i < 10; i++ )
+  Console.println( "i = $i" );

@@ -1,0 +1,32 @@
+uses "array";
+uses "console";
+
+class Test
+{
+
+    protected array values;
+    
+    public function constructor( ) {
+        self.values = [1,2,3,4,5,6];
+    }
+    
+    public function iter( ) {
+        
+        Console.println( self.give_me_a_string( ) );
+        
+        Array.each( self.values ) using ( value ) {
+            
+            Console.println( "Value: " + value + " is one of " + self.values );
+            Console.println( "Here comes a string: " +  self.give_me_a_string( ) );
+            
+        };
+    }
+    
+    private function give_me_a_string( ) {
+        return "abcd";
+    }
+    
+}
+
+object t = new Test();
+t.iter();

@@ -1,0 +1,41 @@
+#!/usr/bin/env ferite
+
+uses "console", "stream", "posix", "sys", "filesystem";
+
+namespace foo
+{
+    number test;
+
+    function test2()
+    {
+        Console.println( "real!" );
+    }
+	[rename test2, test3];
+}
+
+class modifies Stream.Stream { [rename readln, oldreadln]; }
+
+class modifies Stream.Stream
+{
+    function readln()
+    {
+        return .oldreadln();
+    }
+    
+    function ConvertStreamToString()
+    {
+        string str = "";
+        
+        while( !.eos() )
+            str += .readln();
+        return str;
+    }
+}
+
+object anotherfile = File.open( "rename.fe" );
+Console.println( "------------------------------------------------------" );
+Console.println( anotherfile.ConvertStreamToString() );
+Console.println( "------------------------------------------------------" );
+anotherfile.close();
+
+foo.test3();

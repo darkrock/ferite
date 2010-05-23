@@ -1,0 +1,45 @@
+uses "console", "ipc", "test", "sys";
+
+function MakeIPCObject() {
+    object o = new IPCObject();
+    o.connect("ipc.fe");
+    o.write("Test Data");
+    return o;
+}
+    
+class IPCObjectTest extends Test 
+{
+    function read() { 
+        object o = MakeIPCObject();
+        string s = o.read();
+        if( s != "Test Data" )
+            return 1;
+        s = o.read();
+        if( s != "Test Data" )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function take() { 
+        object o = MakeIPCObject();
+        string s = o.take();
+        if( s != "Test Data" )
+            return 1;
+        s = o.read();
+        if( s == "Test Data" )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function connect() { return .read(); }
+    function disconnect() { 
+        object o = MakeIPCObject();
+        if( not o.disconnect() )
+            return 1;
+        if( o.write("Hi") )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function write() { return .read(); }    
+}
+
+object o = new IPCObjectTest();
+return o.run('IPCObject');

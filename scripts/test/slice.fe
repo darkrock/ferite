@@ -1,0 +1,38 @@
+uses "console","array","string";
+
+array a1,a2;
+string s1,s2,o;
+
+o = "mary had a little lamb";
+
+Console.println(" >> String slice test..");
+Console.println("    Original String: $o");
+Console.println("    First char: " + o[0]);
+Console.println("    Last char: " + o[-1]);
+Console.println("    Char 4 - 10: " + o[4..10]);
+Console.println("    Char 1 to second to last: " + o[1..-2]);
+Console.println("    Char 15 to 4: " + o[15..4]);
+
+a1 = [1, "fish", "blue", "fish", "green", "bear"];
+Console.println("\n >> Array slice test..");
+Console.println("     Original Array: "+a1); 
+Console.println("     First Element: "+a1[0]);
+Console.println("     Last Element: "+a1[-1]);
+a2 = a1[1..2];
+Console.println("     New slice 1 - 2: " + a2);
+a2 = a1[..3];
+Console.println("     From beginning to 3rd: " + a2);
+a2 = a1[ -1..1];
+Console.println("     Slice from end to 2nd: " + a2);
+a2 = a1[..];
+Console.println("     A copy using just ..: " + a2);
+a2 = a1[-1..0];
+Console.println("     Or in reverse: " + a2);
+
+a2["crap"] = "more crap";
+Console.println("     Or in with a new key: " + a2);
+
+a2 = [ [1, 2] ];
+
+Console.println("     Or in with a new key: " + a2);
+

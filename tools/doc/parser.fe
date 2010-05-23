@@ -1,0 +1,400 @@
+uses "console", "sys", "array", "string", "structs.fe";
+
+/*
+ * The purpose of this file is to read in a ferite file and create a structure
+ * of the ferite code
+ *
+ * The way it works is to look for c or C++style comments which start with *
+ * for exmaple:
+ */
+
+/**
+ * This is the C style
+ */
+
+//* This is the C++ style (except that this isn't supported)
+
+/* So what is needed is a cunning set of regexp's to do the dirty work for me :) */
+
+class ParserFile {
+	string path;
+	string module;
+}
+
+/**
+ * @class Parser
+ * @brief Implements a parser to process comments in a ferite source file
+ */
+class Parser
+{
+	
+	/**
+	 * @variable file_list
+	 * @brief The list of files the parser will process
+	 * @type array
+	 */
+	array  file_list;
+
+	/**
+	 * @variable tree
+	 * @brief unknown
+	 * @type object
+	 */
+	object tree;
+	
+	/**
+	 * @function start
+	 * @brief	Process the file list, and generate an object tree of the comments
+	 * @return   object
+	 * @declaration function start()
+	 */
+	function start()
+	{
+		number i = 0;
+		
+		.tree = new DocScript();
+		for( i = 0; i < Array.size(.file_list); i++ )
+		{
+			// Add the return from processing the file to the tree
+			.process( .file_list[i], .tree );
+		}
+		return .tree;
+	}
+	
+	/**
+	 * @function addFile
+	 * @brief	Add a file to the list of files the parser will process
+	 * @return   void
+	 * @param	string filename The file to add to the list
+	 * @declaration function addFile( string filename )
+	 */
+	function addFile( string filename, string module )
+	{
+		if( filename != "" )
+		{
+			object file = new ParserFile();
+			file.path = filename;
+			file.module = module;
+			.file_list[] = file;
+		}
+	}
+	
+	/**
+	 * @function process
+	 * @brief	unknown
+	 * @return   object
+	 * @param	object file The script to process
+	 * @param	object parent The parent node to add this script to
+	 * @declaration function process( object file , object parent )
+	 */
+	string currentFile = '';
+	function process( object file, object parent )
+	{
+		array obj_stack;
+		object tree = parent;
+		object fileObj = File.open( file.path );
+		
+		if( fileObj != null )
+		{
+			string contents = fileObj.toString();
+			object captureblocks = new Regexp( '/\*\*(.*?)\*/', 'gs' );
+			object stripstuff = new Regexp( '^[\t ]*\*[ \t\n]*', 'gm' );
+			object capturekeyvalue = new Regexp( '(@([a-zA-Z_-]+)( ([^@]*))?)', 'gs' );
+			object stripnewline = new Regexp( "\n", 'gs' );
+
+			.currentFile = file.path;
+			lastparserfile = file.path;
+			Console.println( "Parsing file ${file.path}" );
+			captureblocks.matchAll( contents ) using ( match ) 
+			{
+				string block = String.trim( stripstuff.replaceAll( match.capture(0), ' ' ), "\t\r" );
+				array values = [];
+				
+				//Console.println( "block: $block" );
+				
+				values["module"] = file.module;
+				capturekeyvalue.matchAll( block ) using ( match ) {
+					string token = match.capture(1);
+					string meaning = stripnewline.replaceAll( match.capture(3) );
+					
+				//Console.println( "$token: $meaning" );
+					
+					if( not values.keyExists(token) )  // The value doesn't exist
+						values[token] = meaning;
+					else
+					{
+						if( values[token] isa string )  // The value does exist, convert to an array
+						{
+							string temp = values[token];
+							Array.del( values, token );
+							values[token] = [temp, meaning];
+						}
+						else  // Add to the array
+							values[token][] = meaning;
+					}
+				};
+				
+//				Console.println( "values: $values" );
+				
+				if( Array.keyExists( values, "end" ) )
+					tree = Array.pop(obj_stack);
+				else
+				{
+					object newObj = .generateObject( values );
+//					Console.println( "newObj: $newObj" );
+					{
+						object ret = tree.add( newObj );					
+						if( Array.keyExists( values, "class" ) || 
+							Array.keyExists( values, "protocol" ) ||
+							Array.keyExists( values, "namespace" ) || 
+							Array.keyExists( values, "group" ) )
+						{
+							Array.push( obj_stack, tree );
+							if( newObj.mods != "" )
+								tree = ret;
+							else
+								tree = newObj;
+						}
+					}		
+				}
+			};
+		}
+		else
+		{
+			Console.println("Unable to open file ${file.path}");
+		}
+		if( Array.size(obj_stack) > 0 )
+			tree = obj_stack[0];
+		
+		return tree;
+	}
+	
+	/**
+	 * @function dump_array
+	 * @brief Dump the key/value pairs in the array
+	 * @declaration function dump_array( array v )
+	 * @param array v The array to dump
+	 * @return void
+	 */
+	function dump_array( array v )
+	{
+		number i = 0;
+		array keys = Array.keys(v);
+		
+		Console.println( "Begin Value Dump" );
+		for( i = 0; i < Array.size(keys); i++ )
+		{
+			Console.println( "'" + keys[i] + "' = \"" + v[keys[i]] + "\"" );
+		}
+		Console.println( "" );
+	}
+	
+	/**
+	 * @function generateGeneralObject
+	 * @brief	unknown
+	 * @return   object
+	 * @param	object obj unknown
+	 * @param	array values unknown
+	 * @declaration function generateGeneralObject( object obj , array values )
+	 */
+	function generateGeneralObject( object obj, array values )
+	{
+		if( Array.keyExists( values, "module" ) )
+			obj.module = values["module"];
+		
+		if( Array.keyExists( values, "declaration" ) )
+			obj.declaration = values["declaration"];
+		
+		if( Array.keyExists( values, "brief" ) )
+			obj.brief = values["brief"];
+		
+		if( Array.keyExists( values, "description" ) )
+			obj.description = values["description"];
+		
+		if( Array.keyExists( values, "static" ) )
+			obj.is_static = true;
+		
+		if( Array.keyExists( values, "warning" ) )
+			obj.warning = values["warning"];
+
+		if( Array.keyExists( values, "example" ) )
+			obj.example = values["example"];
+
+		if( Array.keyExists( values, 'requires') ) {
+			obj.requires(values['requires']);
+		}
+		
+		obj.providedBy = .currentFile;
+		return obj;
+	}
+	
+	/**
+	 * @function generateFunctionObject
+	 * @brief	unknown
+	 * @return   object
+	 * @param	array values unknown
+	 * @declaration function generateFunctionObject( array values )
+	 */
+	function generateFunctionObject( array values )
+	{
+		object obj = .generateGeneralObject( new DocFunction(), values );
+		object reg = new Regexp( ' ', 'g' );
+		void params;
+		number i = 0;
+		
+		obj.name = values["function"];
+		obj.name = reg.replaceAll( obj.name, '' );
+						
+		if( Array.keyExists( values, "return" ) )
+			obj.return_type = values["return"];
+		
+		if( Array.keyExists( values, "param" ) )
+		{
+			params = values["param"];
+			
+			if( params isa array )
+				obj.parameters = params;
+			else
+				obj.parameters[] = params;
+		}
+		else
+			obj.parameters = [];
+		
+		return obj;
+	}
+	
+	/**
+	 * @function generateVariableObject
+	 * @brief	unknown
+	 * @return   object
+	 * @param	array values unknown
+	 * @declaration function generateVariableObject( array values )
+	 */
+	function generateVariableObject( array values )
+	{
+		object obj = .generateGeneralObject( new DocVariable(), values );
+		object reg = new Regexp( ' ', 'g' );
+		number i = 0;
+		
+		obj.name = values["variable"];
+		obj.name = reg.replaceAll( obj.name, '' );
+		
+		if( Array.keyExists( values, "type" ) )
+			obj.type = values["type"];
+		return obj;
+	}
+	
+	/**
+	 * @function generateNamespaceObject
+	 * @brief	unknown
+	 * @return   object
+	 * @param	array values unknown
+	 * @declaration function generateNamespaceObject( array values )
+	 */
+	function generateNamespaceObject( array values )
+	{
+		object obj = .generateGeneralObject( new DocNamespace(), values );
+		object reg = new Regexp( ' ', 'g' );
+		number i = 0;
+		
+		obj.name = values["namespace"];
+		obj.name = reg.replaceAll( obj.name, '' );
+		
+		if( Array.keyExists( values, "modifies" ) )
+			obj.mods = values["modifies"];
+		
+		return obj;
+	}
+	
+	/**
+	 * @function generateGroupObject
+	 * @brief	unknown
+	 * @return   object
+	 * @param	array values unknown
+	 * @declaration function generateGroupObject( array values )
+	 */
+	function generateGroupObject( array values )
+	{
+		object obj = .generateGeneralObject( new DocGroup(), values );
+		number i = 0;
+		
+		obj.name = values["group"];
+		
+		if( Array.keyExists( values, "modifies" ) )
+			obj.mods = values["modifies"];
+		
+		return obj;
+	}
+	
+	/**
+	 * @function generateClassObject
+	 * @brief	unknown
+	 * @return   object
+	 * @param	array values unknown
+	 * @declaration function generateClassObject( array values )
+	 */
+	function generateClassObject( array values )
+	{
+		object obj = .generateGeneralObject( new DocClass(), values );
+		object reg = new Regexp( ' ', 'g' );
+		number i = 0;
+		
+		obj.name = values["class"];
+		obj.name = reg.replaceAll( obj.name, '' );
+		
+		if( Array.keyExists( values, "modifies" ) )
+			obj.mods = values["modifies"];
+		if( Array.keyExists( values, "extends" ) )
+			obj.exts = values["extends"];
+		if( Array.keyExists( values, "implements" ) )
+			obj.implements_list = values["implements"];
+		
+		return obj;
+	}
+
+	/**
+	 * @function generateProtocolObject
+	 * @brief	unknown
+	 * @return   object
+	 * @param	array values unknown
+	 * @declaration function generateProtocolObject( array values )
+	 */
+	function generateProtocolObject( array values )
+	{
+		object obj = .generateGeneralObject( new DocProtocol(), values );
+		object reg = new Regexp( ' ', 'g' );
+		number i = 0;
+		
+		obj.name = values["protocol"];
+		obj.name = reg.replaceAll( obj.name, '' );
+		return obj;
+	}
+
+	/**
+	 * @function generateObject
+	 * @brief	Generate all of the documentation objects for the script.
+	 * @return   null
+	 * @param	array values unknown
+	 * @declaration function generateObject( array values )
+	 */
+	function generateObject( array values )
+	{
+		/* our first value gives out what sort of object we should be creating */
+		if( Array.keyExists( values, "function" ) )
+			return .generateFunctionObject( values );
+		if( Array.keyExists( values, "variable" ) )
+			return .generateVariableObject( values );
+		if( Array.keyExists( values, "class" ) )
+			return .generateClassObject( values );
+		if( Array.keyExists( values, "namespace" ) )
+			return .generateNamespaceObject( values );
+		if( Array.keyExists( values, "group" ) )
+			return .generateGroupObject( values );
+		if( Array.keyExists( values, "protocol" ) )
+			return .generateProtocolObject( values );
+		return null;
+	}
+}
+/**
+ * @end
+ */

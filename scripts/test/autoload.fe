@@ -1,0 +1,61 @@
+#!/usr/bin/env ferite
+
+/*
+ * This script is called 'autoload' because that is what 'method_missing' used
+ * to be called.
+ */
+
+uses "console", "array", "reflection";
+
+class Test
+{
+   string foo;
+
+   function attribute_missing( string name )
+   {
+       return name;
+   }
+   
+   static function attribute_missing( string name )
+   {
+       return "static: " + name;
+   }
+   
+   static function method_missing(...)
+   {
+       number i = 0;
+       array fncArgs = arguments();
+
+       Console.println( "\nSTATIC METHOD_MISSING" );
+       Console.println( "Argument count:  " + Array.size(fncArgs) );
+       Console.println( "Function called: " + fncArgs[Array.size(fncArgs)-1] );
+       Console.println( "With arguments:\n" );
+       for( i = 0; i < Array.size(fncArgs)-1; i++ )
+         Console.println( "\tArgument ${(i+1)} = '" + fncArgs[i] + "' (${Reflection.type(fncArgs[i])})" );
+       Console.println( "" );
+   }
+   
+   function method_missing(...)
+   {
+       number i = 0;
+       array fncArgs = arguments();
+
+       self.foo = "";
+       
+       Console.println( "\nINSTANCE METHOD_MISSING" );
+       Console.println( "Argument count:  " + Array.size(fncArgs) );
+       Console.println( "Function called: " + fncArgs[Array.size(fncArgs)-1] );
+       Console.println( "With arguments:\n" );
+       for( i = 0; i < Array.size(fncArgs)-1; i++ )
+         Console.println( "\tArgument ${(i+1)} = '" + fncArgs[i] + "' (${Reflection.type(fncArgs[i])})" );
+       Console.println( "" );
+   }
+}
+
+object foo = new Test();
+Console.println( "Calling function funkyCall:\n-------------------------------" );
+foo.funkyCall( "Hello", 1, "foo", "lllllaaalala" );
+Test.funkyCall( "Hello", 1, "foo", "lllllaaalala" );
+Console.println( "Testing attribute_missing:" );
+Console.println( "'${foo.Hello} ${foo.World} ${foo.fromChris}' -> Should be 'Hello World fromChris'" );
+Console.println( "'${Test.Hello} ${Test.World} ${Test.fromChris}' -> Should be 'static: Hello static: World static: fromChris'" );

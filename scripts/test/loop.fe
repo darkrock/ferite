@@ -1,0 +1,105 @@
+#!/usr/bin/env ferite
+
+uses "console";
+
+number i = 0, j;
+
+Console.println( "Testing continue" );
+
+Console.println( "FOR LOOP:" );
+for( i = 0; i < 10; i++ )
+{
+    Console.println( "First Line: " + i );
+    if( i == 5 )
+      continue;
+    Console.println( "Second Line: " + i );
+}
+
+Console.println( "WHILE LOOP:" );
+i = 0;
+while( i < 10 )
+{
+    i++;
+    Console.println( "First Line: " + i );
+    if( i == 5 )
+      continue;
+    Console.println( "Second Line: " + i );
+}
+
+Console.println( "DO LOOP:" );
+i = 0;
+do
+{
+    i++;
+    Console.println( "First Line: " + i );
+    if( i == 5 )
+      continue;
+    Console.println( "Second Line: " + i );
+}
+while( i <= 10 );
+
+Console.println( "Embeded" );
+for( i = 0; i < 2; i++ )
+{
+    j = 0;
+    while( j < 4 )
+    {
+        j++;
+        Console.println( "First Line: " + j );
+        if( j == 2 )
+          continue;
+        Console.println( "Second Line: " + j );
+    }
+}
+
+continue;
+
+Console.println( "Testing break" );
+
+Console.println( "FOR LOOP:" );
+for( i = 0; i < 10; i++ )
+{
+    Console.println( "First Line: " + i );
+    if( i == 5 )
+      break;
+    Console.println( "Second Line: " + i );
+}
+
+Console.println( "WHILE LOOP:" );
+i = 0;
+while( i < 10 )
+{
+    i++;
+    Console.println( "First Line: " + i );
+    if( i == 5 )
+      break;
+    Console.println( "Second Line: " + i );
+}
+
+Console.println( "DO LOOP:" );
+i = 0;
+do
+{
+    i++;
+    Console.println( "First Line: " + i );
+    if( i == 5 )
+      break;
+    Console.println( "Second Line: " + i );
+}
+while( i <= 10 );
+
+Console.println( "Embeded" );
+for( i = 0; i < 2; i++ )
+{
+    j = 0;
+    while( j < 4 )
+    {
+        j++;
+        Console.println( "First Line: " + j );
+        if( j == 2 )
+          break;
+        Console.println( "Second Line: " + j );
+    }
+}
+
+break;

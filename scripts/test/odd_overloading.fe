@@ -1,0 +1,29 @@
+uses "console";
+
+class A {
+	function constructor( string start ) {
+		Console.println( " Start: $start" );
+	}
+	
+	function F( string hi ) {
+		Console.println( " Hi: $hi" );
+	}
+}
+
+class B extends A {
+	function constructor() {
+		Console.println( "Stop" );
+	}
+	function F() {
+		Console.println( "Bye" );
+	}
+}
+
+Console.println( "This test should output:" );
+Console.println( " Start: ferite" );
+Console.println( " Hi: Chris Ross" );
+Console.println( "Test:" );
+{
+	object o = new B( "ferite" );
+	o.F( "Chris Ross" );
+}

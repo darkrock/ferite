@@ -1,0 +1,306 @@
+#!/usr/bin/env ferite
+
+/*
+ *  Stephan Engström <sem@cention.se>
+ */
+
+uses "test", "array", "sys", "console", "string";
+
+class StringTest extends Test {
+    function length( ) {
+        number error = 0,len;
+        string a = "Hello world";
+        string b;
+        if(String.length(a) != 11)
+            return 1;
+        if(String.length(b) != 0)
+            return 2;
+        return Test.SUCCESS;
+    }
+    function toDouble( ){
+        string val = "1.3333";
+        number d;
+        d = String.toDouble(val);
+        if(d > 1.3333)
+            return 1;
+        if(d < 1.3333)
+            return 2;
+        return Test.SUCCESS;
+    }
+    function toLong( ){
+        string val = "+12345";
+        number l;
+        l = String.toLong(val);    // Check positive values
+        if(l != 12345)
+            return 1;
+        val = "-12345";
+        l = String.toLong(val);    // Check negative values
+        if(l != -12345)
+            return 2;
+        val = "abc";
+        l = String.toLong(val);    // Check for alpha values
+        if(l != 0)
+            return 3;
+        return Test.SUCCESS;
+    }
+    function toArray( ){
+        string str = "0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F";
+        array a = String.toArray(str,",",0);
+        if(Array.size(a) != 16)
+            return 1;
+        if(a[9] != "9")
+            return 2;
+        return Test.SUCCESS;
+    }
+    function trim( ){
+        if(String.trim(".123.",".") != "123")
+            return 1;
+        if(String.trim("",".") != "")
+            return 2;
+        if(String.trim("..,!!K.!!..,.",".,!") != "K")
+            return 3;
+        return Test.SUCCESS;
+        
+    }
+    function preTrim( ){
+        if(String.preTrim("123.",".") != "123.")
+            return 1;
+        if(String.preTrim(".123",".2") != "123")
+            return 2;
+        if(String.preTrim("123...","123") != "...")
+            return 3;
+        return Test.SUCCESS;
+    }
+    function postTrim( ){
+        if(String.postTrim("123.",".") != "123")
+            return 1;
+        if(String.postTrim(".123",".") != ".123")
+            return 2;
+        if(String.postTrim("...123","123") != "...")
+            return 3;
+        return Test.SUCCESS;
+    }
+    function toLower( ){
+        if(String.toLower("12AbCd+-") != "12abcd+-")
+            return 1;
+        return Test.SUCCESS;
+    }
+    function toUpper( ){
+        if(String.toUpper("12AbCd+-") != "12ABCD+-")
+            return 1;
+        return Test.SUCCESS;
+    }
+    function compareCase( ){
+        if(String.compareCase("AbcDef","AbcDef") != 1)
+            return 1;
+        if(String.compareCase("aBCdEF","AbcDef") == 1)
+            return 2;
+        return Test.SUCCESS;
+    }
+    function compareNoCase( ){
+        if(String.compareNoCase("AbcDef","AbcDef") != 1)
+            return 1;
+        if(String.compareNoCase("aBCdEF","AbcDef") != 1)
+            return 2;
+        return Test.SUCCESS;
+    }
+    function nCompareCase( ){
+        if(String.nCompareCase("abcQQQ","abcYYY",3) != 1)
+            return 1;
+        if(String.nCompareCase("a","a",3) != 1)
+            return 2;
+        if(String.nCompareCase("a","A",3) == 1)
+            return 3;
+        return Test.SUCCESS;
+    }
+    function nCompareNoCase( ){
+        if(String.nCompareNoCase("abcQQQ","AbCYYY",3) != 1)
+            return 1;
+        if(String.nCompareNoCase("a","A",3) != 1)
+            return 2;
+        if(String.nCompareNoCase("a","b",3) == 1)
+            return 3;
+        return Test.SUCCESS;
+    }    
+    function isprint() { 
+        if( not String.isprint(" ") ) return 1;
+        if( String.isprint("\0") ) return 2;
+        return Test.SUCCESS;
+    }
+    function isdigit() { 
+        if( not String.isdigit("9") ) return 1;
+        if( String.isdigit("A") ) return 2;
+        return Test.SUCCESS;
+    }
+    function isgraph() { 
+        if( not String.isgraph("A") ) return 1;
+        if( String.isgraph(" ") ) return 2;
+        return Test.SUCCESS;
+    }
+    function ispunct() { 
+        if( not String.ispunct(".") ) return 1;
+        if( String.ispunct("A") ) return 2;
+        return Test.SUCCESS;
+    }
+    function isalnum() { 
+        if( not String.isalnum("A") ) return 1;
+        if( String.isalnum(".") ) return 2;
+        return Test.SUCCESS;
+    }
+    function isalpha() { 
+        if( not String.isalpha("A") ) return 1;
+        if( String.isalpha("0") ) return 2;
+        return Test.SUCCESS;
+    }
+    function islower() { 
+        if( not String.islower("a") ) return 1;
+        if( String.islower("A") ) return 2;
+        return Test.SUCCESS;
+    }
+    function isupper() { 
+        if( not String.isupper("A") ) return 1;
+        if( String.isupper("a") ) return 2;
+        return Test.SUCCESS;
+    }
+    function iscntrl() { 
+        if( not String.iscntrl("\1") ) return 1;
+        if( String.iscntrl("0") ) return 2;
+        return Test.SUCCESS;
+    }
+    function isspace() { 
+        if( not String.isspace(" ") ) return 1;
+        if( String.isspace("A") ) return 2;
+        return Test.SUCCESS;
+    }
+    function isxdigit() { 
+        if( not String.isxdigit("F") ) return 1;
+        if( String.isxdigit("G") ) return 2;
+        return Test.SUCCESS;
+    }
+    
+    function charToNum() { 
+        if( String.charToNum(" ") != 32 )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    function numToChar() { 
+        if( String.numToChar(32) != " " )
+            return 1;
+        return Test.SUCCESS;
+    }
+    
+    function compare() { 
+        if( String.compare("a","b") >= 0 )
+            return 1;
+        if( String.compare("b","b") != 0 )
+            return 2;
+        if( String.compare("c","b") <= 0 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function blocks() { 
+        array a = String.blocks("Hello World", 3);
+        if( a != [ 'Hel', 'lo ', 'Wor', 'ld' ] )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    function dissect() { 
+        string str = "0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F";
+        array a = String.dissect(str,",2468",0);
+        if(Array.size(a) != 12)
+            return 1;
+        if(a[5] != "9")
+            return 2;
+        return Test.SUCCESS;
+    }
+    function index() { 
+        number space = String.index("Hello World", "World");
+        if( space != 6 )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function pad() { 
+        string s = String.pad("Waiting", 20, ".");
+        if( s != "Waiting............." )
+            return 1;
+        s = String.pad("Waiting", 20);
+        if( s != "Waiting             " )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function base64encode() { 
+        string e = String.base64encode("Hello World From Ferite");
+        if( e == "" )
+            return 1;
+        if( String.base64decode(e) != "Hello World From Ferite" )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function base64decode() { return .base64encode(); }
+    function lines() { 
+        array a = String.lines("Hello\nThere\nFrom\nChris\n");
+        if( Array.size(a) != 4 )
+            return 1;
+        if( a[1] != "There" )
+            return 2;
+        return Test.SUCCESS;    
+    }
+    function toHex() { 
+        if(String.toHex("32") != "3332" )
+            return 1;
+        if(String.toHex("64") != "3634" )
+            return 2;
+        if(String.toHex("128") != "313238" )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function escape() {
+        string s = "Hi\4There";
+        string e = String.escape(s);
+        if( e != 'Hi\x04There' )
+            return 1;
+        if( String.unescape(e) != s )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function unescape() { return .escape(); }
+    function reverse() { 
+        string s = "etiref";
+        if( String.reverse(s) != "ferite" )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    function toNumber() {
+        number i = String.toNumber("10");
+        if( i != 10 )
+            return 1;
+        i = String.toNumber("10.5");
+        if( i != 10.5 )
+            return 2;
+        i = String.toNumber("NOT A NUMBER");
+        if( i != 0 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function isNumber() { 
+        if( not String.isNumber("10") )
+            return 1;
+        if( not String.isNumber("10.5") )
+            return 2;
+        if( String.isNumber("NOT A NUMBER") )
+            return 3;
+        return Test.SUCCESS;
+    }
+
+    function sprintf() { 
+        string s = String.sprintf("fnar:%s:%d","Yes",32);
+        if( s != "fnar:Yes:32" )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function __printvar() { return .sprintf(); }
+    function __isfmt() { return .sprintf(); }
+}
+
+object t = new StringTest();
+return t.run("String");

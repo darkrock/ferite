@@ -1,0 +1,177 @@
+/*
+ * Copyright (C) 2002 Daniel O'Neill <oneill@kida.net>,
+ *                    Alex Holden <alex@linuxhacker.org>,
+ *                    Stephan Engstrom <stephan@cention.se>,
+ *                    Chris Ross <chris@darkrock.co.uk>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "sys", "console", "string", "array";
+
+/*
+ * This module provides extremely basic FreezeThaw support
+ *
+ * Please make suggestions on how to make this module better to:
+ * Daniel O'Neill <oneill@kida.net>
+ */
+       
+
+/**
+* @namespace FreezeThaw
+* @brief Provides a 'lite' set of function(s) to manipulate frozen variables.
+*/
+namespace FreezeThaw {
+       /**
+       * @function thaw
+       * @declaration static function thaw( string frozenstring )
+       * @brief Thaws frozen blobs as strings containing an array.
+       * @param string frozenstring The frozen blob to be thawed
+       * @return The array of contained elements
+       * @description This function returns the contents of a blob created
+       *              with the FreezeThaw perl module.  The blob is passed
+       *              as a string, and essentially split into array elements.
+       *              Like the perl counterpart, the blob size and integrity
+       *              must be intact for this function to succeed; or the
+       *              function will result in a fatal exception.
+       */
+       static function thaw( string frozenstring ) {
+		number aa, bb, cc;
+		number elemcnt, strlngA, strlngB, frzlen;
+		string tempbufA, tempbufB;
+		array retarray;
+
+		// Shave off a trailing \n or \r or \r\n
+		frozenstring =~ s/\n$//;
+		frozenstring =~ s/\r$//;
+
+		// Get its original length
+		frzlen = String.length( frozenstring );
+
+		// Now we need to gather the header; the FrT;
+		if(!frozenstring =~ m/^FrT;/) {
+			Sys.error("[freezethaw] This doesn't look very cold...");
+			return(-1);
+		} else {
+			// Strip the header bit..
+			frozenstring =~ s/^FrT;//;
+		}
+	
+		//Now we check the element count. @xxx
+		if(!frozenstring =~ m/^@(\d*)\|/) {
+			Sys.error("[freezethaw] I can't tell how many elements to grab!");
+			return(-1);
+		} else {
+			// Snag that bit...
+			elemcnt = String.toNumber(r1+"");
+	
+			// shave it off...
+			frozenstring =~ s/^@(\d*)\|//;
+		}
+	
+		// Now we start gathering xxx elements.
+		cc=0; // Variable name (vs value)
+		for(aa=0;aa<elemcnt;aa++) {
+			// First, get how long the bit is.
+			if(!frozenstring =~ m/^.(\d*)\|/) {
+				Sys.error("[freezethaw] Couldn't get element count around char "+(frzlen-String.length( frozenstring ))+": '"+frozenstring[..10]+"...'");
+				return(-1);
+			} else {
+				// snag it
+				strlngA = String.toNumber(""+r1);
+	
+				if(strlngA >= 1) {
+					// cut it
+					frozenstring =~ s/^.(\d*)\|//;
+	
+					// Next, we gather the data of said chunk..
+					if(String.length(frozenstring) <= strlngA) {
+						tempbufA = frozenstring;
+						strlngA = String.length(frozenstring)-1;
+					} else {
+						tempbufA = frozenstring[..strlngA-1];
+					}
+			
+					// And clip the original...
+					frozenstring = frozenstring[strlngA..];
+			
+					if(cc == 0) {
+						cc=1;
+						tempbufB = tempbufA; // Variable name.
+					} else {
+						cc=0;
+						retarray[tempbufB] = tempbufA;
+					}
+				} else {
+					// cut it
+					frozenstring =~ s/^.(\d*)\|//;
+	
+					if(cc == 0) {
+						cc=1;
+						tempbufB = ""+""; // Variable name.
+					} else {
+						cc=0;
+						retarray[tempbufB] = ""+"";
+					}
+				}
+			}
+		}
+		
+		return retarray;
+	}
+       /**
+       * @function freeze
+       * @declaration static function freeze( array hasharray )
+       * @brief Freezes hashed arrays of strings and returns a frozen string.
+       * @param array hasharray The hashed array containing variables/values
+       * @return The frozen string result
+       * @description This function returns a frozen string created with
+       *              the supplied hash array data.  This is a lossless 
+       *              method of containing data in strings for storage in
+       *              single dimensional systems, such as a SQL cell.
+       */
+	static function freeze( array hasharray ) {
+		array hashkeys;
+		string frozen;
+		number a;
+
+		hashkeys = Array.keys( hasharray );
+		frozen = "FrT;@"+(Array.size(hashkeys)*2)+"|";
+
+		for(a = 0; a < Array.size( hashkeys ); a++) {
+			frozen += "\$"+String.length( hashkeys[a] )+"|";
+			frozen += hashkeys[a];
+			
+			frozen += "\$"+String.length( hasharray[hashkeys[a]] )+"|";
+			frozen += hasharray[hashkeys[a]];
+		}
+		
+		return frozen;
+	}
+}
+/**
+ * @end
+ */

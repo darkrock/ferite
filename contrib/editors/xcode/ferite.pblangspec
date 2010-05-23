@@ -1,0 +1,136 @@
+/**
+   ferite language specification.
+*/
+
+(
+    {
+        Identifier = ferite;
+        Name = "ferite";
+        Description = "ferite";
+        BasedOn = "pbx_root_language";
+        SourceScannerClassName = PBXJavaSourceScanner;
+        SupportsIndentation = YES;
+        Indentation = {
+        };
+        SyntaxColoring = {
+            CaseSensitive = YES;
+            UnicodeSymbols = NO;
+            IndexedSymbols = YES;
+            CommentsCanBeNested = NO;
+            IdentifierStartChars = "_";
+            IdentifierChars = "_-";
+            MultiLineComment = (
+                ( "/*", "*/" )
+            );
+            String = (
+                ( "\"", "\"" )
+            );
+            EscapeCharacter = "\\";
+            Character = (
+                ( "'", "'" )
+            );
+            SingleLineComment = (  "//" );
+            DocComment = "/**";
+            DocCommentKeywords = (
+                "@brief",
+                "@param",
+                "@return",
+                "@declaration",
+                "@function",
+                "@namespace",
+                "@extends",
+                "@modifies",
+                "@class",
+                "@variable",
+                "@type",
+                "@example",
+                "@description",
+                "@warning",
+                "@group"
+			);
+            Keywords = (
+                "abstract",
+                "atomic",
+                "break",
+                "case",
+                "closure",
+                "deliver",
+                "final",
+                "continue",
+                "default",
+                "do",
+                "else",
+                "fix",
+                "for",
+                "function",
+                "if",
+                "iferr",
+                "public", 
+                "private", 
+                "protected",
+                "namespace",
+                "using",
+                "uses",
+                "include",
+                "return",
+                "switch",
+                "while",
+                "foreach",
+                "extends",
+                "modifies",
+                "delete",
+                "rename",
+                "alias",
+                "recipient",
+                "class",
+                "static",
+                "global",
+                "argv",
+                "arguments",
+                "method_missing",
+                "attribute_missing",
+                "super",
+                "native",
+                "instanceof",
+                "isa",
+                "eval",
+                "or",
+                "and",
+                "not",
+                "module-header",
+                "module-init",
+                "module-deinit",
+                "module-register",
+                "module-unregister",
+                "module-flags",
+                "new",
+                "implements",
+                "protocol",
+                "constructor",
+                "destructor",
+                "self"
+			);
+            AltKeywords = (
+                "false",
+                "null",
+                "true",
+                "number",
+                "string",
+                "array",
+                "void",
+                "object",
+            );
+            PreprocessorKeywordStart = "#";
+            PreprocessorKeywords = ( 
+				"include",
+				"if",
+				"ifdef",
+				"else",
+				"endif",
+				"define"
+			);
+        };
+    },
+
+)
+

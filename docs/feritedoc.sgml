@@ -1,0 +1,872 @@
+<!DOCTYPE document [ <!ELEMENT document (#PCDATA)>
+<!ENTITY atbrief       "<function>@brief</function>">
+<!ENTITY atclass       "<function>@class</function>">
+<!ENTITY atdeclaration "<function>@declaration</function>">
+<!ENTITY atdescription "<function>@description</function>">
+<!ENTITY atend         "<function>@end</function>">
+<!ENTITY atexample     "<function>@example</function>">
+<!ENTITY atextends     "<function>@extends</function>">
+<!ENTITY atfunction    "<function>@function</function>">
+<!ENTITY atgroup       "<function>@group</function>">
+<!ENTITY atmodifies    "<function>@modifies</function>">
+<!ENTITY atmodule      "<function>@module</function>">
+<!ENTITY atnamespace   "<function>@namespace</function>">
+<!ENTITY atparam       "<function>@param</function>">
+<!ENTITY atreturn      "<function>@return</function>">
+<!ENTITY atstatic      "<function>@static</function>">
+<!ENTITY attype        "<function>@type</function>">
+<!ENTITY atvariable    "<function>@variable</function>">
+<!ENTITY atwarning     "<function>@warning</function>">
+<!ENTITY atprotocol    "<function>@protocol</function>">
+<!ENTITY atimplements  "<function>@implements</function>">
+<!ENTITY ferite        "<function>ferite</function>">
+<!ENTITY feritecfg     "<function>ferite-config</function>">
+<!ENTITY feritedoc     "<function>feritedoc</function>">
+<!ENTITY share         "<function>~/share/ferite/</function>">
+]>
+
+<!-- Last updated Sun Jan  2 21:59:59 MST 2005 -->
+<!-- TODO Finish -->
+
+<document id="feritedoc">
+    <title>The FeriteDoc Guide 1.0 - Documenting Ferite Applications</title>
+<!--
+  <documentinfo>
+    <authorgroup>
+      <author>
+        <firstname>Michael</firstname>
+        <othername>D</othername>
+        <surname>Henderson</surname>
+      </author>
+    </authorgroup>
+
+    <copyright>
+      <year>2005</year>
+      <holder>Chris Ross</holder>
+    </copyright>
+
+    <legalnotice>
+      <para>
+        This documentation is released under the same terms as the &ferite; library.
+      </para>
+      <para>
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+        THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+        IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+        CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+      </para>
+    </legalnotice>
+
+    <releaseinfo>
+      This documentation is very much a work in progress.
+      Please consider it a working draft.
+    </releaseinfo>
+
+  </documentinfo>
+
+  <toc></toc>
+-->
+  <section id="introduction">
+
+    <title id="introduction.title">Introduction</title>
+
+    <section id="intro-open">
+
+      <title id="intro-open.title">feritedoc</title>
+
+      <para>
+        &feritedoc; is a documentation tool for &ferite; modules and scripts.
+        It allows you, the developer, to keep your documentation tightly
+        integrated with your code. The html template produces nice looking
+        pages with an integrated search ability.
+      </para>
+
+    </section>
+
+    <section id="intro-background">
+
+      <title id="intro-background.title">Background</title>
+
+      <para>
+        Chris Ross, the author of &ferite;, wrote &feritedoc; as a handy
+        tool for documenting &ferite; scripts. &feritedoc; has similarities
+        to other documentation programs, but is actually a &ferite; script,
+        so it is installed with the &ferite; distribution.
+      </para>
+
+    </section>
+
+    <section id="intro-setup">
+
+      <title id="intro-setup.title">Assumptions</title>
+
+      <para>
+        This document is written for the experienced &ferite; developer.
+        It assumes that you have &ferite; installed, know how to create
+        scripts and are interested in adding in-line documentation
+        to your scripts.
+      </para>
+
+    </section>
+
+    <section id="intro-tour">
+
+      <title id="intro-tour.title">The Obligatory Whirlwind Tour</title>
+
+      <para>
+        &feritedoc; is pretty easy to use. You tell it what script you're
+        going to use as input, what template you're going to use for the
+        output and where you want to create those files. You can leave out
+        the location if you want the files to be created in your working
+        directory.
+      </para>
+
+      <para>
+        &feritedoc; reads the input script and looks for document blocks. These
+        are C style comments that start with "/**" and end with "*/." Here's
+        a short example.
+      </para>
+
+      <code>
+/**
+ * @namespace myTest
+ * @brief     Documentation for my test scripts.
+ */
+namespace myTest {
+
+/**
+ * @function    foobar
+ * @brief       This function converts a string to foobiness.
+ * @declaration function foobar( string target )
+ * @param       string target The string to be foobied.
+ * @description The target parameter is not updated, instead
+ *              a foobie copy is created and returned.
+ * @return      A copy of the target string that has been foobied.
+ * @example &lt;nl /&gt;
+ *   &lt;code&gt;Console.println("foobar(${target}) =&gt; ${foobar(target)}");&lt;/code&gt;
+ */
+function foobar( string target ) {
+  return "foo-" + target + "-bar";
+}
+
+/**
+ * @end
+ */
+} </code>
+
+      <para>
+        When run with the following command line,
+      </para>
+
+      <code>
+$ feritedoc --prefix docs/ --template html --file myTest.fe </code>
+
+      <para>
+        it produces the following output files:
+      </para>
+
+      <code>
+docs/myTest.html
+
+docs/jse_sites.js
+docs/list.html
+docs/main.html
+
+docs/back.png
+docs/class.png
+docs/empty.png
+docs/function.png
+docs/index.html
+docs/jse_form.js
+docs/jse_search.js
+docs/namespace.png
+docs/results.html
+docs/style.css
+docs/var.png </code>
+
+      <para>
+        The first file (myTest.html) is created specifically for the namespace.
+        It gets its name from the &atnamespace; specified (in this case,
+        myTest). Each &atnamespace; in the script will have a separate html
+        file.
+      </para>
+
+      <para>
+        The next three files (jse_sites.js, list.html and main.html) are
+        standard files that are customized to point to the namespace page.
+      </para>
+
+      <para>
+        The remaining files are standard boilerplate. They are copied from
+        the template directory without modification.
+      </para>
+      <!-- TODO would this be a good time to mention customizing -->
+
+      <para>
+        To view the documentation, simply load the index.html file into your
+        favorite browser. You should see something similar to the following:
+      </para>
+
+      <!-- TODO this would be a great place to show what it looks like in a browser -->
+
+      <para>
+        It is not difficult to customize the output. However, you do need to
+        be <emphasis>very</emphasis> familiar with the internals of the html
+        template.
+      </para>
+
+    </section>
+
+  </section>
+
+  <section id="running">
+
+    <title id="running.title">Running</title>
+
+    <section id="running-intro">
+
+      <title id="running-intro.title">Overview</title>
+
+      <para>
+        This section desribes how to run &feritedoc; from the command line.
+        The most common command line options are mentioned. See The section
+        On Command Line Options for full details on all options.
+      </para>
+
+    </section>
+
+    <section id="running-main">
+
+      <title id="running-main.title">Usage</title>
+
+      <para>
+        &feritedoc; has a very easy to use command line interface. For most
+        situations, only three parameters will be used: --template, --prefix
+        and --file.
+      </para>
+
+      <para>
+        The --template option specifies which template to use for the
+        generated documents. It is the only required option.
+      </para>
+
+      <para>
+        The --file option specifies the script name to document. It is
+        optional. You could take advantage of that to re-create all of the
+        boilerplate files after an upgrade. But, it doesn't make much sense
+        to generate documentation without specifying a file to process, right?
+      </para>
+
+      <para>
+        The --prefix option specifies a string to prepend to all output
+        file names. It is optional. You can use this option to specify a
+        simple name or a complete path. If you're specifying a path,
+        be sure to include the trailing slash ("/").
+      </para>
+
+      <para>
+        Other command line options are detailed in <link
+        target="command-line-options">command line options</link>.
+      </para>
+
+      <para>
+        The simplest usage is
+      </para>
+
+      <code>
+$ feritedoc --template html --file myTest.fe </code>
+
+      <para>
+        The --template option specifies that we'll be using the html template.
+        That's the template used in the &ferite; standard documentation. It
+        will create one file per "group" in the script (grouping is covered
+        in <link linkend="markup-t-grouping">markup tagging</link>). The other template type is
+        "text," which we won't mention except to mention that we won't mention
+        it.
+      </para>
+
+    </section>
+
+  </section>
+
+  <section id="markup">
+
+    <title id="markup.title">Running</title>
+
+    <para>
+      All templates use a common processor (the "parser") that extracts in-line
+      documentation from the script files. The parser examines each script
+      looking for documentation blocks. When it finds a documentation block,
+      it scans the block looking for markup tags. All templates use the same
+      markup tags, they only differ in how they format the output.
+    </para>
+
+    <para>
+      It is important to note that the html template requires that you provide
+      at least one grouping tag in your script (grouping tags are covered in
+      The Next Section). If you don't, &feritedoc; will either create an empty
+      set of documents or display the following error message:
+    </para>
+
+    <code>
+Error: Trying to access variable 'doctype' in object 'b' which is null </code>
+
+    <section id="markup-block">
+
+      <title id="markup-block.title">Documentation Blocks</title>
+
+      <para>
+        All of the markup tags are embedded in specially formatted C style
+        comments. A documentation block starts with "/**" and ends with
+        "*/." The block looks like this:
+      </para>
+
+      <code>
+/**
+ * This is a C style documentation block.
+ * Note that there are two asterisks on the first line.
+ */ </code>
+
+      <para>
+        All comments that have this format will be scanned by the parser.
+      </para>
+
+      <para>
+        There are some limitations to the parser. For example, the following
+      </para>
+
+      <code>
+string foolMeOnce  = "/**";
+string foolMeTwice = " * @namespace"; </code>
+
+      <para>
+        can cause it to blow up. The parser doesn't understand that the comment
+        is quoted, so it isn't really a comment.
+      </para>
+
+    </section>
+
+    <section id="markup-types">
+
+      <title id="markup-types.title">Three Types of Tags</title>
+
+      <para>
+        &feritedoc; has notions about the types of tags. There are block
+        level tags, grouping tags and attribute tags. If there is a better
+        notation, please let me know.
+      </para>
+
+      <section id="markup-t-block">
+
+        <title id="markup-t-block.title">Block Level Tags</title>
+
+        <para>
+          Block level tags (such as &atnamespace;) should be the first tag in
+          a documentation block. They control what the documentation will apply
+          to. Their scope is the entire comment.
+        </para>
+
+        <para>
+          Trying to include two block level tags in one comment will generally
+          result in the following error message:
+        </para>
+
+        <code>
+Error: Can't assign variables of type string and array </code>
+
+        <para>
+          This won't cause &feritedoc; to abend, but the files that are output
+          will be unusuable.
+        </para>
+
+      </section>
+
+      <section id="markup-t-grouping">
+
+        <title id="markup-t-grouping.title">Grouping Tags</title>
+
+        <para>
+          Grouping tags are a type of container. All tags between the start
+          of the group and the end of the group are "in" the group.
+          All the tags in a group are written to the same document file.
+          The grouping tags are sorted alphabetically prior to being written
+          to the document file.
+        </para>
+
+        <para>
+          The &atend; tag flags the end of a group.
+        </para>
+
+        <para>
+          Interestingly, some grouping tags can be nested. The html template
+          uses a dot notation to indicate the container. For example, if
+          &atnamespace; bar is in &atnamespace; foo, the index page will
+          have an entry for both foo and foo.bar. That's not true for
+          &atgroup;.
+        </para>
+
+        <section id="markup-t-madness">
+
+          <title id="markup-t-madness.title">Gates of Madness, Next Right</title>
+
+          <para>
+            &feritedoc; won't mind if you use the same name for multiple
+            grouping tags, but you won't like the output. All documentation
+            is written to the same output file, effectively losing most of
+            the entries in each set.  The index page generated will have the
+            information for the first group processed, repeated once for each
+            entry in the set. To top it off, all the links will bring up the
+            information for the last group processed. Confusing and ugly.
+            You've been warned.
+          </para>
+
+        </section>
+
+      </section>
+
+      <section id="markup-t-attr">
+
+        <title id="markup-t-attr.title">Attribute Tags</title>
+
+        <para>
+          An attribute tag specifies the value of an attribute. In a way, all
+          tags are attribute tags. The &atvariable; tag specifies the name
+          of the variable. It's just that the block level and grouping tags
+          have a larger impact.
+        </para>
+
+        <para>
+          Generally speaking, the value of an attribute tag will be all of the
+          text between the tag and the next tag (or the end of the comment).
+          Some tags (such as &atparam;) will parse the text further. You would
+          think that this is part of the parser, but it is actually part of the
+          template. In html.fe, there is a function "generateTypeList" that
+          seems to do this.
+        </para>
+
+        <para>
+          Using an attribute tag outside the scope of a block level tag will
+          cause &feritedoc; to display the following error message:
+        </para>
+
+        <code>
+Error: Trying to access variable 'doctype' in object 'b' which is null </code>
+
+        <para>
+          This won't cause &feritedoc; to abend, but the files that it outputs
+          will be unusuable.
+        </para>
+
+      </section>
+
+    </section>
+
+    <section id="markup-tags">
+
+      <title id="markup-tags.title">Markup Tags</title>
+
+      <para>
+        The following tags are recognized by the parser.
+      </para>
+
+      <!-- TODO this should probably be a small table -->
+<!--
+<table>
+  <title>SmallTable</title>
+  <tgroup cols="3" align="left">
+    <thead>
+      <row>
+        <entry>entry</entry><entry>entry</entry><entry>entry</entry>
+      </row>
+    </thead>
+    <tbody>
+      <row>
+        <entry>entry</entry><entry>entry</entry><entry>entry</entry>
+      </row>
+    </tbody>
+  </tgroup>
+</table>
+-->
+      <list mark="opencircle">
+        <list-item>
+          <para>&atbrief;</para>
+          <para>A brief description of the item.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atclass;</para>
+          <para>The name of the class being documented. This is a block level, grouping tag.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atdeclaration;</para>
+          <para>The signature of the function, with the names of any parameters.</para>
+        </list-item>
+
+        <list-item>
+          <para>description</para>
+          <para>A long description of the item.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atexample;</para>
+          <para>An example of using the item.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atextends;</para>
+          <para>The name of the object being extended.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atfunction;</para>
+          <para>The name of the function being documented. This is a block level, grouping tag.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atgroup;</para>
+          <para>The name of the group being documented. This is a block level, grouping tag.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atmodifies;</para>
+          <para>The name of the object that is being modified.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atmodule;</para>
+          <para>The name of the module being documented. This is a block level, grouping tag.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atnamespace;</para>
+          <para>The name of the namespace being documented. This is a block level, grouping tag.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atparam;</para>
+          <para>The parameter type and usage. In the form '&atparam; type name description'.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atreturn;</para>
+          <para>The type returned from the function. Can this apply to a module?</para>
+        </list-item>
+
+        <list-item>
+          <para>&atstatic;</para>
+          <para>Indicate that the item being documented is static.</para>
+        </list-item>
+
+        <list-item>
+          <para>&attype;</para>
+          <para>The type of the variable being documented.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atvariable;</para>
+          <para>The name of the variable being documented. This is a block level tag.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atwarning;</para>
+          <para>Document any warnings for the item.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atprotocol;</para>
+          <para>The name of the protocol being documented. This is a block level, grouping tag.</para>
+        </list-item>
+
+        <list-item>
+          <para>&atimplements;</para>
+          <para>Document any protocols that a class implements. Used in the form '&atimplements; protocol'.</para>
+        </list-item>
+
+      </list>
+
+    </section>
+
+  </section>
+
+  <section id="templates">
+
+    <title id="templates.title">Templates</title>
+
+    <para>
+      To determine what templates are installed, go to
+      &share;<function>doc/template/</function>. All
+      .fe files in that directory with a class that extend Template are
+      templates.
+    </para>
+
+    <para>
+      The templates in the current release of &ferite; include text and html.
+    </para>
+
+    <section id="templates-why">
+
+      <title id="templates-why.title">Why create a template?</title>
+
+      <para>
+        Insert intelligent text here.
+      </para>
+
+    </section>
+
+    <section id="templates-how">
+
+      <title id="templates-how.title">How to create a template?</title>
+
+      <para>
+        Insert intelligent text here.
+      </para>
+
+    </section>
+
+  </section>
+
+  <section id="notes">
+
+    <title id="notes.title">Notes</title>
+
+    <para>
+      Go ahead and take a look at the &feritedoc; script. You should find it
+      in the bin directory of your distribution. You'll see a lot of system-
+      specific setup and one important bit: "doc.fe." That indicates that
+      &feritedoc; is actually a &ferite; script.
+    </para>
+
+    <para>
+      You may see older scripts with "* !class" instead of "* @class." Those
+      scripts will not work with the current version of &feritedoc;.
+    </para>
+
+    <para>
+      How to make your template accept additional parameters.
+    </para>
+
+    <para>
+      I prefer using the --prefix to put documents into a separate directory.
+    </para>
+
+  </section>
+
+  <section id="command-line-options">
+
+    <title id="command-line-options.title">Command Line Options</title>
+
+    <section id="cmdline-intro">
+
+      <title id="cmdline-intro.title">Overview</title>
+
+      <para>
+        This section documents all of the &feritedoc; command line options.
+      </para>
+
+    </section>
+
+    <section id="cmdline-defaults">
+
+      <title id="cmdline-defaults.title">Default Values</title>
+
+      <para>
+        It is important to note that the &feritedoc; script will set the
+        --ferite-prefix and --install-path options for you. You should only
+        specify them if you need to override the default values.
+      </para>
+
+    </section>
+
+    <section id="cmdline-options">
+
+      <title id="cmdline-options.title">Command Line Options</title>
+
+      <list mark="opencircle">
+
+        <list-item>
+          <para>
+            --extra-file-name <emphasis>scriptName</emphasis>
+          </para>
+          <para>
+            This command line option adds the script name specified to the
+            list of scripts to extract documentation from. Unlike --file, this
+            option can be specified multiple times and each script name will
+            be documented.
+          </para>
+          <para>
+            Please note that the scripts won't be documented until all other
+            command line options have been parsed.
+          </para>
+        </list-item>
+
+        <list-item>
+          <para>
+            --ferite-prefix <emphasis>path</emphasis>
+          </para>
+          <para>
+            This command line option specifies the path to install &ferite;
+            documentation to. This path will have "/lib/ferite/" appended to it.
+          </para>
+          <para>
+            This option is only valid if the --regenerate option is also
+            specified.
+          </para>
+          <para>
+            It is interesting to contemplate what happens if both --prefix and
+            --ferite-prefix are passed.
+          </para>
+          <para>
+            The ferite prefix is automatically set by the &feritedoc; script.
+            The value depends on your local installation. It should be the
+            same as the output from running &feritecfg; --prefix.
+          </para>
+        </list-item>
+
+        <list-item>
+          <para>
+            --file <emphasis>scriptName</emphasis>
+          </para>
+          <para>
+            This command line option will place the script at the head of
+            the list of scripts to extract documentation from. If there is
+            already a script there, it will be replaced. You must use the
+            --extra-file-name if you need to process multiple scripts.
+          </para>
+          <para>
+            Please note that the script won't be documented until all other
+            command line options have been parsed.
+          </para>
+        </list-item>
+
+        <list-item>
+          <para>
+            --help
+          </para>
+          <para>
+            This command line option causes &feritedoc; to print out a summary
+            of the command line options. After doing so, the program exits.
+          </para>
+        </list-item>
+
+        <list-item>
+          <para>
+            --install-path <emphasis>value</emphasis>
+          </para>
+          <para>
+            This command line option tells &feritedoc; where to look to find
+            the template files. &feritedoc; will append "/template/" to this
+            path and
+          </para>
+          <para>
+            The install path is automatically set by the &feritedoc; script.
+            It defaults to the ferix prefix appended with "/share/ferite/doc."
+          </para>
+        </list-item>
+
+        <list-item>
+          <para>
+            --prefix <emphasis>value</emphasis>
+          </para>
+          <para>
+            This command line options tells &feritedoc; where to create the
+            documentation files. If not specified, the files will be created
+            in the current directory. If specified multiple times, only the
+            last value will be used. The other values will be silently ignored.
+          </para>
+          <para>
+            The prefix is prepended to every output file name. If you intend
+            for the documentation files to go to a directory, you must ensure
+            that the prefix ends with a "." character.
+          </para>
+          <para>
+            The prefix defaults to the empty string if not specified.
+          </para>
+        </list-item>
+
+        <list-item>
+          <para>
+            --regenerate
+          </para>
+          <para>
+            This command line option causes &feritedoc; to create documentation
+            for the &ferite; system. After doing so, the program exits. This
+            should be the last option on the command line.
+          </para>
+          <para>
+            This option forces the template type to "html."
+          </para>
+          <para>
+            If you haven't specified a --prefix, then the prefix will be set to
+            the ferite prefix, with "/share/doc/ferite/api/" appended to it.
+          </para>
+        </list-item>
+
+        <list-item>
+          <para>
+            --template <emphasis>templateName</emphasis>
+          </para>
+          <para>
+            This command line option specifies the name of the template file to
+            use. This name should not include the ".fe" extension as &feritedoc;
+            appends it automatically.
+          </para>
+          <para>
+            There are currently two templates distributed with &ferite;. They
+            are "text" and "html." These are both described in <link
+            target="templates">templates</link>. If you specify an invalid
+            template name, &ferite; will abend with the following error
+            message.
+          </para>
+          <code>
+Unable to load template 'templateName', aborting </code>
+          <para>
+            If you don't supply a template name, &ferite; will abend with the
+            following error message.
+          </para>
+          <code>
+No template specified - please specify one [eg. text] </code>
+          <para>
+            The template arguments are passed to the constructor during run_parser.
+          </para>
+          <para>
+            The template name defaults to the empty string if not specified.
+          </para>
+          <para>
+            Please note that the --regenerate option will override this value,
+            forcing it to "html."
+          </para>
+        </list-item>
+
+        <list-item>
+          <para>
+            --template-args <emphasis>"commaSeparatedArgumentList"</emphasis>
+          </para>
+          <para>
+            This command line option causes &feritedoc; to pass the argument
+            list to the template's constructor.
+          </para>
+          <para>
+            The template arguments default to the empty string if not specified.
+          </para>
+        </list-item>
+
+        <list-item>
+          <para>
+            --version
+          </para>
+          <para>
+            This command line option causes &feritedoc; to print out the version
+            number. After doing so, the program exits.
+          </para>
+        </list-item>
+
+      </list>
+
+    </section>
+
+  </section>
+
+</document>

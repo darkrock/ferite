@@ -1,0 +1,44 @@
+uses "console";
+
+function fool(){
+	Console.println( "Global fool()" );
+}
+
+namespace bar {
+	function bar() {
+		fool();
+		.fool();
+	}
+
+	function fool() {
+		Console.println( "bar.fool()" );
+	}
+}
+
+class foo
+{
+
+   number safe = 1;
+
+   function afunction( number fromDot )
+   {
+       Console.println( "from dot? == $fromDot" );
+   }
+
+   function bar()
+   {
+       Console.println( "safe == " + self.safe );
+       self.safe = 2;
+       Console.println( "safe == " + self.safe );
+       .safe = 3;
+       Console.println( "safe == " + self.safe );
+
+       self.afunction(false);
+       .afunction(true);
+   }
+}
+
+object blah = new foo();
+
+blah.bar();
+bar.bar();

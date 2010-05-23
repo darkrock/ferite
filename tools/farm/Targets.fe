@@ -1,0 +1,264 @@
+namespace modifies Farm {
+	
+	abstract class Target {
+		
+		string uid;
+		array  files;
+		array  outputs;
+		array  properties;
+		boolean package = true;
+		
+		function constructor( string name ) {
+			.uid = name;
+			.setProperty('name', name);
+			.setProperty('version', '1' );
+			if( Array.keyExists(Farm.global_properties, 'version') )
+				.setProperty( 'version', Farm.global_properties['version'] );
+			if( Array.keyExists(Farm.global_properties, 'prefix') )
+				.setProperty( 'prefix', Farm.global_properties['prefix'] );
+			.files = [ 'source' => [] ];
+		}
+
+		function setType( string t ) {
+			.setProperty('type', t);
+		}
+		function type() {
+			return .getProperty('type');
+		}
+		
+		function addFiles( string type, array files ) {
+			type = String.toLower(type);
+			
+			if( not Array.keyExists(.files, type) )
+				.files[type] = [];
+			
+			Array.each( files ) using ( s ) {
+				.files[type][] = s;
+			};
+		}
+		
+		function invokeBuild() 
+			return true;
+		function invokeInstall()
+			return true;
+		function invokePackage() {
+			array directory_list = [];
+			array file_list = [];
+
+			string topLevel = Directory.getCurrent();
+			string packageName =  Farm.global_properties['name'] + '-' + Farm.global_properties['version'];
+			string packageLevel = topLevel + '/' + packageName; 
+			
+			if( not .package ) {
+				Farm.displayAction('ignore',"Target '${.id}' does not wish to be part of the packaging effort.");
+				return true;
+			}
+			
+			if( not Farm.global_properties.keyExists('name') ) {
+				Farm.displayAction('error',"Unable to invoke phase 'package' on target '${.id}' because there is no global 'name' property set.");
+			}
+
+			if( not Farm.global_properties.keyExists('version') ) {
+				Farm.displayAction('error',"Unable to invoke phase 'package' on target '${.id}' because there is no global 'version' property set.");
+			}
+
+			.files.map() using ( type, sub_list ) {
+				sub_list.each() using ( path ) {
+					file_list[] = path;
+				};
+			};
+			
+			Directory.build(packageLevel, 0755);
+			
+			Farm.global_properties['destination'] = '';
+			file_list.sort().each() using ( file ) {
+				string directory = Directory.name(file);
+				if( directory and not directory_list[directory] ) {
+					Farm.displayAction('directory',"Creating directory $packageName/$directory");
+					Directory.build("$packageLevel/$directory", 0755);
+					directory_list[directory] = true;
+				}
+				Farm.copyFile( file, "$packageName/$file", 0 );
+			};
+			
+			return true;
+		}
+		
+		function invokeAction( string action ) {
+			switch( String.toLower(action) ) {
+				case 'build':
+					return .invokeBuild();
+				case 'install':
+					return .invokeInstall();
+				case 'package':
+					return .invokePackage();
+			}
+			return false;
+		}
+		
+		function setProperty( string type, string property ) {
+			.properties[type] = property;
+		}
+		
+		function addProperty( string type, string property ) {
+			if( Array.keyExists(.properties, type) )
+				.properties[type] = String.trim("${.properties[type]} $property"," \n\r\t");
+			else
+				.properties[type] = String.trim(property," \n\r\t");
+		}
+		
+		function getProperty( string name ) {
+			if( Array.keyExists(.properties, name) )
+				return .properties[name];
+			return "";
+		}
+		
+		function toString() {
+			return "Target: ${.getProperty('name')}, Properties: ${.properties}";
+		}
+	}
+	
+	class NativeCodeTarget extends Farm.Target {
+		
+		function addFiles( string type, array sources ) {
+			// Add the source files
+			super.addFiles( type, sources );
+			
+			// Scan them for headers
+			if( type == 'source' ) {
+				object header = new Regexp('\.h$'), match;
+				Array.each( sources ) using ( s ) {
+					if( match = header.match(s) ) {
+						array a = String.toArray( s, '/' );
+						string path = '', s = '';
+						if( Array.size(a) > 1 ) // It is not in the current directory
+							path = '-I' + (a[0] == "" ? "" : (Directory.getCurrent() + '/')) + Array.join( a[..-2], '/' );
+						else
+							path = "-I" + Directory.getCurrent();
+
+						if( (s = .getProperty('C')) == "" or String.index(s, path) == -1 )
+							.addProperty('C', path);
+						if( (s = .getProperty('CPP')) == "" or String.index(s, path) == -1 )
+							.addProperty('CPP', path);
+					}
+				};
+			}
+		}		
+		
+		function sourceListMatching( string match ) {
+			array source_list;
+			object o = new Regexp( match );
+			
+			Array.each( .files['source'] ) using ( source ) {
+				array list = Farm.RuleSet.translate( self, source );
+				Array.each( list ) using ( file ) {
+					if( o.match(file) )
+						source_list[] = file;
+				};
+			};
+			return source_list;
+		}
+		
+		function invokeBuild() {
+			string types = Farm.RuleSet.sourceTypes();
+			array source_list = .sourceListMatching(types);
+			
+			.outputs = [];
+			return Array.each( source_list ) using ( source_file ) {
+				string s = Farm.RuleSet.build( self, source_file );
+				if( s != "FAILED" ) {
+					if( s != "" )
+						.outputs[] = s;
+					return true;
+				}
+				return false;
+			};
+		}
+		function invokeInstall() {
+			if( Farm.createPath(.getProperty('prefix')) ) {
+				string product = Farm.RuleSet.combinationName(self, .type());
+				return Farm.copyFile( product, "${.getProperty('prefix')}/${Farm.basename(product)}", 0644 );
+			}
+			return false;
+		}
+	}
+	
+	class Library extends Farm.NativeCodeTarget {
+		function invokeBuild() {
+			if( super.invokeBuild() and Array.size( .outputs ) > 0 ) {
+				return Farm.RuleSet.combine( self, .outputs, .type() );
+			}
+			return false;
+		}
+	}
+	class Executable extends Farm.Library {
+		static function constructor() {
+			Farm.Yard.registerTargetType( 'executable', self );
+		}
+		
+		function constructor( string name ) {
+			super( name );
+			.setType( Farm.RuleSet.Executable );
+		}
+		function invokeInstall() {
+			if( Farm.createPath(.getProperty('prefix')) ) {
+				string product = Farm.RuleSet.combinationName(self, .type());
+				return Farm.copyFile( product, "${.getProperty('prefix')}/${Farm.basename(product)}", 0755 );
+			}
+			return false;
+		}
+	}
+	class SharedLibrary extends Farm.Library {
+		static function constructor() {
+			Farm.Yard.registerTargetType( 'shared-library', self );
+		}
+		
+		function constructor( string name ) {
+			super( name );
+			.setType( Farm.RuleSet.SharedLibrary );
+			.addProperty( 'C', '-fPIC' );
+			.addProperty( 'CPP', '-fPIC' );
+		}
+	}
+	class ModuleLibrary extends Farm.Library {
+		static function constructor() {
+			Farm.Yard.registerTargetType( 'module', self );
+		}
+		
+		function constructor( string name ) {
+			super( name );
+			.setType( Farm.RuleSet.ModuleLibrary );
+			.addProperty( 'C', '-fPIC' );
+			.addProperty( 'CPP', '-fPIC' );
+		}
+	}
+	class StaticLibrary extends Farm.Library {
+		static function constructor() {
+			Farm.Yard.registerTargetType( 'static-library', self );
+		}
+		
+		function constructor( string name ) {
+			super( name );
+			.setType( Farm.RuleSet.StaticLibrary );
+		}
+	}
+	
+	class Collection extends Farm.Target {
+		static function constructor() {
+			Farm.Yard.registerTargetType( 'collection', self );
+		}
+		
+		function invokeInstall() {
+			if( .files.keyExists('source') ) {
+				if( Farm.createPath(.getProperty('prefix')) ) {
+					Array.each( .files['source'] ) using ( source ) {
+						Farm.copyFile( source, "${.getProperty('prefix')}/${Farm.basename(source)}", 0 );
+					};
+					return true;
+				}
+				return false;
+			}
+			return true;
+		}
+	}
+}	

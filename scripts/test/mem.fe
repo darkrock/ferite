@@ -1,0 +1,12 @@
+#!/usr/bin/env ferite
+
+uses "console", "array";
+
+array test;
+
+array tmp;
+string blah = "test key";
+string i;
+number index;
+string b = "crap";
+number count;

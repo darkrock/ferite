@@ -1,0 +1,18 @@
+uses "console";
+
+function a()
+{
+    b();
+}
+
+function b()
+{
+    c();
+}
+
+function c()
+{
+    1 + "Hello"; /* Cause an error */
+}
+
+a();

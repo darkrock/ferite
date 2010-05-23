@@ -1,0 +1,141 @@
+uses "console", "math", "number", "test", "sys";
+
+class MathTest extends Test 
+{
+    function rand() { 
+        number a = Math.rand();
+        number b = Math.rand();
+        if( a == b )
+            return 1;
+        return Test.SUCCESS; 
+    }
+    function max() { 
+        if( Math.max( 10, 11 ) == 10 )
+            return 1;
+        if( Math.max( 11, 10 ) == 10 )
+            return 2;
+        if( Math.max( 11, 11 ) != 11 )
+            return 3;
+        return Test.SUCCESS; 
+    }
+    function getRandMax() { return Test.IGNORE; }
+    function min() { 
+        if( Math.min( 10, 11 ) == 11 )
+            return 1;
+        if( Math.min( 11, 10 ) == 11 )
+            return 2;
+        if( Math.min( 11, 11 ) != 11 )
+            return 3;
+        return Test.SUCCESS; 
+    }
+    function srand() { return Test.IGNORE; }
+    function pi() { 
+        if( (Math.pi() - 3.14) > 0.01 )
+            return 1;
+        return Test.SUCCESS;
+    }
+}
+class MathComplexTest extends Test
+{
+    function sqrt() 
+    {
+        object a = new Math.Complex(4, 4);
+        a.sqrt(a);
+        if( a.real != 2.197368 )
+            return 1;
+        if( a.imaginary != 1.315197 )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function mult()
+    {
+        object a = new Math.Complex(1.0, 0.1);
+        object b = new Math.Complex(2.2, 2.2);
+        object c = new Math.Complex(0.0, 0.0);
+        c.mult(a,b);
+        if( c.real != 1.98 )
+            return 1;
+        if( c.imaginary != 2.42 )
+            return 2;        
+        return Test.SUCCESS;
+    }
+    function sub()
+    {
+        object a = new Math.Complex(1.0, 0.1);
+        object b = new Math.Complex(2.2, 2.2);
+        object c = new Math.Complex(0.0, 0.0);
+        c.sub(b,a);
+        if( c.real != 1.2 )
+            return 1;
+        if( c.imaginary != 2.1 )
+            return 2;        
+        return Test.SUCCESS;
+    }
+    function div()
+    {
+        object a = new Math.Complex(1.0, 0.1);
+        object b = new Math.Complex(2.2, 2.2);
+        object c = new Math.Complex(0.0, 0.0);
+        c.div(a,b);
+        if( c.real != 0.25 )
+            return 1;
+        if( c.imaginary != -0.204545 )
+            return 2;        
+        return Test.SUCCESS;
+    }
+    function add() 
+    {
+        object a = new Math.Complex(1.0, 0.1);
+        object b = new Math.Complex(2.2, 2.2);
+        object c = new Math.Complex(0.0, 0.0);
+        c.add(a,b);
+        if( c.real != 3.2 )
+            return 1;
+        if( c.imaginary != 2.3 )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function copy() 
+    {
+        object a = new Math.Complex(1.0, 0.1);
+        object b = new Math.Complex(2.2, 2.2);
+        a.copy(b);
+        if( a.real != 2.2 )
+            return 1;
+        if( a.imaginary != 2.2 )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function modulus() 
+    {
+        object a = new Math.Complex(1.0, 0.1);
+        object b = new Math.Complex(2.2, 2.2);
+        if( a.modulus() != 1.004988 )
+            return 1;
+        if( b.modulus() == 1.004988 )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function conjugate() 
+    {
+        object a = new Math.Complex(1.0, 0.1);
+        object b = new Math.Complex(2.2, 2.2);
+        b.conjugate(a);
+        if( b.real != 1.0 )
+            return 1;
+        if( b.imaginary != -0.1)
+            return 2;
+        return Test.SUCCESS;
+    }
+    function toString() 
+    {
+        object a = new Math.Complex(1.0, 0.1);
+        if( a.toString() != "1.000000+0.100000i" )
+            return 1;
+        return Test.SUCCESS;
+    }
+}
+
+object o = new MathTest();
+object p = new MathComplexTest();
+return o.run('Math') + p.run('Math.Complex');

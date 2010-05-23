@@ -1,0 +1,22 @@
+---------------------------------------------------------------------------
+The point of good compilers is world domination. The point of not-so-good
+compilers is to serve quality coffee at an affordable price.
+
+Compiler.CupOfCoffee();
+
+[via Tony Guntharp]
+---------------------------------------------------------------------------
+
+To build ferite run:
+
+  $ ./configure
+  $ make
+  $ su -c 'make install'
+  
+The ferite and c api documentation will automatically be generated when you install ferite. You can find all the documentation for ferite in
+$prefix/share/doc/ferite. There should be the pdf versions of the manual,
+embed guide, and feritedoc tool, as well as html versions in the 
+html-manual directory that can be found there. All example scripts will
+be copied to $prefix/share/doc/ferite/examples.
+
+The default prefix is usually /usr/local

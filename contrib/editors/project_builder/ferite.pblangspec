@@ -1,0 +1,93 @@
+/**
+   PHP language specification.
+*/
+(
+{
+	Identifier = ferite;
+	BasedOn = "sourcecode.c";
+	Name = "ferite Script";
+	Description = "ferite Script";
+	SyntaxColoring = {
+		       CaseSensitive = YES;
+ 		       MultiLineComment = (
+ 		       			( "/*", "*/" )
+ 					);
+        SingleLineComment = ( "//" );
+    String = (
+	      ( "\"\"\"", "\"\"\""),
+	      ( "'''", "'''"),
+	      ( "\"", "\"" ),
+	      ( "'", "'" )
+	      );
+    EscapeCharacter = "\\";
+    Keywords = (
+      "argv",
+      "break",
+      "case",
+      "continue",
+      "else",
+      "for",
+      "if",
+      "do",
+      "function",
+      "namespace",
+      "while",
+      "class",
+      "new",
+      "uses",
+      "global",
+      "return",
+      "self",
+      "super",
+      "null",
+      "iferr",
+      "fix",
+      "extends",
+      "native",
+      "modifies",
+      "final",
+      "static",
+      "delete",
+      "rename",
+      "include",
+      "module-init",
+      "module-deinit",
+      "module-register",
+      "module-unregister",
+      "module-flags",
+      "isa",
+      "instanceof",
+      "foreach",
+      "abstract",
+      "public",
+      "private",
+      "protected",
+      "switch",
+      "deliver",
+      "recipient",
+      "using",
+      "closure",
+      "Array",
+      "Console",
+      "IPC",
+      "Math",
+      "Reflection",
+      "RMI",
+      "String", 
+      "Sys",
+      "Test",
+      "Thread",
+      "XML",
+      "true",
+      "false",
+      "string",
+      "number", 
+      "array",
+      "object",
+      "void",
+	  "atomic",
+	);
+  };
+}
+)
+

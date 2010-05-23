@@ -1,0 +1,84 @@
+#!/usr/bin/env ferite
+    
+/*  
+ *  Stephan Engström <sem@cention.se>
+ */
+    
+uses "test","serialize","sys","console","string","xml";
+
+
+class Foo
+{
+    number a;
+    string b;
+    array c;
+    object d;
+    function constructor( number a, string b )
+    {
+	.a = a;
+	.b = b;
+	.c = [1,2,3,4,5,6];
+    }
+}
+function BuildObject( )
+{
+    object o = new Foo(1,"Hello");
+    o.d = new Foo(2,"World");
+    o.d.c[] = "bar";
+    return o;
+}
+function BuildObject2( )
+{
+    object o = new Foo(1,"Hello");
+    o.d = o;
+    return o;
+}
+class SerializeTest extends Test
+{
+    function toNative( )
+    {
+	object o;
+	string s = Serialize.toNative( BuildObject( ) );
+	if( !s )
+	    return 1;
+	o = Serialize.fromNative(s);
+	if( !o )
+	    return 2;
+	monitor {
+	    if( o.d.c[6] != "bar" )
+		return 3;
+	} handle {
+	    return 4;
+	} 
+        o.a = 100;
+        if( s == Serialize.toNative(o) )
+            return 5;
+	return Test.SUCCESS;
+    }
+    function fromNative( )
+    {
+        return .toNative();
+    }
+    function toXML( )
+    {
+	/* Just fake this one, we have no good way to verify just yet */
+	object o = BuildObject2( );
+	string s = Serialize.toXML(o);
+        object x = new XML.TreeParser();
+        object e;
+        monitor {
+            x.parseChunk(s);
+        } handle {
+            return 1;
+        }
+        e = x.getDocumentElement();
+        if( not Array.keyExists(e.getAttributes(),"name") )
+            return 2;
+	return Test.SUCCESS;
+    }
+}
+
+object o = new SerializeTest( );
+return o.run("Serialize");
+
+

@@ -1,0 +1,73 @@
+uses "array", "console", "string";
+
+global {
+    string lastget;
+}
+
+function process( string s ) {
+    return String.trim(s,"\r\n \t");
+}
+function get( string prompt ) {
+    Console.println( prompt + " (press enter for nothing)" );
+    lastget = process(Console.readln());
+    return lastget;    
+}
+function line( string contents ) {
+    return " * $contents\n";
+}
+function getValue( string type, string prompt ) {
+    string v = get(prompt);
+    if( v != "" )
+        return line("@$type $v");
+    return "";
+}
+
+string value = "";
+string comment = "/**\n";
+string type = "";
+ 
+ type = get("type: (function|group|namespace|variable|class)':");
+ if( type != "" )
+ {
+     value = get("name:");
+     comment += line("@$type $value");
+     comment += getValue("declaration","declaration of the $type:");
+     comment += getValue("brief","brief description of the $type:");
+     comment += getValue("description","bigger description/notes about the $type:");
+     comment += getValue("static","is the $type static:");
+     comment += getValue("warning","are there any warnings:");
+     
+     switch( type ) {
+         case "function":
+         {
+             string last = " ";
+             comment += getValue( "return","what does the function return" );
+             while( last != "" )
+             {
+                 last = getValue("param","parameter ? (blank to finish adding parameters) format: type name description");
+                 if( last != "" )
+                     comment += last;
+             }
+             break;
+         }
+         case "variable":
+         {
+             comment += getValue( "type", "type of variable" );
+             break;
+         }
+         case "namespace":
+         case "group":
+         {
+             comment += getValue( "modifies", "the $type this comment block modifies" );
+             break;
+         }
+         case "class":
+         {
+             comment += getValue( "modifies", "the $type this comment block modifies" );
+             comment += getValue( "extends", "the $type this comment block extends, this must be the fully qualified name" );
+             break;
+         }
+     }
+     comment += " */\n";
+ }
+Console.println( comment );

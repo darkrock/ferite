@@ -1,0 +1,8 @@
+#!/bin/sh
+
+prefix=@prefix@
+library_path=@prefix@/share/ferite/generate-module
+
+$prefix/bin/ferite $library_path/generate-module.fe -- "$@"
+
+exit 0

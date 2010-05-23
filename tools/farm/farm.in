@@ -1,0 +1,8 @@
+#!/bin/sh
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+library_path=@prefix@/share/ferite/farm
+
+$prefix/bin/ferite --include $library_path $library_path/farm.fe -- "$@"
+exit 0

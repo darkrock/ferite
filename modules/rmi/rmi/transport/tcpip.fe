@@ -1,0 +1,146 @@
+uses "sys", "regexp", "network", "posix", "array";
+
+class RMITCPIPTransport extends RMITransportLayer
+{
+    static number packetSize = 64;
+    
+    object socket;
+    object stream;
+    
+    function constructor( object socket )
+    {
+        .stream = socket;
+    }
+    
+    function constructor( string url )
+    {
+        string type = "connect";
+        string host = Network.ANY4;
+        string port = "2048";
+        object match = Regexp.match( '([^:]*):([^:]*):([^:]*)', url );
+        
+        RMI.debug( "RMI: TCP/IP: Decoding '$url'" );
+        if( match.capture(0) != "" ) type = match.capture(0);       
+        if( match.capture(1) != "" ) host = match.capture(1);       
+        if( match.capture(2) != "" ) port = match.capture(2);
+        
+        switch( type )
+        {
+            case "bind":
+                .socket = Network.TCP.bind( host, String.toNumber(port) );
+                if( .socket == null )
+                {
+                    Console.printlnErr( "Could not bind to port $port on interface $host: ${err.str}" );
+                    return null;
+                }
+                    Console.println( "RMI: TCP/IP: Bound to $host:$port" );
+                break;
+            case "connect":
+                .stream = Network.TCP.connect( host, String.toNumber(port) );
+                if( .stream == null )
+                {
+                    Console.printlnErr( "Could not connect to port $port on host $host: ${err.str}" );
+                    return null;
+                }
+                    Console.println( "RMI: TCP/IP: Connected to $host:$port" );
+                break;
+        }
+    }
+    
+    atomic function send( string str )   
+    {
+        array a = String.blocks( str, RMITCPIPTransport.packetSize );
+        number i = 0;
+        string s = "";
+        
+        RMI.debug( "Sending message $str" );
+        for( i = 0; i < Array.size(a); i++ )
+        {
+            s = a[i];
+            if( String.length( s ) < RMITCPIPTransport.packetSize )
+                s = String.pad( s, RMITCPIPTransport.packetSize );
+            RMI.debug( "Sending packet '$s'" );
+            .stream.write( s );	   
+        }
+        .stream.write( String.pad( "END", RMITCPIPTransport.packetSize ) );
+        .stream.flush();
+    }
+    
+    atomic function receive()
+    {
+        number done = false;
+        string total = "";
+        string packet = "";
+        
+        if( .stream != null )
+        {
+            while( RMI.serverRunning ) {
+                array read = [ .stream ];
+                object r = Posix.select( read, [], [], 0.1 );
+                
+                RMI.debug("Waiting for data");
+                if( r != null and Array.size(r.read) > 0 ) 
+                    break;
+            }
+            while( not done and RMI.serverRunning )
+            {
+                packet = .stream.read( RMITCPIPTransport.packetSize );
+                
+                RMI.debug( "got [pre] '$packet' ${String.length(packet)}" );
+                packet = String.postTrim( packet, " " );
+                RMI.debug( "got [post] '$packet' ${String.length(packet)}" );
+                if( packet == "END" )
+                {
+                    done = true;
+                    RMI.debug( "Done!" );
+                }
+                else if( packet == "" )
+                {
+                    done = true;
+                    total = "";
+                    RMI.debug( "Done!" );
+                }
+                else
+                    total += packet;
+            }
+        }
+        RMI.debug( "Returning '$total'" );
+        return total;
+    }
+    
+    atomic function waitForClient()
+    {
+        object socket = null;
+        
+        if( .socket != null )
+        {
+            while( RMI.serverRunning ) {
+                array read = [ .socket ];
+                object r = Posix.select( read, [], [], 0.1 );
+                
+                RMI.debug("Waiting for connection");
+                if( r != null and Array.size(r.read) > 0 ) 
+                    break;
+            }      
+            if( RMI.serverRunning )
+            {
+                socket = .socket.accept();
+                if( socket != null )
+                    return new RMITCPIPTransport( socket );
+            }
+        }
+        return null;
+    }
+    
+	function cleanup() {
+		if( .stream ) {
+			.stream.close();
+			.stream = null;
+		}
+	}
+	
+    function isBlocking()
+        return true;
+}
+
+RMI.registerTransportLayer( "tcpip", "RMITCPIPTransport" );

@@ -1,0 +1,66 @@
+// As of 11th June 2004 foreach has been deprecated; this script no longer works
+
+uses "console";
+
+class ForeachTest
+{
+   number counter = 0;
+
+   function next()
+   {
+       if( .counter < 10 )
+       {
+           .counter++;
+           return .counter;
+       }
+   }
+}
+
+array a = [];
+string key, value;
+object o = new ForeachTest();
+number n = 0;
+void v;
+
+a["Chris"] = "Ross";
+a["Stephan"] = "Engstrom";
+a["Evan"] = "Webb";
+
+Console.println( "foreach(3):" );
+foreach( key, value, a )
+{
+    Console.println( "key: $key, value: $value" );
+}
+
+Console.println( "foreach(2):" );
+foreach( value, a )
+{
+    Console.println( "value: $value" );
+}
+
+foreach( value, "Hello" )
+{
+    Console.print( "'$value'" );
+}
+Console.println( "" );
+
+foreach( n, o )
+{
+    Console.println( "Counter: $n" );
+}
+
+a = [ "Hello", 2, "World" ];
+monitor {
+  foreach( value, a )
+  {
+      Console.println( "value: $value" );
+  }
+} handle {
+  Console.println( "We got a foreach exception. This was expected" );
+}
+
+Console.println( "Testing void usage in foreach" );
+foreach( v, a )
+{
+    Console.println( "value: $v" );
+}

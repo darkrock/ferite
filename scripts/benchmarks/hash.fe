@@ -1,0 +1,17 @@
+uses "array", "string", "console";
+
+number i = 0, n = 0, c = 0;
+array X;
+
+if( Array.size(argv) > 0 )
+    n = String.toLong(argv[0]);
+else
+    n = 1;
+    
+for( i = 0; i <= n; i++ )
+    X[""+i] = i;
+    
+for( i = n; i > 0; i-- )
+    if( X[""+i] ) c++;
+    
+Console.println( c );

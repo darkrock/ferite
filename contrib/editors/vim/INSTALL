@@ -1,0 +1,15 @@
+- put these lines in your ../vim5x/filetype.vim file together with the other "au" 
+lines:
+
+" Ferite Scripting language
+au BufNewFile,BufRead *.fe                      set ft=ferite_script
+au BufNewFile,BufRead *.fec                     set ft=ferite_module
+
+
+- put these lines in you ../vim5x/syntax/synload..vim file together with the other 
+"SynAu" lines:
+SynAu ferite_script
+SynAu ferite_module
+
+
+copy ferite_script.vim and ferite_module.vim to your ../vim5x/syntax directory

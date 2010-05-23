@@ -1,0 +1,523 @@
+/*
+ * Copyright (C) 2001 Espen <nilsenea@plu.edu>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+                          * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+                          * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "ipc.lib";
+
+module-header
+{
+    
+#include "config.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#if defined(USING_DARWIN) || defined(USE_SNOWLEOPARD)
+# include <sys/semaphore.h>
+#endif
+#include <sys/sem.h>
+#define DEFAULT_PERMISSION 0666
+#define DEFAULT_SEGMENT_SIZE 4096
+    
+#if defined(USING_DARWIN) || defined(USE_SNOWLEOPARD) || defined(__FreeBSD__) || defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
+    /* union semun is defined by including <sys/sem.h> */
+#else
+    /* according to X/OPEN we have to define it ourselves */
+    union semun
+{
+    int val;                    /* value for SETVAL */
+    struct semid_ds *buf;       /* buffer for IPC_STAT, IPC_SET */
+    unsigned short int *array;  /* array for GETALL, SETALL */
+    struct seminfo *__buf;      /* buffer for IPC_INFO */
+};
+#endif
+
+typedef struct ipc_data
+{
+    key_t key;    // key for the shared memory segment
+    size_t size;  // size of shared memory segment
+    int perm;     // permissions for the shm
+    
+    int shmid;    // the shared memory segments id
+    int shmflag;   // default is 0
+    int connected; // am I connected or not
+    
+    int semid;    // semaphore set id
+    struct sembuf sembuffer; // the semaphore
+    
+    char *data;   // pointer to the shared memory segment
+    
+}
+IpcData;
+
+#define OAS( o ) ((IpcData*)(o->odata))
+#define SelfObj ((IpcData*)(self->odata))
+
+}
+
+/**
+* @class IPCObject
+ * @brief Provides an interface to Unix SysV style shared memory
+ * @description This class can be used to provide a means of accessing SysV
+ *              style shared memory areas for interprocess communication.
+ *              As well as allowing Ferite processes to communicate with each
+ *              other, it can also be used to communicate with any other
+ *              applications which use SysV style shared memory.
+ * @example <code>
+ <keyword>uses</keyword> "console", "ipc", "string";<nl/>
+ <nl/>
+ <type>object</type> myipc;<nl/>
+ <type>number</type> shmid;<nl/>
+ <type>number</type> option = 1;<nl/>
+ <type>string</type> data;<nl/>
+ <nl/>
+ myipc = <keyword>new</keyword> IpcObject();<nl/>
+ <nl/>
+ Console.println ("::Connecting...");<nl/>
+ myipc.connect ("/bin/sh");<nl/>
+ <nl/>
+ Console.println ("Choose one of the following options");<nl/>
+ <nl/>
+ <keyword>while</keyword> (option != 0)<nl/>
+{<nl/>
+<tab/>Console.println ("\n0 - QUIT");<nl/>
+<tab/>Console.println ("1 - Write to shm");<nl/>
+<tab/>Console.println ("2 - Read from shm");<nl/>
+<nl/>
+<tab/>option = String.toLong (Console.readln());<nl/>
+<nl/>
+<tab/>Console.println("");<nl/>
+<nl/>
+<tab/><keyword>switch</keyword>( option )<nl/>
+<tab/>{<nl/>
+<tab/>  <keyword>case</keyword> 1:<nl/>
+<tab/><tab/>Console.println ("Type something to put in the shared memory segment
+:");<nl/>
+<tab/><tab/>data = Console.readln();<nl/>
+<tab/><tab/>myipc.write (data);<nl/>
+<tab/><tab/>Console.println ("\n>>>Wrote: $data");<nl/>
+<tab/><tab/><keyword>break;</span><nl/>
+<tab/>  <keyword>case</keyword> 2:<nl/>
+<tab/><tab/>data = myipc.read();<nl/>
+<tab/><tab/>Console.println (">>>Got: $data");<nl/>
+<tab/><tab/><keyword>break</keyword>;<nl/>
+<tab/>  <keyword>case</keyword> 0:<nl/>
+<tab/><tab/>break;<nl/>
+<tab/>  <keyword>default</keyword>:<nl/>
+<tab/><tab/>Console.println ("Invalid Option. Please choose either 0, 1 or 2");<
+nl/>
+<tab/>}<nl/>
+}<nl/>
+ <nl/>
+ myipc.disconnect();<nl/>
+ <nl/>
+ </code><nl/>
+ */
+class IPCObject
+{
+    
+    function constructor() {
+        return .constructor(0);
+    }
+    
+    native function constructor( number segsize )
+    {
+        self->odata = fmalloc (sizeof(IpcData));
+        SelfObj->key = 0;
+        SelfObj->size = ((long)segsize == 0 ? DEFAULT_SEGMENT_SIZE : (long)segsize);
+        SelfObj->perm = DEFAULT_PERMISSION;
+        SelfObj->shmflag = 0;
+        SelfObj->connected = 0;
+        SelfObj->sembuffer.sem_flg = 0;
+    }
+    
+    native function destructor()
+    {
+        struct shmid_ds buf;
+        union semun dummy;
+        
+        if (SelfObj->connected)
+        {
+            /* detatch from the shm */
+            if (shmdt(SelfObj->data) == -1)
+                ferite_error (script, 0, "shm detach failed");
+            
+            if (shmctl(SelfObj->shmid, IPC_STAT, &buf) == -1)
+                ferite_error (script, 0, "could not stat shm");
+            else
+            {
+                /* am I the last process connected to it */
+                if (buf.shm_nattch == 0)
+                {
+                    /* destroy shm */
+                    if (shmctl(SelfObj->shmid, IPC_RMID, NULL) == -1)
+                        ferite_error (script, 0, "could not delete the shm");
+                    
+                    /* destroy the semaphore */
+                    if (semctl(SelfObj->semid, IPC_RMID, 0, dummy) == -1)
+                        ferite_error (script, 0, "could not delete the sem set");
+                }
+            }
+        }
+        
+        ffree (self->odata);
+    }
+    
+    /**
+     * @function connect
+     * @brief Connects to a shared memory segment
+     * @declaration function connect( string file )
+     * @param string file The name of the file to attach the shm segment to.
+     * @description This function tries to connect to the specified shm key. If
+     *              it does not exist, it will try to create it. If an error
+     *              occurs, it will set the err object values and return false.
+     * @return true on success, false otherwise
+     */
+    native function connect( string file ) : boolean
+    {
+        
+        union semun arg;
+        arg.val = 1;
+        
+        /* create a key for the shm */
+        SelfObj->key = ftok (file->data, 'E');
+        if (SelfObj->key == -1)
+        {
+            ferite_set_error (script, 0, "Unable to create shm key.");
+            FE_RETURN_FALSE;
+        }
+        
+        /*
+         * this tests if the shm already exists
+         * If the shm does not exist we need to make a semaphore set
+         * with 2 semaphores control read/write access to the shm
+         */
+        SelfObj->shmid = shmget (SelfObj->key,
+                                 SelfObj->size,
+                                 SelfObj->perm | IPC_EXCL | IPC_CREAT);
+        if (SelfObj->shmid != -1)
+        {
+            
+            /*
+             * Create a semaphore set for access control to
+             * the shm
+             */
+            SelfObj->semid = semget (SelfObj->key, 3, SelfObj->perm | IPC_CREAT);
+            if (SelfObj->semid == -1)
+            {
+                ferite_set_error (script, 0, "Unable to create semaphore.");
+                FE_RETURN_FALSE;
+            }
+            
+            /* initialize the writer semaphores to 1 */
+            if (semctl(SelfObj->semid, 0, SETVAL, arg) == -1)
+            {
+                ferite_set_error (script, 0, "Unable to set semaphore 1");
+                FE_RETURN_FALSE;
+            }
+            /* initialize the reader semaphore to 0 */
+            arg.val = 0;
+            if (semctl(SelfObj->semid, 1, SETVAL, arg) == -1)
+            {
+                ferite_set_error (script, 0, "Unable to set semaphore 2");
+                FE_RETURN_FALSE;
+            }
+            
+            /* set readcount semaphore to 0 */
+            if (semctl(SelfObj->semid, 2, SETVAL, arg) == -1)
+            {
+                ferite_set_error (script, 0, "Unable to set semaphore 3");
+                FE_RETURN_FALSE;
+            }
+        }
+        
+        /* Grab the semaphore set id */
+        SelfObj->semid = semget (SelfObj->key, 2, 0);
+        if (SelfObj->semid == -1)
+        {
+            ferite_set_error (script, 0, "Unable to grab the semaphore.");
+            FE_RETURN_FALSE;
+        }
+        
+        /*
+         * create the shm and get it's id
+         * if an shm with this id already exist just connect to it
+         */
+        SelfObj->shmid = shmget (SelfObj->key,
+                                 SelfObj->size,
+                                 SelfObj->perm | IPC_CREAT);
+        if (SelfObj->shmid == -1)
+        {
+            ferite_set_error (script, 0, "Unable to get shm id.");
+            FE_RETURN_FALSE;
+        }
+        
+        /* attach the data pointer to the shm */
+        SelfObj->data = shmat (SelfObj->shmid, (void *)0, 0);
+        if (SelfObj->data == (char*)(-1))
+        {
+            ferite_set_error (script, 0, "Unable to attach to the shm");
+            FE_RETURN_FALSE;
+        }
+        
+        SelfObj->connected = 1;
+        
+        FE_RETURN_TRUE;
+    }
+    
+    /** 
+    * @function disconnect
+    * @declaration function disconnect( )
+    * @brief Disconnects from a shared memory segment and possibly deletes it 
+    * @description This function disconnects the object from its shared memory
+    *              segment. If no other process is connected to the segment
+    *              it will be deleted. If an error
+    *              occurs, it will set the err object values and return false.
+    * @return true on success, false otherwise
+    */
+    native function disconnect( ) : boolean
+    {
+        struct shmid_ds buf;
+        union semun dummy;
+        
+        /* first check to see if I'm connected */
+        if (!SelfObj->connected)
+        {
+            ferite_set_error (script, 0, "I am not connected");
+            FE_RETURN_FALSE;
+        }
+        
+        /* detatch from the shm */
+        if (shmdt(SelfObj->data) == -1)
+        {
+            ferite_set_error( script, 0, "shm detach failed");
+            FE_RETURN_FALSE;
+        }
+        
+        /* need to pick up some info in the shm's status */
+        if (shmctl(SelfObj->shmid, IPC_STAT, &buf) == -1)
+        {
+            ferite_set_error (script, 0, "could not get shm stat");
+            FE_RETURN_FALSE;
+        }
+        
+        /*
+         * If I'm the last process connected to the shm I have to
+         * delete the shared memory segment and semaphore set
+         */
+        if (buf.shm_nattch == 0)
+        {
+            if (shmctl(SelfObj->shmid, IPC_RMID, NULL) == -1)
+            {
+                ferite_set_error (script, 0, "Could not delete shm or mark it for deletion");
+                FE_RETURN_FALSE;
+            }
+            if (semctl(SelfObj->semid, IPC_RMID, 0, dummy) == -1)
+            {
+                ferite_set_error(script, 0, "Could not delete the semaphore set");
+                FE_RETURN_FALSE;
+            }
+        }
+        
+        SelfObj->connected = 0;
+        FE_RETURN_TRUE;
+    }
+    
+    /**  
+    * @function write
+    * @brief Writes a message string to the shared memory segment
+    * @declaration function write( string msg )
+    * @param string msg The message string to write to the shared memory segment
+    * @description If an error occurs, it will set the err object values and return false.
+    * @return true on success, false otherwise
+        */
+    native function write (string msg) : boolean
+    {
+        union semun arg;
+        
+        /* first check to see if I'm connected */
+        if (!SelfObj->connected)
+        {
+            ferite_set_error (script, 0, "I am not connected");
+            FE_RETURN_FALSE;
+        }
+        
+        /* increment the readers semaphore where they'll be waiting for
+        * it to get to 0 again
+        */
+        arg.val = 1;
+        if (semctl(SelfObj->semid, 1, SETVAL, arg) == -1)
+        {
+            ferite_set_error (script, 0, "Could not set the readers sem from write");
+            FE_RETURN_FALSE;
+        }
+        
+        /* wait on the writers semaphore */
+        SelfObj->sembuffer.sem_num = 0;
+        SelfObj->sembuffer.sem_op = -1; // {0, -1, 0}
+        if (semop(SelfObj->semid, &SelfObj->sembuffer, 1) == -1)
+        {
+            ferite_set_error (script, 0, "Unable to lock writer semaphore");
+            FE_RETURN_FALSE;
+        }
+        
+        strncpy (SelfObj->data, msg->data, SelfObj->size);
+        
+        /* unlock writer semaphore */
+        SelfObj->sembuffer.sem_num = 0;
+        SelfObj->sembuffer.sem_op = 1; // {0, 1, 0}
+        if (semop(SelfObj->semid, &SelfObj->sembuffer, 1) == -1)
+        {
+            ferite_set_error (script, 0, "Unable to unlock the writer semaphore.");
+            FE_RETURN_FALSE;
+        }
+        
+        /* if there is no more writers it is our job to signal the
+            * readers.
+            */
+        if ((int)semctl(SelfObj->semid, 0, GETNCNT, &arg) == 0)
+        {
+            
+            /* unleash the readers */
+            arg.val = 0;
+            if (semctl(SelfObj->semid, 1, SETVAL, arg) == -1)
+            {
+                ferite_set_error (script, 0, "Could not unleash the readers.");
+                FE_RETURN_FALSE;
+            }
+        }
+        FE_RETURN_TRUE;
+    }
+    
+    /**  
+     * @function read
+     * @brief Reads a string from the shared memory segment
+     * @declaration function read( )
+     * @return A string containing the data which was read from the segment, empty if failure to read.
+     */
+    native function read () : string 
+    {
+        union semun arg;
+        FeriteVariable *var;
+        char *buffer = memset (fmalloc (strlen(SelfObj->data) +1), '\0', (long)strlen(SelfObj->data) +1);
+        
+        /* first check to see if I'm connected */
+        if (!SelfObj->connected)
+        {
+            ferite_set_error (script, 0, "I am not connected");
+            ffree(buffer);
+            FE_RETURN_FALSE;
+        }
+        
+        /* check to see if anyone wants to write */
+        if ((int)semctl(SelfObj->semid, 1, GETVAL, &arg) == 1)
+        {
+            /* wait for the writers */
+            SelfObj->sembuffer.sem_num = 1;
+            SelfObj->sembuffer.sem_op = 0;
+            
+            if (semop(SelfObj->semid, &SelfObj->sembuffer, 1) == -1)
+            {
+                ffree(buffer);
+                ferite_set_error (script, 0, "Unable to wait on writers");
+                FE_RETURN_CSTR("",FE_FALSE);
+            }
+        }
+        
+        /* if no one is currently reading it is our job to lock out the writers */
+        if ((int)semctl(SelfObj->semid, 2, GETVAL, &arg) == 0)
+        {
+            /* lock out the writers */
+            SelfObj->sembuffer.sem_num = 0;
+            SelfObj->sembuffer.sem_op = -1;  // {0, -1, 0}
+            if (semop(SelfObj->semid, &SelfObj->sembuffer, 1) == -1)
+            {
+                ffree(buffer);
+                ferite_set_error (script, 0, "Unable to lock writers semaphore.");
+                FE_RETURN_CSTR("",FE_FALSE);
+            }
+        }
+        
+        /* increment readcount semaphore */
+        SelfObj->sembuffer.sem_num = 2;
+        SelfObj->sembuffer.sem_op = 1;
+        if (semop(SelfObj->semid, &SelfObj->sembuffer, 1) == -1)
+        {
+            ffree(buffer);
+            ferite_set_error (script, 0, "Unable to increment readcount semaphore.");
+            FE_RETURN_CSTR("",FE_FALSE);
+        }
+        
+        strncpy (buffer, SelfObj->data, strlen(SelfObj->data));
+        var = fe_new_str("Ipc->read-return", buffer, 0, FE_CHARSET_DEFAULT);
+        ffree(buffer);
+        
+        /* decrement readcount semaphore */
+        SelfObj->sembuffer.sem_num = 2;
+        SelfObj->sembuffer.sem_op = -1;
+        if (semop(SelfObj->semid, &SelfObj->sembuffer, 1) == -1)
+        {
+            ffree(buffer);
+            ferite_set_error (script, 0, "Could not decrement readcount semaphore");
+            FE_RETURN_CSTR("",FE_FALSE);
+        }
+        
+        /* if there's no more readers it is our job to signal the writers */
+        if ((int)semctl(SelfObj->semid, 2, GETVAL, &arg) == 0)
+        {
+            
+            SelfObj->sembuffer.sem_num = 0;
+            SelfObj->sembuffer.sem_op = 1;
+            if (semop(SelfObj->semid, &SelfObj->sembuffer, 1) == -1)
+            {
+                ffree(buffer);
+                ferite_set_error (script, 0, "Could not unlock writers semaphore");
+                FE_RETURN_CSTR("",FE_FALSE);
+            }
+        }
+        
+        FE_RETURN_VAR (var);
+    }
+    
+    /**
+     * @function take
+     * @brief Take the contents of the memory segment, this reads and then clears the shared segment
+     * @return The contents of the segment as a string, empty on failure
+     */
+    function take() {
+        string s = .read();
+        .write("");
+        return s;
+    }
+}
+/**
+* @end
+ */

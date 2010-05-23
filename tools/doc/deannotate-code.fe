@@ -1,0 +1,17 @@
+uses "array", "console", "regexp";
+
+string input = Sys.openfile( argv[0], Sys.O_RDONLY ).toString();
+
+input = Regexp.replaceAll( '<tab/>', input, '    ' );
+input = Regexp.replaceAll( "<nl/>", input, "" );
+input = Regexp.replaceAll( '&lt;', input, "<" );
+input = Regexp.replaceAll( '&gt;', input, ">" );
+input = Regexp.replaceAll( '&amp;', input, "&" );
+input = Regexp.replaceAll( '</span>', input, "" );
+input = Regexp.replaceAll( '<type>', input, "" );
+input = Regexp.replaceAll( '<keyword>', input, "" );
+input = Regexp.replaceAll( ' \* @example', input, "" );
+input = Regexp.replaceAll( '<code>', input, "" );
+input = Regexp.replaceAll( '</code>', input, "" );
+
+Console.println( input );

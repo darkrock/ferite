@@ -1,0 +1,1946 @@
+<!DOCTYPE document [ <!ELEMENT document (#PCDATA)>
+	  <!ENTITY builder  "<monospace>builder</monospace>">
+	  <!ENTITY ferite   "<monospace>ferite</monospace>">
+	  <!ENTITY modifies "<monospace>modifies</monospace>">
+	  <!ENTITY self     "<monospace>self</monospace>">
+	  ]>
+
+<document id="embedding-guide">
+    <title>The Ferite Developers Guide 1.0 - Extending and Embedding The Ferite Engine</title>
+
+  <section id="introduction">
+    <title id="introduction.title">Introduction</title>
+    <para>
+      It is highly recommended that you read the &ferite; manual before you continue with this
+      manual as it relies on the fact your are fluent with the terminology and structure of a &ferite;
+      program.
+    </para>
+    <para>
+      This document is provided to make it easier to do one (or all) of several things: write a ferite
+      module, write a native module to use with ferite - both with and without using &builder; tool,
+      accessing the internals of the ferite engine: calling functions, changing variables, creating 
+      objects etc. It is suggested that you read this with the C api documentation allowing you to 
+      read the up to date information about the functions discussed.
+    </para>
+  </section>
+
+  <section id="creating-basic-modules">
+    <title id="creating-basic-modules.title">Creating Basic Modules</title>
+    <para>
+      A module is really nothing more than a &ferite; script that resides within &ferite;s module search path. 
+      By default, the &ferite; command line tool will look for modules in the current directory and the system's 
+      &ferite; module directory (usually this is found in the directory <monospace>/usr/lib/ferite/module-source/</monospace>,
+      although this fact can change from platform to platform). The module must have a file extension of either 
+      <monospace>.fe</monospace>, <monospace>.feh</monospace> or <monospace>.fec</monospace> in order to be recognized 
+      by ferite. The convention is that constants and the default values for a module should be stored within a
+      <monospace>.feh</monospace> file, modules mixed with native code should have the extension 
+      <monospace>.fec</monospace>, and the normal &ferite; code in a <monospace>.fe</monospace> file. It is 
+      important to note that &ferite; treats all these files the same, it just provides the ability to have the
+      different extensions to make the intended use of the file more obvious.
+    </para>
+    <para>
+      Essentially any script that you write can be included as a module. A script can import 
+      modules and other scripts by using either the <monospace>uses</monospace> keyword, or the 
+      <monospace>include()</monospace> operation. When you import a module, you refer to it by its filename, 
+      minus the .fe, .feh or .fec extension. So <monospace>mymodule.fe</monospace> would be imported by 
+      <monospace>uses "mymodule";</monospace> - &ferite; will automatically search the extensions. &ferite;
+      will correctly resolve relative paths when importing a module.
+    </para>
+    <para>
+      The following example shows a script importing a module and accessing an exposed function,
+      and the module that is imported. They are in separate files residing in the same directory.
+    </para>
+    <para><strong>File 1 (the importer); Name: myscript.fe</strong></para>
+    <code>
+uses "mymodule";
+foo.bar(); </code>
+    <para><strong>File 2 (the module); Name: mymodule.fe</strong></para>
+    <code>
+uses "console";
+
+namespace foo{
+    function bar(){
+        Console.println("Hello there!");
+    }
+} </code>
+    <para><strong>Execution and result:</strong></para>
+    <code>
+$ ferite myscript.fe
+Hello there!
+$ </code>
+    <para>
+      In the previous example, the module had exposed a namespace (foo), and a function within that 
+      namespace (bar).  However, this is not the limit of what can be exposed. Modules can expose 
+      functions, classes, namespaces, and global variables. Like regular scripts, modules can also 
+      modify existing namespaces and classes by using the &modifies; keyword. There is nothing special 
+      that a module must do in order to expose functionality. When a module 
+      creates a namespace, it is automatically exposed. The same goes for classes, functions and 
+      global variables.
+    </para>
+    <para>
+      Something that should be noted, is that any code in the anonymous function of the module will 
+      be executed when the module is first imported. You can safely put run-once initialization 
+      code in a module's anonymous function.
+    </para>
+    <para>
+      Here is an example of a module taking advantage of several abilities.
+    </para>
+    <para><strong>Name: myothermodule.fe</strong></para>
+    <code>
+uses "console";
+
+global {
+    number gMyNumber = 7;
+}
+
+class myclass {
+    string WhatISaid;
+
+    function constructor(string WhatToSay){
+        Console.println(WhatToSay);
+        self.WhatISaid = WhatToSay;
+    }
+
+    function tryme(){
+        Console.println("You called myclass.tryme()!");
+        Console.println("When created, I said: " + self.WhatISaid);
+    }
+}
+
+namespace mynamespace {
+    function hellothere(){
+        Console.println("Hello there!");
+    }
+}
+
+function plainfunction(){
+    Console.println("You called plainfunction()!");
+}
+
+Console.println("I could be a module initializer!"); </code>
+    <para>
+      This code would result in <monospace>gMyNumber</monospace> being exposed as a global variable. 
+      The class <monospace>myclass</monospace> 
+      would be available, as well as all of its class members. The namespace 'mynamespace' would
+      also become available, and it would house a single function called <monospace>hellothere</monospace>. You would
+      also get a function called <monospace>plainfunction</monospace> placed in the main namespace, accessible simply
+      by its name. And to top it off, upon the importing of the module, the <monospace>Console.println</monospace>
+      statement would be executed. This is a very important feature to note, as it allows for module
+      writers to place initialisation code that will be executed.
+    </para>
+    <para>
+      The next task is to cover native modules.
+    </para>
+  </section>
+
+  <section id="creating-native-modules">
+    <title id="creating-native-modules.title">Creating Native Modules</title>
+    <section id="cnm-introduction">
+      <title id="cnm-introduction.title">Introduction</title>
+      <para>
+	A native module is a &ferite; module that contains native code to interface with the surrounding
+	system. This can be of two main forms, a mix of both native code and &ferite; script (which is
+	how the base modules for &ferite; are written) or they can be completely made up of native code.
+	Native code, in these examples, is C code.
+      </para>
+      <para>
+	Native modules can either be written by hand in the native language, written in ferite-c and converted
+	to 100% native code, or, the prefered option, use ferite-c to build a hybrid module. This section covers
+	the method used to create a hybrid module. These are by far the easiest to maintain and very quick and
+	easy to build. Modules that do not require the ferite-c file at runtime are dicussed later, after &builder;
+	tool and accessing the internals of &ferite; has been dicussed. This is due to the fact that they are
+	harder to write and require knowledge of the &ferite; internals.
+      </para>
+    </section>
+    
+    <section id="cnm-builder">
+      <title id="cnm-builder.title">Builder</title>
+      <para>
+	Ferite-c files (.fec) are compiled using a special tool, called &builder; which is run on the command
+	line. &builder; is only used for the creation of native modules. It is not required in order to run
+	pre-built native modules. Depending on your &ferite; installation, you may need to install a development
+	package to have access to &builder;.
+      </para>
+      <para><strong>What does builder do?</strong></para>
+      <para>
+	&builder; reads a ferite-c file and creates the necessary C source, header files and automake file 
+	that will be needed to compile the module. It takes several command line parameters,
+	only a few of which we will cover here. You can pass &builder; either <monospace>--help</monospace> or <monospace>-h</monospace> 
+	on the command line to see all of the available options. &builder;, by default,
+	assumes that you are going to build a hybrid module and generates the code for this.
+      </para>
+      <para>
+	The switch we are currently most interested is -m. The -m switch allows you to specify the name of your 
+	module to &builder;. This name will be used to determine the names of the files &builder; will create 
+	while reading the ferite-c file. If you do not specify a name using -m, it will default
+to <monospace>modulename</monospace>. For simplicity we will also use the -c and -f switches, which prevent the 
+	creation of a config.m4 and Makefile.am, respectively.
+      </para>
+      <para><strong>Example of using &builder;:</strong></para>
+      <code>
+$ builder -c -f -m mymodule mymodule.fec </code>
+      <para>
+	When you run &builder;, it will create several output files, named according to the module name. The main
+	files created are:
+      </para>
+      <list mark="opencircle">
+            <list-item><para><emphasis>modulename</emphasis>_core.c (holds the register, unregister, init and deinit functions)</para></list-item>
+            <list-item><para><emphasis>modulename</emphasis>_misc.c (holds native code for the anonymous/_start function, if any)</para></list-item>
+            <list-item><para><emphasis>modulename</emphasis>_header.h (holds include statements that the various c files need)</para></list-item>
+            <list-item><para><emphasis>modulename</emphasis>_<emphasis>classname</emphasis>.c (you will get one of these for every class defined in the .fec)</para></list-item>
+            <list-item><para><emphasis>modulename</emphasis>_<emphasis>namespacename</emphasis>.c (you will get one of these for every namespace in the .fec)</para></list-item>
+      </list>
+      <para>
+	These files will need to be compiled into a shared object or a DLL (depending on your platform). For 
+	simplicity, we will simply refer to shared objects from here on, but they are interchangeable with DLL's. 
+	Both the resulting shared object and the original ferite-c file are needed for &ferite; to successfully 
+	import the module. You will need to place the ferite-c file in the module path, which was explained in 
+	the previous section. The shared object will need to be placed in the native search path. This is where 
+	&ferite; looks for all native modules. It is usually <monospace>/usr/lib/ferite/module-native/</monospace><emphasis>platform</emphasis>, 
+	though the actual location may vary depending on the installation (ex. <monospace>/usr/lib/ferite/module-native/linux-gnu-i686</monospace>).
+      </para>
+      <para>
+	<strong>Note:</strong> If you are interested in auto generation tools for standalone modules, you will
+	probably be interested in the
+	generate-module utility. &builder; creates input files for automake and the like specifically tailored for modules
+	that will be included with the &ferite; source. The <monospace>generate-module</monospace> utility is geared more 
+	towards auto generation for
+	standalone modules. The other tool that can be used is <monospace>farm</monospace>. Both these tools are covered
+	later in this guide.
+      </para>
+    </section>
+    
+    <section id="cnm-builder-file-contents">
+      <title id="cnm-builder-file-contents.title">Ferite-C File Contents</title>
+      <para>
+	Ferite-c files are very similar to basic modules. In fact you can quite easily run &builder; on a basic module. 
+	You just would end up with a lot of source files that didn't have much content. In order to get some content into 
+	those files, we need to tell &builder; what parts of our module are written in C, instead of &ferite; script. To 
+	do this, there are several new sections and keywords that we can place within our ferite-c file.
+      </para>
+      <code>
+uses "modulename.lib" </code>
+      <para>
+	One of the most important pieces of a ferite-c file, is a uses statement at the top that tells &ferite; at runtime 
+	to load the shared object file for the native module.
+      </para>
+      <para>
+	When you compile the files that &builder; creates into a shared object, &ferite; has no way of knowing the resulting 
+	file's name. Usually, people will compile it into a file called <emphasis>modulename</emphasis>.so, where 
+	<emphasis>modulename</emphasis> is the name of
+	the module. However this is not required. You could quite easily compile a module from source obtained by building
+	bob.fec, and call it jimmy.so.
+      </para>
+      <para>
+	The solution is to explicitly tell &ferite; to load a shared object by name. This is done with a special case of the 
+	uses statement. The syntax is much like the normal uses statement, only you place a .lib extension on the name of 
+	the module that is to be imported. This is such that &ferite; can know to load the native library for that platform
+	without forcing the programmer to take into account specifics of that platform.
+      </para>
+      <code>
+uses "bob.lib"; </code>
+      <para>
+	This will tell &ferite; to look in the native module path for a file called bob.so on <monospace>Linux</monospace> and
+	bob.dylib on <monospace>Mac OS X</monospace>, and to import it. This type of a uses statement can also be used within
+	a regular &ferite; script to load a native only module. 
+      </para>
+      
+      <section id="cnm-bfc-module-header">
+	<title id="cnm-bfc-module-header.title">module-header</title>
+	<para>
+	  The module-header section is where you will place any #include statements, or #define statements, or anything 
+	  else that you expect your native code will need. The syntax for creating a module-header in a ferite-c file is 
+	  much like defining a global section in a regular script. The code that is declared within the 
+	  <monospace>module-header</monospace>
+	  is availible in all generated C files.
+	</para>
+	<para>For example:</para>
+	<code>
+module-header {
+    <emphasis>...your headers go here...</emphasis>
+} </code>
+	<para>
+	  Anything you place within the module-header section will be placed in the <emphasis>modulename</emphasis>_header.h 
+	  file when
+	  &builder; parses the ferite-c file. This header is then included in every C source file that &builder; creates.
+	  You can have as many <monospace>module-header</monospace> blocks, the code will just be all placed together in the header
+	  file.
+	</para>
+	<para>Here is an example of a module-header:</para>
+	<code>
+module-header {
+    #include <![CDATA[<stdio.h>]]>
+    #include "utility.h"
+} </code>
+	<para>
+	  &builder; doesn't do any validity checking in between the curly braces. So if you have typographical errors, you 
+	  probably won't know until you try to compile the module.
+	</para>
+      </section>
+      
+      <section id="cnm-bfc-module-init">
+	<title id="cnm-bfc-module-init.title">module-init</title>
+	<para>
+	  This section allows you to specify native code that is executed when the module is loaded into a script. It is an
+	  optional section, but &builder; will create an empty module-init function in the C source. This function will be
+	  executed when the uses "modulename.lib" is executed.
+	</para>
+	<para>
+	  The module's _start function (sometimes referred to as the anonymous function) is also executed when it is first 
+	  imported, but module-init code is executed first. Also, the _start function cannot contain native code. So if your 
+	  module initialization requires multiple jumps between native and &ferite; code, you can use the _start function to 
+	  call native functions where necessary and use &ferite; code for everything else.
+	</para>
+	<para>The syntax for creating a module-init section is similar to module-header:</para>
+	<code>
+module-init {
+    <emphasis>...your code goes here...</emphasis>
+} </code>
+	<para>
+	  This will cause all of the code placed within the curly braces to be placed in the module's init function.
+	  In case you're interested, the build destination is the <emphasis>modulename</emphasis>_core.c file, in a 
+	  function called <emphasis>modulename</emphasis>_init(). The function returns void and has 1 parameter, 
+	  "FeriteScript *script", which is accessible to the code within the section.
+	</para>
+      </section>
+      
+      <section id="cnm-bfc-module-deinit">
+	<title id="cnm-bfc-module-deinit.title">module-deinit</title>
+	<para>
+	  This section is syntactically almost identical to the module-init section. Like module-init, module-deinit
+	  is not a required section. Again, &builder; will create empty module-deinit function in the C source for
+	  you if you do not specify one. This function is called when a script is being deleted.
+	</para>
+	<para>
+	  Code in this section is executed when the script that loaded the module is being deleted. More precisely, 
+	  it is run by a call to ferite_script_delete(). However, you usually don't have to worry about the specifics 
+	  unless you're embedding &ferite; in your application. For most purposes, just know that this code is run when
+	  the script has finished executing.
+	</para>
+	<para>Here is an example of a module-deinit section:</para>
+	<code>
+module-deinit {
+    <emphasis>...your code goes here...</emphasis>
+} </code>
+	<para>
+	  As you can see, it is basically the same as module-init. The return type is void, so you shouldn't try 
+	  returning anything from this function. It also has the affected script passed into it, which is accessed 
+	  exactly the same as you would for module-init.
+	</para>
+      </section>
+      
+      <section id="cnm-bfc-module-register-and-unregister">
+	<title id="cnm-bfc-module-register-and-unregister.title">module-register and module-unregister</title>
+	<para>
+	  When a native module's shared object is loaded, its register function is called once. This allows the 
+	  shared object to setup any system specific things. Symetrically, module-unregister is only called once,
+	  and that is when the &ferite; module system decides to unload the shared object. They are both blocks of
+	  code like module-init and module-deinit and should be used the same way.
+	</para>
+      </section>
+      
+      <section id="cnm-bfc-native-functions">
+	<title id="cnm-bfc-native-functions.title">Native Functions, the &builder; way</title>
+	<para>
+	  When developing a native module with &builder; it will be necessary to create functions that can be called
+	  by &ferite; scripts. To make this easy there are only two main differences between a &ferite; function and
+	  a native function. These are the keyword <monospace>native</monospace> and that the bodies of the functions
+	  are written in C.
+	</para>
+	<para>First we'll start with an example of how to declare a simple native function:</para>
+	<code>
+native function foo() {
+    <emphasis>...your code goes here...</emphasis>
+} </code>
+	<para>
+	  This would result in the C source between the curly braces being placed in one of the C source files. 
+	  The exact file and the exact function name created depends on the namespace or class that the function 
+	  is declared in. This might vary from version to version so I won't get into it here, but feel free to 
+	  look at the source created. You'll probably be able to figure it out from there. To a scripter the
+	  function looks and tastes the same as a normal &ferite; function.
+	</para>
+	<para>
+	  It should be noted that within each function the following variables are accessable:
+	</para>
+	<list mark="opencircle">
+	  <list-item><para><monospace>script</monospace> - a pointer to the FeriteScript in which the function was called.</para></list-item>
+	  <list-item><para><monospace>function</monospace> - a pointer to the FeriteFunction which owns the function executing.</para></list-item>
+	  <list-item><para><monospace>params</monospace> - the null terminated list of parameters (see Calling Functions for more information).</para></list-item>
+	  <list-item><para><monospace>self</monospace> - <strong>Note!</strong> for a function that is an object function, self
+will point to the FeriteObject*, for a namespace it will point to the FeriteNamespace* that the function lives in, for a class function it will point to the FeriteClass* the function lives in.</para></list-item>
+      <list-item><para><monospace>current_recipient</monospace> - A pointer to the current closure that may have been passed
+                into the function. The <monospace>deliver</monospace> keyword, that is used within a ferite script, uses this
+                closure and calls the <monospace>invoke</monospace> function on it.</para></list-item>
+	</list>
+	
+	<section id="cnm-bfc-nf-parameters">
+	  <title id="cnm-bfc-nf-parameters.title">Parameters</title>
+	  <para>
+	    The next step is to pass in some variables, and it is pretty easy to do. Simply declare the 
+	    variables as you would normally do for any &ferite; script. When you get inside of the function,
+	    the values passed in will be converted to units that are workable in C with the same name. Complex 
+	    objects will  be presented to you in the form of pointers to different types of structs according to their
+	    type. All variables are available by the names you gave in the function declaration. Following 
+	    is a quick breakdown of the different types and how they convert.
+	  </para>
+	  <list mark="opencircle">
+	    <list-item><para>number - Numbers are converted to doubles because doubles can represent LONG_MAX,
+		and &ferite; numbers support floating point values anyways. If you expected to use
+		the value as an integer in your function you can simply cast the double to a long. 
+		It is a good idea to check that the number passed in is not greater then LONG_MAX 
+		before you cast it to an long, otherwise you might end up with some funny looking 
+		results.
+	    </para></list-item>
+	    <list-item><para>string - Strings are converted to FeriteString *, and their C-string values are 
+		accessible by struct element 'data'. So you can retrieve the value of string mystring 
+		by mystring-&gt;data. Following is an example that accesses a string's value by using 
+		it in a call to <monospace>strdup</monospace>.
+	      </para>
+	      <code>
+native function foo( string mystring ){
+    char *<![CDATA[mystring_copy = strdup( mystring->data );]]>
+    int length = <![CDATA[mystring->length;]]>
+} </code>
+	    </list-item>
+	    <list-item><para>object - Objects are instances of classes and represented within C code as FeriteObject's, 
+	    which must be accessed by reaching into 
+		&ferite;'s internals. This is covered in the next section "Accessing Ferite Internals".
+	    </para></list-item>
+	    <list-item><para>array - Arrays are represented by a FeriteUnifiedArray* and must also be accessed by reaching into
+	    &ferite;'s internals. 
+	    </para></list-item>
+	    <list-item><para>void - A void variable has no conversion and the name is just a pointer to a variable.
+	    </para></list-item></list>
+	    <para>
+	       The example below illustrates what builder generates given a the function given.
+	    </para>
+	    <code>
+native function example( number x, string s, object o, array a, void v ) 
+{
+    printf( "Value of x: %f\n", x );
+    printf( "String contents: %s\n", s-&gt;data );
+    printf( "Object reference count: %d\n", o-&gt;refcount );
+    printf( "Array size: %d\n", a-&gt;size );
+    printf( "Type: %d\n", v-&gt;type );
+} </code>
+        <para>
+            This is the C code that is generated:
+        </para>
+        <code>
+FE_NATIVE_FUNCTION( ferite_module_example_nsoav )
+{
+   double x;
+   FeriteString *s;
+   FeriteObject *o;
+   FeriteUnifiedArray *a;
+   FeriteVariable *v = params[4];
+   FeriteNamespace *self = FE_CONTAINER_TO_NS;
+
+   ferite_get_parameters( params, 5, &amp;x, &amp;s, &amp;o, &amp;a, NULL );
+
+   { /* Main function body. */
+#line 5 "test.fec"
+ 
+        printf( "Value of x: %f\n", x );
+        printf( "String contents: %s\n", s-&gt;data );
+        printf( "Object reference count: %d\n", o-&gt;refcount );
+        printf( "Array size: %d\n", a-&gt;size );
+        printf( "Type: %d\n", v-&gt;type );
+	
+   }
+   FE_RETURN_VOID;
+   self = NULL;
+} </code>
+        <para>
+            The important point being made with this example is how the parameters
+            are automatically converted from FeriteVariable*s to their real types. This 
+            makes writing native functions much easier.
+        </para>
+	</section>
+	
+	<section id="cnm-bfc-nf-return-values">
+	  <title id="cnm-bfc-nf-return-values.title">Return Values</title>
+	  <para>
+	    Now that we have discussed handling parameters, next you need to know how to return values from 
+	    functions. Any time you don't specify a return value and your function runs off the end of its 
+	    scope, &builder; will assume you meant to return void and will automatically insert a call to
+	    return nothing. This can been seen in the previous example, where, at the end of the generated
+	    code, the following can be seen:
+	   </para>
+	   <code>
+FE_RETURN_VOID; </code>
+	   <para>
+	    If returning void is not the desired effect,
+	    or you would like to specify a position to return from other than running off the end of the
+	    function's scope, you will need to specifically return a value using one of the following C macros.
+	    The macros are designed to take a value from the C code, wrap it up into a FeriteVariable, do
+	    a little house keeping and then return from the function.
+	  </para>
+	  <list mark="opencircle">
+	    <list-item><para><monospace>FE_RETURN_VOID</monospace> - returns void to the caller, this is synonymous with not returning
+		anything.</para></list-item>
+	    <list-item><para><monospace>FE_RETURN_TRUE</monospace> - returns true to the caller.</para></list-item>
+	    <list-item><para><monospace>FE_RETURN_FALSE</monospace> - returns false to the caller.</para></list-item>
+	    <list-item><para><monospace>FE_RETURN_LONG( value )</monospace> - returns a number to the caller with the contents of the
+		given long.</para></list-item>
+	    <list-item><para><monospace>FE_RETURN_DOUBLE( value )</monospace> - returns a number to the caller with the contents of the
+		given double.</para></list-item>
+	    <list-item><para><monospace>FE_RETURN_STR( string, freeme )</monospace> - returns a FeriteString* to the caller. The parameter
+		"string" is passed in as a FeriteString*. If freeme == FE_TRUE, string is freed using &ferite;'s memory 
+		manager. if freeme == FE_FALSE, it is not freed at all.</para></list-item>
+	    <list-item><para><monospace>FE_RETURN_CSTR( string, freeme )</monospace> - returns a char* to the caller. The parameter
+		"string" is passed in as a char*. If freeme == FE_TRUE, string is freed using &ferite;'s memory 
+		manager. if freeme == FE_FALSE, it is not freed at all.</para></list-item>
+	    <list-item><para><monospace>FE_RETURN_ARRAY( pointer to array )</monospace> - returns an array to the caller.</para></list-item>
+	    <list-item><para><monospace>FE_RETURN_OBJ( pointer to object )</monospace> - returns an object to the caller (objects are
+		instances of classes).</para></list-item>
+	    <list-item><para><monospace>FE_RETURN_NULL_OBJECT</monospace> - returns a null object to the caller (useful for functions that
+		are expected to return an object, but need to signify an error condition).</para></list-item>
+	    <list-item><para><monospace>FE_RETURN_VAR( variable )</monospace> - returns a FeriteVariable to the caller. This allows you to
+		return a variable that you have created yourself to the engine. It will tag the 
+		variable allowing &ferite; to clear it up when it is finished with. If you want to 
+		return a variable, but keep hold of it, you must simply return the variable as you 
+		would an item from a normal c function. eg:</para>
+	    <code>
+return someVar;</code>
+        </list-item>
+	  </list>
+	  <para>
+	    All of these macros actually convert the given return values into a FeriteVariable * which is then
+	    returned to the caller. As a general rule, you should always use the available macros when mixing C and
+	    &ferite; to prevent your functions from breaking if the interface ever changes. These macros will be kept
+	    up to date, so you are safe to use them. All the macros tag the variable they create as being disposable;
+	    this is a delayed deletion mechanism that gives &ferite; permission to free up the variables it has
+	    finished using. This is important to note, especially with <monospace>FE_RETURN_VAR</monospace> because
+	    you may not want the variable cleaned up.
+	  </para>
+	</section>
+	
+	<section id="cnm-bfc-nf-finally">
+	  <title id="cnm-bfc-nf-finally.title">And Finally</title>
+	  <para>
+	    The previous few sections should give you enough information to get you up on your feet and writing
+	    native functions. To play with &ferite;'s internals you will need to read on where this is dicussed
+	    in depth. However, here is an example:
+	  </para>
+	  <code>
+uses "Example.lib";
+
+namespace Example {
+    native function Add( number left, number right ) {
+        FE_RETURN_DOUBLE( left + right );
+    }
+    native function Error( number code, string error ) {
+        fprintf( stderr, "Error: %d: %s\n", (int)code, error->string );
+        FE_RETURN_LONG(-1);
+    }
+} </code>
+	</section>
+      </section>
+      
+      <section id="nfc-bnm-classes-and-namespaces">
+	<title id="nfc-bnm-classes-and-namespaces.title">Classes and Namespaces</title>
+	<para>
+	  Classes and namespaces in native modules are created exactly like their non-native counterparts. You simply declare 
+	  the namespace or class in the ferite-c file, and when a script tells &ferite; to import the module, &ferite; will 
+	  parse the .fec and create the namespaces and classes as usual and link up the native functions from the shared 
+	  object. There is absolutely no syntax change for creating classes and namespaces. Pretty straight forward isnt it?
+	</para>
+	<para>
+	  There is, however, the added ability to place native functions within classes and namespaces. The syntax for 
+	  doing so is no different that what you've already seen, just place them within the curly braces of the namespace 
+	  or class that you would like them to be a part of.
+	</para>
+	<para>Here is an example of a native function in a namespace:</para>
+	<code>
+namespace foo {
+    native function bar() {
+        <emphasis>...your code goes here...</emphasis>
+    }
+} </code>
+	<para>And here is an example of a native function in a class:</para>
+	<code>
+class foo {
+    native function bar() {
+        <emphasis>...your code goes here...</emphasis>
+    }
+} </code>
+	<para>
+	  You can also make functions in classes static, as was described in the user manual. So of course we can make 
+	  those native functions as well. Simply place the keyword static in the function declaration.
+	</para>
+	<code>
+class foo{
+    static native function bar1(){
+        <emphasis>...your code goes here...</emphasis>
+    }
+    native static function bar2(){
+        <emphasis>...your code goes here...</emphasis>
+    }
+} </code>
+	<para>
+	  Both bar1() and bar2() are native functions that are static within the class foo. The order of the keywords 
+	  does not matter.
+	</para>
+	
+	<section id="nfc-bnm-cn-odata">
+	  <title id="nfc-bnm-cn-odata.title">Self Data</title>
+	  <para>
+	    When a native function belonging to an object, or namespace or class, is called, there is the &self;
+	    variable available. This is a pointer to the FeriteObject/FeriteClass/FeriteNamespace which is 
+	    currently executing. Now, to
+	    make life easier there is a part of the structure that allows you, the module writer,
+	    to attach any data to it. This is called (and refered to) as <monospace>odata</monospace> and is
+	    short for object data. &ferite; does not and will never touch this. It is the job of the programmer
+	    to deal with it. It is very simple to use, simply access the odata member on self.
+	  </para>
+	  <code>
+<![CDATA[self->odata]]> = get_some_resource(); </code>
+	  <para>
+	    Example: In the 'filesystem' module, odata is used to store a pointer to the FILE* pointer for file streams.
+	  </para>
+	  <code>
+#define SelfObj (FILE*)(self-&gt;odata) </code>
+	</section>
+      </section>
+      
+      <section id="nfc-bnm-finally">
+	<title id="nfc-bnm-finally.title">Finally</title>
+	<para>
+	  This section should have helped you get off your feet and understand the way in which &builder; can help
+	  you not only rapidly develop modules but keep them very close to &ferite; code. You should look at the
+	  <monospace>.fec</monospace> files that ship with &ferite; to clarify any doubts you have.
+	</para>
+      </section>
+    </section>
+    
+    <section id="cnm-without-builder">
+      <title id="cnm-without-builder.title">Without Builder</title>
+      <para>
+	The natural flow of this document means that creating native modules without &builder; should be dicussed here.
+	As most of the dicussion requires knowledge dicussed in the next section, this will be left until after the
+	internals of &ferite; have been looked at.
+      </para>
+    </section>
+  </section>
+  
+  <section id="accessing-ferite-internals">
+    <title id="accessing-ferite-internals.title">Accessing Ferite Internals</title>
+    <section id="afi-introduction">
+      <title id="afi-introduction.title">Introduction</title>
+      <para>
+	This section is designed to teach you how to access, modify, create, and destroy various structures within 
+	&ferite;. It covers variables, functions, classes, and namespaces. It will first cover
+	very basic memory management, then cover variables, namespaces, calling functions, calling object and class functions,
+	and creating a class.
+      </para>
+      <para>
+	It should be noted that this section will cover the registering and accessing of methods, but won't tell you
+	how to write one from scratch manually. That will be left for the next section where native modules by hand
+	will be dicussed.
+      </para>
+    </section>
+    
+    <section id="afi-ferite-memory-manager">
+      <title id="afi-ferite-memory-manager.title">The Memory Manager</title>
+      <para>
+	Under normal operation &ferite; uses its 
+	own memory manager, which is basically a sub allocator, to achieve some significant performance gains over the
+	standard malloc/free operations. This memory manager is used throughout &ferite;, and the data that is passed around 
+	in &ferite; is expected to be allocated under this manager. The rule of thumb is that any memory that touches ferite
+	should be obtained from ferite or placed in the odata part, otherwise, it is more than likely that &ferite; will
+	try and free some memory and crash.
+      </para>
+      <para>
+	This memory manager acts much like malloc/free in terms of how you use it. There are functions that mirror 
+	the malloc, calloc, realloc, and free calls. 
+      </para>
+      <list mark="opencircle">
+	<list-item><para>fmalloc( size )</para></list-item>
+	<list-item><para>fcalloc( size, blocksize )</para></list-item>
+	<list-item><para>frealloc( ptr, size )</para></list-item>
+	<list-item><para>ffree( ptr )</para></list-item>
+      </list>
+      <para>
+	These functions all act like the functions they replace. However, they are different so don't mix calls on memory between 
+	malloc/free and fmalloc/ffree. They play well in the same sand-box, but don't ask them to swap Tonka trucks with 
+	each other.
+      </para>
+    </section>
+    
+    <section id="afi-variables">
+      <title id="afi-variables.title">Working With Variables</title>
+      
+      <section id="afi-accessing-variables-meta-data">
+	<title id="afi-accessing-variables-meta-data.title">Accessing a Variable's Data</title>
+	<para>
+	  &ferite; internally represents all variables using 
+	  FeriteVariable *'s, and they represent any native type within &ferite;. &builder;, and the 
+	  return macros you've already seen are in place to perform conversions for the sake of convenience. But 
+	  sometimes you just need to stick your fingers in the pudding and get dirty.
+	</para>
+	<para>
+	  There are a few bits of general information you can get from a FeriteVariable * without looking specifically 
+	  into on variable type. The internal variable name is accessible (it is a null terminated C string) and usually 
+	  the variable name has been automatically generated by an operator or a function. It's main use within the engine
+	  is to store the hash key the variable has within an array. But if you'd really like to have it, you can access is by: 
+	</para>
+	<code>
+<![CDATA[var->name]]> </code>
+	<para>
+	  Much more useful than the variable name is the variable type. This will tell you if the data held is a number (and what
+	  kind), a &ferite; string, an object, an array, a class, namespace, or void (nothing at all). It is accessible by:
+	</para>
+	<code>
+<![CDATA[var->type]]> </code>
+	<para>It is an integer that can be any one of the following values:</para>
+	<list mark="opencircle">
+	  <list-item><para><monospace>F_VAR_VOID</monospace> - a void variable, no value.</para></list-item>
+	  <list-item><para><monospace>F_VAR_LONG</monospace> - a number variable as a C long.</para></list-item>
+	  <list-item><para><monospace>F_VAR_DOUBLE</monospace> - a number variable as a C double.</para></list-item>
+	  <list-item><para><monospace>F_VAR_STR</monospace> - a string variable.</para></list-item>
+	  <list-item><para><monospace>F_VAR_UARRAY</monospace> - an unified array variable.</para></list-item>
+	  <list-item><para><monospace>F_VAR_OBJ</monospace> - an object.</para></list-item>
+	  <list-item><para><monospace>F_VAR_CLASS</monospace> - a class.</para></list-item>
+	  <list-item><para><monospace>F_VAR_NS</monospace> - a namespace.</para></list-item>
+	</list>
+	<para>
+	  There are a number of additional macros available for accessing the actual data within different variable types.
+	  You should use these macros as much as possible when working with &ferite; variables. Internal structures may change,
+	  but these macros should always be up to date and provide exactly the same semantics when it comes to value access.
+	</para>
+	<list mark="opencircle">
+	  <list-item><para><monospace>F_VAR_VOID</monospace> - since this is a void variable, there really isn't any data to
+	      gain access to.</para></list-item>
+	  
+	  <list-item><para><monospace>F_VAR_LONG</monospace> - the data can be accesses by VAI( var ) . This will make it
+	      act exactly like a C long. You can read its value and set new values.</para>
+	    <para>Example:</para>
+	    <code>
+VAI(mynum) = 7; </code></list-item>
+	  
+	  <list-item><para><monospace>F_VAR_DOUBLE</monospace> - the data can be accessed by VAF( var ). This will make 
+	      it act exactly like a c double. You can read its value and set new values.</para>
+	    <para>Example:</para>
+	    <code>
+VAF(mynum) = 8.16; </code></list-item>
+	  
+	  <list-item><para><monospace>F_VAR_STR</monospace> - using the VAS( var ) macro will get you a FeriteString*, 
+	      which can then be used in API functions to perform various operations. You can access the string's length 
+	      and data by using the original FeriteVariable * in the FE_STRLEN( var ) and FE_STR2PTR( var ) macros, 
+	      respectively. FE_STR2PTR behaves like a char*, and FE_STRLEN behaves like an int. Whenever you change a 
+	      string's content, you must always update its internal size to reflect the new actual size.</para>
+	    <para>Example:</para>
+	    <code>
+ffree(FE_STR2PTR(var));
+FE_STR2PTR(var) = fstrdup("My new string!");
+FE_STRLEN(var) = strlen(FE_STR2PTR(var)); </code>
+	    <para>
+	      There are a whole host of functions within the &ferite; engine for manipulating FeriteString*'s allowing
+	      you to do comparisons and replacements on the strings. It should also be noted that FeriteString*'s are
+	      designed to hold binary data.
+	  </para></list-item>
+	  
+	  <list-item><para><monospace>F_VAR_OBJECT</monospace> - using the macro VAO( var ) will get you a FeriteObject*, 
+	      which can then be used in a variety of API functions to access variables and functions within that object.
+	  </para></list-item>
+	  
+	  <list-item><para><monospace>F_VAR_UARRAY</monospace> - using the macro VAUA( var ) will get you a 
+	      FeriteUnifiedArray *, which can then be used in the unified array API functions to add, retrieve and remove 
+	      values from the array.</para></list-item>
+	  
+	  <list-item><para><monospace>F_VAR_CLASS</monospace> - using the macro VAC( var ) will get you a FeriteClass*, 
+	      which can then be used in a variety of API functions to access variables and functions within that class.
+	      To get a class passed into a function you must, currently, use the <monospace>void</monospace> type.
+	  </para></list-item>
+
+	  <list-item><para><monospace>F_VAR_NS</monospace> - using the macro VAN( var ) will get you a FeriteNamespace*, 
+	      which can then be used in a variety of API functions to access variables and functions within that namespace.
+	      To get a class passed into a function you must, currently, use the <monospace>void</monospace> type.
+	  </para></list-item>
+
+	</list>
+      </section>
+      
+      <section id="afi-changing-variables-type">
+	<title id="afi-changing-variables-type.title">Changing a Variable's Type</title>
+	<para>
+	  To change a variable from one type to another you need to call the function 
+	  <monospace>ferite_variable_convert_to_type</monospace>. This takes the script, the variable to change and the new
+	  type that you require. The function will take care of any arrays, objects etc that may still be attached to the
+	  variable. For example, to change a double to a long, you can simply do this:
+	</para>
+	<code>
+ferite_variable_convert_to_type( script, var, F_VAR_LONG );
+VAI(var) = 10;</code>
+	<para>
+	  And to change it back:
+	</para>
+	<code>
+ferite_variable_convert_to_type( script, var, F_VAR_DOUBLE );
+VAF(var) = 10.0; </code>
+	<para>
+	  It is considered bad for you to simply change the type of a variable. It is not encouraged at all. It is therefore
+	  on your own head to keep things correct.
+	</para>
+      </section>
+
+      <section id="afi-creation-and-deletion-of-variables">
+	<title id="afi-creation-and-deletion-of-variables.title">Creating and Destroying Variables</title>
+	<para>
+	  Creating variables is quite simple: each variable type has a 'create' function that returns a FeriteVariable*. 
+	  You already know how to manipulate these variables (or at least get 
+	  to the information needed to manipulate them), so I'll just quickly run through the variable types available, and 
+	  their creation functions. The parameters should be pretty self-explanitory, if not please refer the the C API 
+	  document. It should be noted though that they all take the same argument "alloc." This tells &ferite; whether or 
+	  not the name of the variable should be allocated or whether it is static; You should state that the name is static
+	  if you are passing a string constant so that ferite wont waste memory. E.g.
+	</para>
+	<code>
+char *name = strdup("SomeName");
+FeriteVariable *copy_name = 
+    ferite_create_number_long_variable( name, 42, FE_ALLOC );
+FeriteVariable *ref_name = 
+    ferite_create_number_long_variable( "SomeName", 42, FE_STATIC );
+free(name); </code>
+    <para>
+        In the above example, the first allocation of the variable causes &ferite; to copy the name, allowing
+        the <monospace>name</monospace> variable to be free'd up. The second variable allocation tells ferite to
+        retain a reference to the name because we know it wont be cleared up.
+    </para>
+	<list mark="opencircle">
+	  <list-item><para><monospace>F_VAR_VOID</monospace> - FeriteVariable *ferite_create_void_variable(char *name, int alloc);</para></list-item>
+	  <list-item><para><monospace>F_VAR_LONG</monospace> - FeriteVariable *ferite_create_number_long_variable(char *name, long data, int alloc);</para></list-item>
+	  <list-item><para><monospace>F_VAR_DOUBLE</monospace> - FeriteVariable *ferite_create_number_double_variable(char *name, double data, int alloc);</para></list-item>
+	  <list-item><para><monospace>F_VAR_STR</monospace> - FeriteVariable *ferite_create_string_variable(char *name, FeriteString *data, int alloc);</para></list-item>
+	  <list-item><para><monospace>F_VAR_STR</monospace> - FeriteVariable *ferite_create_string_variable_from_ptr(char *name, char *data, int length, int encoding, int alloc);
+	      Currently, the encoding value is always <monospace>FE_CHARSET_DEFAULT</monospace>. The reason for it being
+	      set now is so the in the future when the encoding of a string is important code will still work unmodified.</para></list-item>
+	  <list-item><para><monospace>F_VAR_UARRAY</monospace> - FeriteVariable *ferite_create_uarray_variable(char *name, int size, int alloc);</para></list-item>
+	  <list-item><para><monospace>F_VAR_OBJ</monospace> - FeriteVariable *ferite_create_object_variable( char *name, int alloc );</para></list-item>
+	  <list-item><para><monospace>F_VAR_CLASS</monospace> - FeriteVariable *ferite_create_class_variable( FeriteScript *script, char *name, FeriteClass *klass, int alloc )</para></list-item>
+	  <list-item><para><monospace>F_VAR_NS</monospace> - FeriteVariable *ferite_create_namespace_variable( FeriteScript *script, char *name, FeriteNamespace *ns, int alloc )</para></list-item>
+	</list>
+	<para>
+	  To delete any &ferite; variable, 
+	  you use the <monospace>ferite_variable_destroy</monospace> function. This function takes the current script and a 
+	  FeriteVariable * as parameters, and it returns void.
+	</para>
+	<code>
+void ferite_variable_destroy( 
+    FeriteScript *script, 
+    FeriteVariable *var ); </code>
+	<para>
+	  You can use this function on any type of variable. Each will be handled in the appropriate manner according to its 
+	  type. Strings will have their C string data freed by <monospace>ffree</monospace> and will then be destroyed. 
+	  Objects will have their
+	  destructor called before they are destroyed. Lastly, unified arrays will have the variables at each of its indexes 
+	  destroyed in the appropriate manner according to their type and will then, themselves, be destroyed.
+	</para>
+      </section>
+    </section>
+    
+    <section id="afi-working-with-namespaces">
+      <title id="afi-working-with-namespaces.title">Working With Namespaces</title>
+      <para>
+	In this section we'll cover how to create and delete namespaces, and how to create, 
+	access, and delete variables and how to register and delete functions, and how to find things within them.
+ 	Namespaces are created by registering them within the script. This can be done with the following function:
+      </para>
+      <code>
+FeriteNamespace *ferite_register_namespace( 
+    FeriteScript *script, 
+	char *name, 
+	FeriteNamespace *parent ) </code>
+      <!-- mdh - preceeding too wide for pdf page -->
+      <para>
+	The function takes three parameters: the script to register the namespace into, the name of the namespace
+	you wish to create, and the parent where you wish to create the new namespace. The parent must be a valid pointer to a
+	FeriteNamespace, you can either find one with <monospace>ferite_find_namespace</monospace>, or you can simply use script-&gt;mainns 
+	to use the top-level namespace of a script as the parent. If the register is successful, the FeriteNamespace * 
+	that refers to the new namespace is returned. The data it points to is internally allocated, so do not destroy 
+	it. If the register failed, it will return NULL.
+      </para>
+      <code>
+module-init {
+    FeriteNamespace *mobile = 
+        ferite_register_namespace( script, 
+                    "Mobile", script->mainns );
+} </code>
+      <para>
+	Once you have a namespace created, you can delete it with this function:
+      </para>
+      <code>
+int ferite_delete_namespace( FeriteScript *script, FeriteNamespace *ns ) </code>
+      <para>
+	This will destroy the namespace after recursivly destroying all of its children. This includes all variables, 
+	sub-namespaces, classes and functions. It currently always returns 1.
+      </para>
+      <para>
+	Creating and deleting namespaces is only fun for a short while. Eventually you'll want to put variables into 
+	your new namespace, and probably functions and classes as well. The next three functions will allow you to do
+	just that.
+      </para>
+      <code>
+FeriteVariable *ferite_register_ns_variable( 
+                    FeriteScript *script, 
+                    FeriteNamespace *ns, 
+                    FeriteVariable *var ) </code>
+      <!-- mdh - preceeding too wide for pdf page -->
+      <para>
+	This will register a variable into the namespace that you provide. If you've recently created the namespace, you can
+	use the FeriteNamespace * that the register function returned. Otherwise you will have to look up the FeriteNamespace *
+	to the namespace you wish to place your variable in using the ferite_find_namespace function. The value returned is
+	always the same as the value passed in as the var parameter. The variable will be accessible under the new namespace according
+	to its name stored in the FeriteVariable struct. So you might want to make sure you set it to something intelligent before
+	you register it into a namespace. E.g.
+      </para>
+      <code>
+module-init {
+    FeriteNamespace *mobile = 
+        ferite_register_namespace( script, 
+                                   "Mobile", 
+                                   script-&gt;mainns );
+    FeriteVariable *signal = ferite_create_number_long_variable( 
+                                   "signal", 
+                                   0, 
+                                   FE_STATIC );
+    ferite_register_ns_variable( script, mobile, signal );
+} </code>
+      <code>
+FeriteFunction *ferite_register_ns_function( 
+                    FeriteScript *script, 
+                    FeriteNamespace *ns, 
+                    FeriteFunction *f ) </code>
+      <!-- mdh - preceeding too wide for pdf page -->
+      <para>
+	This functions registers a function into the given namespace. The return value is always the same as the value passed 
+	in as the f parameter. Again, the name of the element comes from the name field of the FeriteFunction struct. Set it 
+	before you register the function.
+      </para>
+      <code>
+FeriteClass *ferite_register_ns_class( 
+                    FeriteScript *script, 
+                    FeriteNamespace *ns, 
+                    FeriteClass *klass ) </code>
+      <!-- mdh - preceeding too wide for pdf page -->
+      <para>
+	This will register a class into the given namespace. The return value is always the same as the value passed in as the 
+	klass parameter. Once again, the name of the element comes from the name field of the FeriteClass struct. Set the name
+	before you register the class. Most of the time you will never use this as the standard way to create a class will also
+	automatically register it, it is merely mentioned here for completness.
+      </para>
+      <para>
+	The next logical step is gaining access to variable, functions, and classes that are registered to namespaces. This is 
+	done by retrieving a <monospace>FeriteNamespaceBucket</monospace> which contains the information you desire in its data 
+	element. The following function is used for retrieving these buckets:
+      </para>
+      <code>
+FeriteNamespaceBucket *ferite_find_namespace( 
+                    FeriteScript *script, 
+                    FeriteNamespace *parent, 
+                    char *obj, 
+                    int type ) </code>
+      <!-- mdh - preceeding too wide for pdf page -->
+      <para>
+	This will return a FeriteNamespaceBucket * on success, or NULL on failure. It takes a script, and a starting point as 
+	the first two parameters. The third parameter is the dot-delimited name of the object you are looking for, relative to 
+	the parent namespace given. So if you are using the root namespace (script-&gt;mainns) as your parent namespace, and wish 
+	to access mynamespace.myothernamespace.myvar, then you would pass "mynamespace.myothernamespace.myvar" as the third parameter. 
+	However, if you already have a FeriteNamespace * that refers to 'mynamespace', then you could pass that in as the parent 
+	(2nd parameter) and then access myvar by passing "myothernamespace.myvar" as the obj (3rd parameter). Lastly, if you 
+	already have the FeriteNamespace * for 'myothernamespace', then you would simply pass "myvar" as the obj. Because you are 
+	only dealing with one level of depth, you do not place a period within the obj in that instance. The fourth, and last, 
+	parameter is the type of object you are looking for. It is always one of the following defined types:
+      </para>
+      <list mark="opencircle">
+	<list-item><para><monospace>FENS_NS</monospace> - retrieves namespaces</para></list-item>
+	<list-item><para><monospace>FENS_VAR</monospace> - retrieves variables</para></list-item>
+	<list-item><para><monospace>FENS_FNC</monospace> - retrieves functions</para></list-item>
+	<list-item><para><monospace>FENS_CLS</monospace> - retrieves classes</para></list-item>
+      </list>
+      <para>
+	If you choose to pass 0 to the function, you will get back the named FeriteNamespaceBucket if it exists. Using the 
+	above defines allows you to tell ferite_find_namespace what type of bucket you are looking for guaranteeing that what 
+	you get back is the correct item and type.
+      </para>
+      <para>
+	Again, once you have the bucket, you can access the desired value by looking in the data element. Example:
+      </para>
+      <code><![CDATA[
+FeriteVariable *myvar = NULL;
+FeriteNamespaceBucket *nsb = NULL;
+
+nsb = ferite_find_namespace(script, 
+    script->mainns, 
+    "mynamespace.myvar", FENS_VAR);
+
+if( NULL != nsb ){ /* we found it! */
+    myvar = (FeriteVariable *) nsb->data;
+    /* we needed to cast because nsb->data is a void* type */
+}]]></code>
+      <para>
+	At this point I can use myvar just like any other FeriteVarible *, because it is one! When the value of this variable is
+	changed it will be noticable straight away within the script. It is also important to note that you must not take these
+	variables you have obtained and return them to the script via FE_RETURN_VAR. This will cause &ferite; to delete the variable
+	and leave dangling pointers. If you wish to return the variable simply return it like you would a normal c variable:
+      </para>
+      <code>
+return myvar; </code>
+      <para>
+	To get a function is the same process. Example:
+      </para>
+      <code><![CDATA[
+FeriteFunction *func = NULL;
+FeriteNamespaceBucket *nsb = NULL;
+
+nsb = ferite_find_namespace( script, 
+    script->mainns, 
+    "mynamespace.function", 
+    FENS_FNC );
+
+if( NULL != nsb ){
+    func = (FeriteFunction*)nsb->data;
+    ....
+} ]]></code>
+      <para>
+	It is good to note that within &ferite;'s source, the convention is to call the namespace bucket variable 'nsb'.
+      </para>
+      <para>
+	As promised at the beginning of this section, here is how to unregister elements from namespaces:
+      </para>
+      <code>
+void ferite_delete_namespace_element_from_namespace( 
+                    FeriteScript *script, 
+                    FeriteNamespace *ns, 
+                    char *name ) </code>
+      <!-- mdh - preceeding too wide for pdf page -->
+      <para>
+	This will delete the element name from the namespace ns within the script script. Be careful though, this 
+	function will not burrow down layers of namespaces to find the element you specify. So you cannot use the dot 
+	notation here, this is a deliberate design choice to stop accidental deletion of the wrong elements. You must 
+	first find the immediate parent of the element (using ferite_find_namespace), and pass that in as the namespace 
+	ns. You can use this to delete namespaces from within namespaces as well, and in that case it will also recursively 
+	destroy the deleted namespace's contents.
+      </para>
+      <para>
+	So that is all there really is to namespaces. They are an excellent form of container both in and out of scripts!
+      </para>
+    </section>
+    
+    <section id="afi-working-with-objects-and-classes">
+      <title id="afi-working-with-objects-and-classes.title">Working With Objects And Classes</title>
+      
+      <section id="afi-wwoc-creation">
+	<title id="afi-wwoc-creation.title">Creating Classes</title>
+	<para>
+	  Registering classes is much the same as registering namespaces. You first register the class, then you add
+	  the variables and functions you wish to publish in them.
+	</para>
+	<para>
+	  To register a class you use the ferite_register_inherited_class function call.
+	  This will create the class, setup the inheritence, register the class wihin a
+	  namespace for you and return it in one fell swoop.
+	</para>
+	<code>
+FeriteClass *ferite_register_inherited_class( 
+                    FeriteScript *script, 
+                    FeriteNamespace *ns, 
+                    char *name, 
+                    char *parent ) </code>
+	<!-- mdh - preceeding too wide for pdf page -->
+	<para>
+	  The first parameter is the script, the second is the namespace in which you want
+	  to place the class, the third is the name of the class by which programmers can
+	  reference it and the fourth is the name of the class the new class inheirts
+	  from. The fourth argument can be in standard dot notation and is the name of the
+	  parent class. For instance, it could be "Sys.Stream". The function will start
+	  looking for the class in the namespace that is passed to the function, and then
+	  start in the top level script namespace.
+	  For instance, if the "Sys" namespace was passed to the function, you would want to specify "Stream".
+	  If you do not wish for your class to inherit from any existing class simply pass NULL and
+	  the new class will be automatically placed as a subclass of the base class
+	  "Obj".
+	</para>
+	<para>
+	  Registering variables and functions with a class is much the same as registering
+	  them with a namespace, you simply pass an extra parameter to say whether or not
+	  the item is static (linked to the class) or an instance variable (linked to the
+	  object created from the class).
+	</para>
+	<para>
+	  To add a variable you call:
+	</para>
+	<code>
+int ferite_register_class_variable( 
+                    FeriteScript *script, 
+                    FeriteClass *klass, 
+                    FeriteVariable *variable, 
+                    int is_static ) </code>
+	<!-- mdh - preceeding too wide for pdf page -->
+	<para>
+	  The second argument is the class to add the variable to. The class can be obtained
+	  from creating a new class or pulling one out of a namespace. The third argument
+	  is the variable to add. The fourth variable is whether or not the variable
+	  is static.
+	</para>
+	<para>
+	  To add a function you call:
+	</para>
+	<code>
+int ferite_register_class_function( 
+                    FeriteScript *script,
+                    FeriteClass *klass, 
+                    FeriteFunction *f, 
+                    int is_static ) </code>
+	<!-- mdh - preceeding too wide for pdf page -->
+	<para>
+	  The arguments are almost identical except for the third one which is a pointer
+	  to a &ferite; function.
+	</para>
+      </section>
+      
+      <section id="afi-wwoc-object-creation">
+	<title id="afi-wwoc-object-creation.title">Creating Objects</title>
+	<para>
+	  Creating objects is very straight forward. There are two main method calls that
+	  can be used. 
+	</para>
+	<para>
+	  The first is <monospace>ferite_build_object</monospace>. Its pupose is to simply
+	  allocate a FeriteVariable*, allocate the necessary structures (such as it's instance variables,
+	  and pointers to functions) and add it to the &ferite; garbage collector.
+	  <monospace>ferite_build_object</monospace> does <strong>not</strong> call the new object's
+	  constructor. This is very useful for when you are doing manual setup of an object.
+	  The prototype for the function is:
+	</para>
+	<code>
+FeriteVariable *ferite_build_object( 
+                    FeriteScript *script, 
+                    FeriteClass *nclass ) </code>
+	<para>
+	  The second is <monospace>ferite_new_object</monospace> which does all the same things
+	  <monospace>ferite_build_object</monospace> does except it will call the constructor for the
+	  new object. It will return an FeriteVariable* that is ready to be cleaned up by &ferite;
+	  as and when it is returned to the engine and no longer wanted. It has the prototype:
+	</para>
+	<code>
+FeriteVariable *ferite_new_object( 
+                    FeriteScript *script, 
+                    FeriteClass *nclass, 
+                    FeriteVariable **plist )</code>
+	<para>
+	  The first two arguments are the same for <monospace>ferite_build_object</monospace>, the current
+	  script and the class you wish to instantiate. The third argument is the parameter list to be
+	  passed to the object's constructor. Read the next section on calling functions to find out how
+	  to create one and what they consist of.
+	</para>
+      </section>
+      
+      <section id="afi-accessing-variables">
+	<title id="afi-accessing-variables.title">Accessing Variables</title>
+	<para>
+	  Firstly, we'll cover how to access variables within objects and classes. It is
+	  done essentially the same way for each. Both FeriteClass and FeriteObject
+	  structs have a variables element that is a hash of all variables within them. To
+	  make life slightly easier and code more understandable there are a couple of
+	  functions for retrieving the variables from either a class or an object.
+	</para>
+	<code>
+FeriteVariable *ferite_object_get_var( 
+                    FeriteScript *script, 
+                    FeriteObject *object, 
+                    char *name )</code>
+	<para>
+	  This is for getting the value out of an object. It should be noted that the
+	  second argument is not a FeriteVariable* but a FeriteObject*. This means that is
+	  it necessary, if you have a FeriteVariable* pointing to an object, to call it with 
+	  VAO(nameOfVariable).
+	</para>
+	<code>
+FeriteVariable *ferite_class_get_var( 
+                    FeriteScript *script, 
+                    FeriteClass *klass, 
+                    char *name ) </code>
+	<para>
+	  Both the above functions take the name of the variable to obtain and will return
+	  a pointer to the variable if it exists, or will return NULL if it doesn't.
+	</para>
+	<para>
+	  For example, for objects you would do this: (assume that some_object is of type FeriteVariable *, and it is a 
+	  valid object)
+	</para>
+	<code>
+FeriteVariable *myvar = ferite_object_get_var(script, 
+                                              VAO(some_object), 
+                                              "myvar"); </code>
+	<para>
+	  If myvar is not NULL, then it was successfully retrieved. If you want to do the
+	  same with a class, you do this: (assume that some_class is of type FeriteClass *, and it is a valid class)
+	</para>
+	<code>
+FeriteVariable *myvar = ferite_class_get_var(script, 
+                                             some_class, 
+                                             "myvar"); </code>
+	<para>
+	  Again, if myvar is not NULL, it was successfully retrieved.
+	</para>
+      </section>
+      
+      <section id="afi-accessing-functions">
+	<title id="afi-accessing-functions.title">Accessing Functions</title>
+	<para>
+	  Getting functions from objects or classes is easy if you can get a variable from them (Hint: make sure
+	  you read the last section!).
+	</para>
+	<para>
+	  To get your hands on a function in an object you simply use the function call <monospace>ferite_object_get_function</monospace>.
+	  Suprised? You shouldn't be. It looks, feels and tastes very similar to <monospace>ferite_object_get_var</monospace>
+	  except this time you get a function not a variable.
+	</para>
+	<code>
+FeriteFunction *ferite_object_get_function( 
+                    FeriteScript *script, 
+                    FeriteObject *object, 
+                    char *name ); </code>
+	<para>
+	  To get your hands on a function tucked away in a class you simply need to use the function call 
+	  <monospace>ferite_class_get_function</monospace>. 
+	</para>
+	<code>
+FeriteFunction *ferite_class_get_function( 
+                    FeriteScript *script, 
+                    FeriteClass *cls, 
+                    char *name ) </code>
+      </section>
+    </section>
+    
+    <section id="afi-calling-functions">
+      <title id="afi-calling-functions.title">Calling Functions</title>
+	<para>
+	  Once you have a FeriteFunction *, the next thing you're probably going to want
+	  to do is call the function it to which it refers. This is one of the trickier
+	  things to do in &ferite;, but only because it involves several stages in order to
+	  complete.
+	</para>
+	<para>
+	  Firstly, you need your FeriteFunction *, which can be obtained by using the
+	  ferite_find_namespace function. Then you'll need to create a parameter list
+	  that you wish to pass to the function. This is done with the following function:
+	</para>
+	<code>
+FeriteVariable **ferite_create_parameter_list_from_data( 
+                    FeriteScript *script, 
+                    char *format, 
+                    ... ); </code>
+	<para>
+	  This function does its best to make creating parameter lists simple. The first
+	  parameter is the script, the second is a format string that describes the types
+	  of variables that will make up the argument list, and the rest of the parameters are the
+	  values to be used as described by the format string. The format string must be zero or more of
+	  the following:
+	</para>
+	<list mark="opencircle">
+	  <list-item><para>n - a number, the value passed must be a C variable of type double</para></list-item>
+	  <list-item><para>l - a number, the value passed must be a C variable of type long</para></list-item>
+	  <list-item><para>s - a string, the value passed must be a pointer to FeriteString</para></list-item>
+	  <list-item><para>o - an object, the value passed must be a pointer to a FeriteObject</para></list-item>
+	  <list-item><para>a - an array, the value passed must be a pointer to a FeriteUnifiedArray</para></list-item>
+	</list>
+	<para>
+	  The function will return a parameter list (FeriteVariable **) which can then be 
+	  used as a parameter in the next function to be dicussed. For your information, a parameter list is
+	  simply a NULL terminated C array of FeriteVariable* - these are easy to create by hand, but 
+	  this function simply aids the creation.
+	</para>
+	<code>
+FeriteVariable *ferite_call_function( 
+                    FeriteScript *script, 
+                    void *container, 
+                    FeriteObject *block, 
+                    FeriteFunction *orig_function, 
+                    FeriteVariable **params )</code>
+	<para>
+	  This function will call the function and return a FeriteVariable *, which will be the returned value of
+	  the called function. It must be caught and destroyed, or you will leak memory.
+	  Even functions returning void will return a fully allocated FeriteVariable * of type F_VAR_VOID.
+	</para>
+	<para>
+	  The first parameter is the script, the second is the pointer to the container of the function, for instance
+	  for a namespace function a FeriteNamespace, for a class a FeriteClass pointer and an object, a FeriteObject
+	  pointer. The third argument is the closure that can be passed to the function, this can be NULL. The fourth
+	  argument is the FeriteFunction you wish to call, and the last is the parameter list you had
+	  created with the previously described ferite_create_parameter_list_from_data() function. The parameter list
+	  may be NULL indicating that the function takes no arguments.
+	</para>
+	<para>
+	  When you are finished with the parameter list, simply delete it with this function:
+	</para>
+	<code>
+void ferite_delete_parameter_list( 
+                    FeriteScript *script, 
+                    FeriteVariable **list ); </code>
+	<para>
+	  So there you have it, three steps to calling another function within &ferite;.
+	  Here is a complete example which calls 'Console.println' with the string 'Hello
+	  World':
+	</para>
+	<code><![CDATA[
+FeriteFunction *println = NULL;
+FeriteVariable **params = NULL;
+FeriteVariable *rval = NULL;
+
+/* Create a string to pass to the function */
+FeriteString *hello = ferite_str_new( "Hello World", 0, FE_CHARSET_DEFAULT );
+
+/* Find the function in the scripts main namespace */
+FeriteNamespaceBucket *nsb = ferite_find_namespace( 
+                                    script, 
+                                    script->mainns, 
+                                    "Console.println", 
+                                    FENS_FNC );
+FeriteNamespaceBucket *console = ferite_find_namespace(
+                                    script,
+                                    script->mainns,
+                                    "Console",
+                                    FENS_NS );
+
+if( NULL != nsb ) /* Check to see if we have the function ... */
+{
+    println = nsb->data;
+    
+    /* Create the parameter list */
+    params = ferite_create_parameter_list_from_data( script, "s", hello )
+    
+    /* Call the function */
+    rval = ferite_call_function( script, console, NULL, println, params );
+    
+    /* And finally clear up after ourselves */
+    ferite_delete_parameter_list( script, params );
+    ferite_variable_destroy( script, rval );
+    ferite_str_destroy( script, hello );
+}
+else    
+    /* We don't.. let's print an error! */
+    printf( "Cant find 'Console.println'! Is the console module loaded?\n" ); ]]></code>
+	<para>
+	   The only difference with calling a class or object function compared to that of a namespace
+	   function is the passing in of the container. There are no other special tricks that are required.
+	</para>
+       </section>
+      
+ <!--     <section id="afi-cf-shortcuts">
+	<title id="afi-cf-shortcuts.title">Function Shortcuts</title>
+	<para>
+	</para>
+      </section>
+     -->
+     
+    <section id="afi-errors">
+      <title id="afi-errors.title">Raising Exceptions and Reporting Errors</title>
+      <para>
+	There are times when things go wrong. It's a painful time, but it need not be. Ferite provides a means of raising
+	exceptions to force a programmer to deal with errors but also a means of quietly setting the error information 
+	allowing the programmer to check for non-fatal things.
+      </para>
+      <para>
+	It is considered good form to return error values from a function call. This is the route you should take if you
+	require the reporting of errors. For instance, if you have a function that connects to a resource and returns an object
+	to interact with that resource, it makes sense to return a null object (<monospace>FE_RETURN_NULL_OBJECT</monospace>) if
+	that resource can't be obtained.
+      </para>
+      <para>
+	Sometimes it is not possible to return an error value. In these situations it is considered good form to use the
+	function <monospace>ferite_set_error</monospace> [it's prototype is below]. This sets the <monospace>err</monospace> script
+	object's values, but does not raise an exception. This allows the programmer to ignore things if needs be. It takes
+	a number of parameters, the first is the script you are running in, the second is the error number and the last is
+	the format of a string [same as <monospace>printf</monospace>] describing the error that has occured. It should be
+	documented that this is the case such that the programmer knows what to look for.
+      </para>
+      <code>
+void ferite_set_error( FeriteScript *script, int num, char *fmt, ... ); </code>
+      <para>
+	When all hope is lost, there are times when an exception needs to be rasied because some has gone completely wrong.
+	This is done by calling <monospace>ferite_error</monospace>. You can pass it the error number and the message just like
+	<monospace>ferite_set_error</monospace>.
+      </para>
+      <code>
+void ferite_error( FeriteScript *script, int num, char *fmt, ... ); </code>
+      <para>
+	Sometimes it is nice to warn people about not so bad things, and as such there is a function <monospace>ferite_warning</monospace>
+	which will place a warning on the script.
+      </para>
+      <code>
+void ferite_warning( FeriteScript *script, char *errormsg, ... ); </code>
+    </section>
+    
+    <section id="executing-code-snippets">
+      <title id="executing-code-snippets.title">Executing Code Snippets</title>
+      <para>
+	Sometimes it is easier to execute a block of code, from within a function, written in &ferite;. For this you can use the
+	eval mechanism. What this does is the same as the <monospace>eval</monospace> operator in &ferite;. It will compile and execute
+	the script and then return the return value of the main function. For example:
+      </para>
+      <code>
+rval = ferite_script_eval( script, "Console.println('Hello World');" ); </code>
+      <para>
+	You must destroy the return value using <monospace>ferite_variable_destroy</monospace> just as you would a function call.
+      </para>
+    </section>
+  </section>
+  
+  <section id="native-modules-by-hand">
+    <title id="native-modules-by-hand.title">Native Modules - By Hand</title>
+    <para>
+      The aim of this section is to show you how to write
+      modules by hand. This section is also very useful for people wanting to embed &ferite; as it shows how to export an API by hand.
+    </para>
+    
+    <section id="nmbh-functions">
+      <title id="nmbh-functions.title">Functions</title>
+      <para>
+	&builder; makes the following completely
+	automatic. As with normal C functions, we have to declare our native &ferite; functions. This is done in three stages. 
+	First we declare the function,
+	then we create our FeriteFunction structure and then we register it with the &ferite; engine. To declare the variable, you use 
+	the macro <monospace>FE_NATIVE_FUNCTION</monospace>,
+	this is true for both object/class methods and normal namespace functions. This takes one argument, which is the name of the
+	function you wish to create. After the macro, you simply write the body of your function as you normally would. For example:
+      </para>
+      <code>
+FE_NATIVE_FUNCTION( printfnc )
+{
+    printf( "We are in our native function!\n" );
+} </code>
+      <para>
+    The next thing we need to do is create a FeriteFunction structure
+	with which we can register the function (using the functions mentioned in the last section). This is a call to 
+	<monospace>ferite_create_external_function</monospace>.
+      </para>
+      <code>
+FeriteFunction *ferite_create_external_function( 
+                    FeriteScript *script, 
+                    char *name, 
+                    void *(*funcPtr)(FeriteScript*,FeriteFunction*,FeriteVariable**), 
+                    char *description ); </code>
+      <!-- mdh - preceeding too wide for pdf page -->
+      <para>
+	This takes the current script, the name of the function, a pointer to the function, and its signature description. 
+    The third means you simply pass the name of the native function, eg. in the above example it would be 
+	<monospace>printfnc</monospace>. The description is slightly more complicated. It is a null terminated string which takes a number
+	of characters that describe what arguments the function can take.
+      </para>
+      <list mark="opencircle">
+	<list-item><para>n - number</para></list-item>
+	<list-item><para>s - string</para></list-item>
+	<list-item><para>a - array</para></list-item>
+	<list-item><para>o - object</para></list-item>
+	<list-item><para>v - void</para></list-item>
+	<list-item><para>. - variable argument list</para></list-item>
+      </list>
+      <para>
+	Each character responds to each type and it allows &ferite; to make sure that the function gets passed the correct parameters. 
+	To make life slighty clearer, here are a few examples with the &ferite; function and what would be the equivelent description for a 
+	native function:
+      </para>
+      <code>
+function ex1( string name, number age ){ } would be "sn"
+	
+function ex2( string format, ... ) { } would be "s."
+	
+function ex3( object res, string query, array args ) { } would be "osa" </code>
+      <para>
+	To register the function structure you have, you either use <monospace>ferite_register_ns_function</monospace> or 
+	<monospace>ferite_register_class_function</monospace>. You must be aware that you can only register each created
+	function once! Otherwise &ferite; will certainly die when it tries to clean everything up at the end of execution.
+      </para>
+      <para>
+	So, lets assume that our above print function takes a string and a number and prints out the string the number of times
+	it is told. The example below will show how to declare, create and register a FeriteFunction in a namespace. The example
+	will also allow us to touch on another couple of important areas.
+      </para>
+      <code>
+FE_NATIVE_FUNCTION( printfnc ); /* Declare the prototype */
+	
+FE_NATIVE_FUNCTION( printfnc )
+{
+    FeriteString *print = NULL;
+    double countd = 0;
+    int i = 0, count = 0;
+    
+    /* Get the parameters */
+    <strong>ferite_get_parameters( params, 2, &amp;print, &amp;countd );</strong> <emphasis>/* #1 */</emphasis>
+    
+    <![CDATA[/* Loop round printing */
+    count = (long)countd;
+    for( i = 0; i < count; i++ )
+        printf( "%s", print->data );]]>
+    
+    <strong>FE_RETURN_VOID;</strong> <emphasis>/* #2 */</emphasis>
+}
+
+void module_init( FeriteScript *script )
+{
+    /* Create the function */
+    FeriteFunction *f = ferite_create_external_function( 
+                                script, 
+                                "printfnc", 
+                                printfnc, 
+                                "sn" );
+    
+    /* Now register it in the main namespace */
+    <![CDATA[ferite_register_ns_function( script, script->mainns, f );]]>
+} </code>
+      <para>
+	Point <emphasis>#1</emphasis> is the main point to be covered.: <monospace>ferite_get_parameters</monospace> is a helper
+	function for getting the values of the parameters into C variables you can manipulate. It is very
+	important that you do not delete or free the values you have because they point to the real values.
+    The first is the parameter list you are given and when writing
+	the native function, it is always called <monospace>params</monospace>. The second argument is the number of values from
+	the parameter list that you want. The rest of the arguments are pointers to the local C function variables you wish to set. In our
+	example above, the address of the <monospace>print</monospace> and <monospace>countd</monospace> variables were passed. This
+	is exactly how &builder; gets the values from the parameter list - it is simply hidden from the programmer.
+      </para>
+      <para>
+	All functions must return something even if it
+	is just a void. Builder hides <emphasis>#2</emphasis> from you, but when writing functions from scratch, it is important
+	you remember to return something.
+      </para>
+      <para>
+	To get the number of parameters that were passed to the function, you can use the <monospace>ferite_get_parameter_count</monospace>.
+	This takes just one argument (<monospace>params</monospace>) and returns the number of variables in it.
+      </para>
+      <code>
+int ferite_get_parameter_count( FeriteVariable **list ); </code>
+      <para>
+        To get the container of the function passed into it, you should use the following macros:
+      </para>
+      <code>
+#define FE_CONTAINER_TO_OBJECT  (FeriteObject*)__container__
+#define FE_CONTAINER_TO_CLASS   (FeriteClass*)__container__
+#define FE_CONTAINER_TO_NS      (FeriteNamespace*)__container__ </code>
+        <para>
+            These are defined in <monospace>ferite.h</monospace> and can be used like follows:
+        </para>
+        <code>
+FE_NATIVE_FUNCTION( toString )
+{
+    FeriteObject *self = FE_CONTAINER_TO_OBJECT;
+    FE_RETURN_CSTR( "Example-toString()", FE_FALSE );
+} </code>
+    </section>
+    
+    <section id="nmbh-main-bit">
+      <title id="nmbh-main-bit.title">The Rest</title>
+      <para>
+	All you have to do
+	to fullfill the requirements of a &ferite; module is write four functions. These functions
+	are the ones that &builder; creates for you from <monospace>module-init, module-deinit, module-register, and
+	  module-unregister</monospace>.
+      </para>
+      <code>
+void modulename_register()
+{
+    <emphasis>/* System wide setup. Called when the 
+    module is loaded from disk. */</emphasis>
+}
+	
+void modulename_init( FeriteScript *script )
+{
+    <emphasis>/* Per script setup. This is where you put the 
+    code to register namespaces, classes, functions and 
+    variables and setup anything the script needs. */</emphasis>
+}
+	
+void modulename_deinit( FeriteScript *script )
+{
+    <emphasis>/* Anything you need to shutdown per script. 
+    Ferite will clean up all structures you have registered 
+    so you do not need to clean those up yourself [eg. the 
+    namespaces you have registered]. */</emphasis>
+}
+
+void modulename_unregister()
+{
+    <emphasis>/* System wide shutdown. This gets called when 
+    the ferite engine is being deinitialised. */</emphasis>
+} </code>
+      <para>
+	If you have these four functions exported from your module, &ferite; should find them without problem. One thing to
+	note: the name of the module <strong>must</strong> be the same as the prefix for each of the functions
+	otherwise &ferite; will not be able to find them. For instance in <monospace>foo.lib</monospace> the init function
+	must be called <monospace>foo_init</monospace>.
+      </para>
+      <para>
+	You may also want to read the next section as a cunning secret is told that can make writing native modules
+	easier.
+      </para>
+    </section>
+  </section>
+  
+  <section id="embedding-ferite">
+    <title id="embedding-ferite.title">Embedding Ferite</title>
+    <para>
+      This section is split into three sub-sections. The first deals with getting the engine up and running within your application
+      so that scripts can be executed. The second section deals with the most effcient way of exporting the application's
+      interface into a script so that useful things can then be done. The third is how to cheat with &builder; and applications.
+    </para>
+    
+    <section id="ef-getting-the-engine-purring">
+      <title id="ef-getting-the-engine-purring.title">Getting The Engine Purring</title>
+      <para>
+	Ferite is designed to be placed in pretty much anywhere. Therefore it is pretty easy to get the engine up
+	and running, scripts compiled and then executed, and to clean everything up afterwards. To explain how to do
+	this, an example is listed below and afterwards each line is discussed. It is a simple program that shows
+	most of the functionality of the &ferite; command line program.
+      </para>
+      <code><![CDATA[
+#include <stdio.h>
+#include <stdlib.h>
+#include <ferite.h>
+            
+int main( int argc, char **argv )
+{
+    FeriteScript *script;
+    char *errmsg = NULL, *scriptfile = "test.fe";
+
+    if( ferite_init( 0, NULL ) )
+    {
+        ferite_add_library_search_path( XPLAT_LIBRARY_DIR );
+        ferite_set_library_native_path( NATIVE_LIBRARY_DIR );
+	
+        script = ferite_script_compile( scriptfile );
+        if( ferite_has_compile_error( script ) )
+        {
+            errmsg = ferite_get_error_log( script );
+            fprintf( stderr, "[ferite: compile]\n%s", errmsg );
+        }
+        else
+        {
+            ferite_script_execute( script );
+            if( ferite_has_runtime_error( script ) )
+            {
+                errmsg = ferite_get_error_log( script );
+                fprintf( stderr, "[ferite: execution]\n%s", errmsg );
+            }
+        }
+        if( errmsg )
+          ffree( errmsg );
+        ferite_script_delete( script );
+        ferite_deinit( );
+    }
+    exit( 0 );
+} ]]></code>
+      <para>
+	And now, the explanation. It should be noted that only the lines that are critical to the operation of &ferite; will be
+	dicussed, anything that is standard C will be left out.
+      </para>
+      <code><![CDATA[
+#include <stdio.h>
+#include <stdlib.h>
+#include <ferite.h> ]]></code>
+      <para>
+	The above is all pretty standard issue. You dont need the <monospace>stdio.h</monospace> or <monospace>stdlib.h</monospace>
+	headers to be honest. But with any program they are good practice. The one you do need is <monospace>ferite.h</monospace>.
+	This will pull all the function prototypes and defines into the program so that the magic may begin. This will ensure that
+	all the headers that are required to interface with ferite are visible to the compiler.
+      </para>
+      <code>
+if( ferite_init( 0, NULL ) ) </code>
+      <para>
+	This line initialises the engine. You must do this before you do anything &ferite; related. This is because this call will
+	initialise the &ferite; memory system, the module system, the regex engine and potentially more things. The prototype for
+	this function looks like this:
+	</para>
+	<code>
+int ferite_init( int argc, char **argv ) </code>
+	<para>
+	If you don't call this
+	it is likely that your program will crash and do various other undefined things. You may call this multiple times and it won't 
+	cause issues. It takes two arguments. The first is the number of elemetns contained in the argument array. 
+	The second is an array of strings. This is how options are passed into the engine. For a full list of the options that the
+	ferite engine accepts, please look at the command line program's help option. The next step is to setup the paths that ferite
+    looks for when seraching for a module.
+      </para>
+      <code>
+ferite_add_library_search_path( XPLAT_LIBRARY_DIR );
+ferite_set_library_native_path( NATIVE_LIBRARY_DIR ); </code>
+      <para>
+	Ferite does what it is told; One of the things that makes it very useful is the ability to control what modules are availible
+	to be loaded. You can obtain the system wide defaults using the <strong>ferite-config</strong> shell script. If you do not
+	call these then the &ferite; engine will be unable to load any of the core modules and will only have the API that the application exports.
+	This is useful for both controlling what the scripters can do and preventing people from loading rogue modules into the system. With
+	the library paths setup, the next task is to ask ferite to compile a script for us.
+      </para>
+      <code>
+script = ferite_script_compile( scriptfile ); </code>
+      <para>
+	This line will compile the script that is in the file in the <monospace>scriptfile</monospace> variable. It will always return
+	a script object. The return will either contain the error information or will be an executable script. It is also possible to
+	compile a string into script. For this you call <monospace>ferite_compile_string</monospace>, it takes one argument which is the
+	script to compile. There are also two more functions, <monospace>ferite_script_compile_with_path</monospace> and 
+	<monospace>ferite_compile_string_with_path</monospace>, they both take the same arguments as their respective counterparts, with
+	the exception of an added argument. This is a null terminated array of search paths to add to the module system for the duration of
+	the compilation. For more in depth information about these two functions please refer to the C API. For reference here are their
+	prototypes:
+      </para>
+      <code>
+FeriteScript *ferite_compile_string( char *str );
+FeriteScript *ferite_compile_string_with_path( char *str, char **paths );
+FeriteScript *ferite_script_compile( char *filename );
+FeriteScript *ferite_script_compile_with_path( char *filename, char **paths ); </code>
+      <para>
+        Having compiled the script, it is important to check to see if any errors have occured:
+      </para>
+      <code>
+if( ferite_has_compile_error( script ) )
+{
+    errmsg = ferite_get_error_log( script );
+    fprintf( stderr, "[ferite: compile]\n%s", errmsg );
+} </code>
+      <para>
+	This is how we check that everything is working. Or not. <monospace>ferite_has_compile_error</monospace> will return <monospace>FE_TRUE</monospace> 
+	if there was a compile error and <monospace>FE_FALSE</monospace> if not. If there is an error, the script will not be executable but you will be
+	able to get the error logs from the script as shown above. You will need to, when finished, delete the script, and still clean up the engine. 
+	You will also need to free the string returned using <monospace>ffree</monospace>.
+      </para>
+      <code>
+ferite_script_execute( script ); </code>
+      <para>
+	If the program execution has got this far you will be wanting to run the script. You pass the script to
+	<monospace>ferite_script_execute</monospace> which will execute the script. The return value is the return value 
+	from the script's main function. To find out whether a runtime error occured you will need to use the code 
+	below. <strong>NOTE:</strong> you can run scripts multiple times but it is not recommended, as the state of
+	the script can not be guaranteed. As with compilation, we need to check for errors after we have run the 
+	script:
+     </para>
+      <code>
+if( ferite_has_runtime_error( script ) )
+{
+    errmsg = ferite_get_error_log( script );
+    fprintf( stderr, "[ferite: execution]\n%s", errmsg );
+} </code>
+      <para>
+	<monospace>ferite_has_runtime_error</monospace> will return true if there has been a runtime error on the script. To
+	get the messages about the error you will need to use <monospace>ferite_get_error_log</monospace>. This will return 
+	the error log as a C string. You will need to free the string returned with <monospace>ffree</monospace>.
+      </para>
+      <code>
+if( errmsg )
+    ffree( errmsg ); </code>
+      <para>
+	Remember to free things!
+      </para>
+      <code>
+ferite_script_delete( script ); </code>
+      <para>
+	Once you have finished with your script object you must delete it. This is a call to <monospace>ferite_script_delete</monospace>.
+      </para>
+      <code>
+ferite_deinit( ); </code>
+      <para>
+	It's been a long day, you've been running scripts and it's now time to pack your bags and go home. There is one last
+	thing to be done - tell &ferite; to deinitialise. This is done doing <monospace>ferite_deinit</monospace>. This will cause
+	all allocated memory via <monospace>fmalloc/fcalloc/frealloc</monospace> to be deallocated, shutdown the module system
+	and anything else that needs to be done. Once this has been called you can re-initialise the system with 
+	<monospace>ferite_init</monospace> and start all over again.
+      </para>
+      <para>
+	So there you have it. That's how easy it is to get things up and running. It is suggest that you have a look at the 
+	command line program in the &ferite; distribution for more options availible or a more concrete example. 
+      </para>
+    </section>
+    
+    <section id="ef-fake-native-modules">
+      <title id="ef-fake-native-modules.title">Fake Native Modules</title>
+      <para>
+	Fake native modules provide a mechanism to export API from the current program to be included
+	when the script is compiled. This allows your scripts to talk to your program when they are being compiled. 
+	The example below assumes the methods <monospace>theapp_*</monospace> compiled into the application. 
+      </para>
+      <code>
+ferite_module_register_fake_module( "theapp.lib", 
+                    theapp_register, 
+                    theapp_unregister, 
+                    theapp_init, 
+                    theapp_deinit );
+ferite_module_add_preload( "theapp.lib" ); </code>
+      <para>
+	The <monospace>ferite_module_add_preload</monospace> is important so that the module gets compiled
+	into the script at compile time and therefore allows for initialisation code that gets executed
+	to access the application. Please note that the <strong>.lib</strong> extension is very
+	important. This is so that &ferite; knows that it is a native module and can handle it correctly
+	(and also find it). You should refer to the last section on writing native modules by hand for
+	the information on how to write the native module. For those of you feeling slightly more lazy,
+	read on, there is a cunning use of &builder;.
+      </para>
+      <para>
+	The above code should be placed before the calls to <monospace>ferite_script_compile</monospace> 
+	or <monospace>ferite_compile_string</monospace>.
+      </para>
+    </section>
+    
+<!--    <section id="ef-cheating-with-builder">
+      <title id="ef-cheating-with-builde.title">Cheating With Builder</title>
+      <para>
+	You can't cheat with &builder; just yet, but the basic idea is this: Write your modules to embed using &builder;
+	and a <monospace>.fec</monospace> file, compile the C code into your program, make sure you register the native
+	module (as in the last section), and then tell &ferite; to preload the <monospace>.fec</monospace> file 
+	rather than the native library. This will cause &ferite; to parse the file just like a normal library but link
+	to your application than to an external function. The only issue with this is that your source code for each
+	function will be in the <monospace>.fec</monospace> file.
+      </para>
+      <para>
+	This is also the same method by which you would compile modules into a program.
+      </para>
+    </section> -->
+  </section>
+  
+    <section>
+        <title>Building Modules</title>
+        <para>
+            The &ferite; distribution currently ships with two mechanisms for building and deploying modules to
+            be run on a system with ferite installed. The first, <monospace>generate-module</monospace> is a solution 
+            based upon the GNU autotools chain,
+            this is considered to be the old and broken way of doing things due to the huge effort required to
+            make sure that it is compatible with the, on average, 5 different versions that ship with the different
+            operating systems. The second, <monospace>farm</monospace>, is a build system written in &ferite; to provide
+            a sane way of building libraries, modules and binaries. This method is the prefered method of deployment
+            but doesn't currently work on any platform other than Mac OS X and Linux.
+        </para>
+        <para>
+            At the moment, it is recommend that you ship modules using both methods such that the end user may choose
+            which path to take.
+        </para>
+        <section>
+            <title>Most Compatible Method: generate-module</title>
+            <para>
+                &ferite; ships with the command line program called generate-module. This program takes the name of
+                a ferite module (ending in <monospace>.fec</monospace>), and builds a autotools based distribution for you.
+                Lets assume we have a <monospace>f.fec</monospace> module file, and a couple of utility c files that
+                provide helper functions for the code. To execute generate-module we do the following:
+            </para>    
+            <code>
+generate-module f.fec utility.c utility.h </code>
+            <para>
+                Assuming everything is ok, generate-module will create us a directory <monospace>f</monospace>, and
+                build a autotools distribution. It will copy all the named files provided on the command line into
+                the distribution. To let you know this is happening, you will get an output like this:
+            </para>
+            <code>
+Ferite Module Distributor (1.0)
+Copyright (c) 2000-2002:
+ 
+Chris Ross &lt;chris@ferite.org&gt;
+Sveinung Haslestad &lt;sveinung@cention.se&gt;
+Stephan Engstrom &lt;sem@cention.se&gt;
+
+ferite-config: /opt/local/bin/ferite-config
+builder: /opt/local/bin/builder
+prefix: /opt/local
+Using file 'f.fec'
+Module name 'f'
+Creating Directory 'f'
+Reading directory: /opt/local/share/ferite/generate-module/skel
+Reading file: .
+Reading file: ..
+Reading file: .cvsignore
+Copying .cvsignore to f/
+Reading file: AUTHORS
+Copying AUTHORS to f/
+Reading file: autogen.sh
+Copying autogen.sh to f/
+Reading file: ChangeLog
+Copying ChangeLog to f/
+Reading file: config.h.in
+Copying config.h.in to f/
+Reading file: configure.ac
+Copying configure.ac to f/
+Reading file: CVS
+Reading file: Makefile.am
+Copying Makefile.am to f/
+Reading file: Makefile.in
+Copying Makefile.in to f/
+Reading file: README
+Copying README to f/
+Reading file: stamp-h.in
+Copying stamp-h.in to f/
+Reading file: udcl.sh
+Copying udcl.sh to f/
+Copying module source over...
+Copying module source over...
+Copying module source over...
+Running builder...
+
+Finished!, now to build a tarball run:
+
+   cd f &amp;&amp; ./autogen.sh &amp;&amp; make dist
+
+People will then be able to configure and install the tarball
+
+If you wish to add any special checking to to the configure script
+please edit f/config.m4</code>
+            <para>
+                To use the module and generate a configure script, change into the directory and run
+                <monospace>./autogen.sh</monospace>.
+            </para>                        
+        </section>
+        <section>
+            <title>New Method: farm</title>
+            <para>
+                At the moment, generating a module from a ferite module code is trivial with farm. To
+                tell farm what to do, it is necessary to generate a <monospace>farm.yard</monospace> file
+                with the module descriptions. The following is a template detail how to build a module
+                and have it installed correctly. You may copy and paste the template into a file, replace
+                all occurances of <monospace>MODULENAME</monospace> with the name of your module and 
+                you should be good to go.
+            </para>    
+            <code><![CDATA[
+<?xml version="1.0" ?>
+<yard name="MODULENAME">
+
+    <module id="MODULENAME">
+        <list type="source">
+            <file name="source/MODULENAME.fec" />
+            <fileset dir="source" match="utility\.[ch]$" />
+        </list>
+        <property type="C">
+            <program-output program="ferite-config" arguments="--cflags" />
+        </property>
+        <property type="LD">\
+            <program-output program="ferite-config" arguments="--libs" />
+        </property>
+        <property type="prefix" value="$(FeriteModuleNativeDir)" />        
+    </module>
+    
+    <phase id="install" depends="build">
+        <perform action="install" target="MODULENAME" />
+        <copy file="source/MODULENAME.fec" target="$(FeriteModuleSourceDir)" />
+        <copy file="$(ProductDir)/MODULENAME.xml" 
+              target="$(FeriteModuleDescriptionDir)" />
+        <execute program="feritedoc" arguments="--regenerate" />
+    </phase>
+    
+</yard>]]></code>
+            <para>
+                The above farm.yard file describes the module, what files exist for the module and the
+                various properties that are required to build it. To use the farm file, you simply invoke
+                <monospace>farm build</monospace> to build the contents, and <monospace>farm install</monospace>
+                to install the built products. Everything generated by farm is always placed in the <monospace>FarmYard</monospace>
+                directory that can be found in the same location as the farm.yard file.
+            </para>            
+        </section> 
+        <para>
+            This has been a very quick run through of the use of these tools. As farm mature much more 
+            documentation will be released, however, it is still young (but very usable) and provides a great
+            mechanism for deploying code to a system that has a ferite runtime on it.   
+        </para>
+    </section>
+  <!--
+  <section id="step-by-step-example">
+    <title id="step-by-step-example.title">Finally: A Real World Example</title>
+    <para>
+    </para>
+  </section>
+  -->
+</document>

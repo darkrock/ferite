@@ -1,0 +1,57 @@
+
+namespace DocUtils {
+    array filters;
+    array typeToID;
+    array langToID;
+    
+    function tagSet( string tag, array attributes, string content ) {
+        string ret = "";
+        
+        ret += "<$tag";
+        if( content !=  "" ) {
+            Array.map( attributes ) using ( key, value ) {
+                ret += " $key=\"$value\"";
+            };
+            ret += ">";
+            ret += "$content";
+            ret += "</$tag>\n";
+        }
+        else
+            ret += " />";
+        
+        return ret;
+    } 
+    
+    function typeIDForDocumentType( string type ) {
+        if( not .typeToID.keyExists(type) )
+        {
+            Database.query( "SELECT ID,TypeDesc FROM ${Database.table('DocumentTypes')};" ) using ( row ) {            
+                .typeToID[row['TypeDesc']] = row['ID'];
+            };
+        }
+        if( not .typeToID.keyExists(type) )
+            .typeToID[type] = -1;
+        
+        return .typeToID[type];
+    }
+    
+    function registerFilter( void filter ) {
+        .filters[] = filter;
+    }
+    
+    function documentFromTag( string tag ) {
+        
+    }
+    
+    function languageShortToID( string language ) {
+        if( not .langToID.keyExists(language) ) {
+            Database.query( "SELECT ID,ShortDesc FROM ${Database.table('DocumentLanguages')};" ) using ( row ) {            
+                .typeToID[row['ShortDesc']] = row['ID'];
+            };
+        }
+        if( not .langToID.keyExists(language) ) 
+            .langToID[language] = -1;
+        
+        return .langToID[language];
+    }
+}

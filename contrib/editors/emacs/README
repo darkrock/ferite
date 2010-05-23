@@ -1,0 +1,12 @@
+ferite major mode for emacs
+
+The ferite-mode.el needs to be placed within a load path for emacs.
+
+For example; create the directory ~/.emacs.d if it doesn't already
+exist. Then add the following line to your ~/.emacs file:
+
+(setq load-path (append load-path (list "~/.emacs.d")))
+(require 'ferite-mode)
+
+This should load the ferite mode automatically when you load a ferite
+script file (eg, any file with an extension of .fe or .fec).

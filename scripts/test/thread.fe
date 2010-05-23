@@ -1,0 +1,66 @@
+uses "console", "thread", "sys";
+
+global
+{
+    atomic number counter = 0;
+}
+
+atomic function critical_section( string id )
+{
+    Console.println( " |- In critical_section--->" );
+    Console.println( " |- Called from thread $id" );
+    Console.println( " `- Out critical_section<---" );
+}
+
+class MyThread extends Thread
+{
+
+   atomic static number count = 0;
+
+   number sleepval;
+   number id;
+
+   function constructor( number sv )
+   {
+       super();
+       self.id = ++MyThread.count;
+       self.sleepval = sv;
+   }
+
+   function run()
+   {
+       number count = 0;
+
+       Console.println("running...");
+       while( count < 10 )
+       {
+           counter += 1;
+           count++;
+           Console.println( "Thread ${.id}: ${.sleepval}, counter=$counter" );
+           critical_section( "" + self.id );
+           self.sleep( self.sleepval * 1000 );
+       }
+       Console.println( "Leaving Thread " + self.id );
+   }
+}
+
+object t1 = new MyThread(1);
+object t2 = new MyThread(2);
+object t3 = new MyThread(10);
+number counter = 0;
+Console.println("starting threads...");
+t1.start(true);
+t2.start(true);
+t3.start(true);
+
+while(true)
+{
+    counter++;
+    Sys.usleep( 1000000 );
+    Console.println( "Main Loop [$counter seconds passed]" );
+    if( counter == 5 )
+    {
+        Console.println( "Stopping Script" );
+        break;
+    }
+}

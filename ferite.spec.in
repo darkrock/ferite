@@ -1,0 +1,120 @@
+Summary: Ferite programming language
+Name: ferite
+Version: @VERSION@
+Release: 1
+License: BSD
+Group: Development/Languages
+Source: %{_prefix}/rpm-build/SOURCES/ferite.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-root
+URL: http://www.ferite.org/
+Requires: pcre libxml2
+
+%package devel
+Summary: Ferite headers and development libraries.
+Group: Development/Libraries
+Requires: %{name} = %{version}
+
+%description
+ferite is a language that incorporates the design philosophies of
+other languages, but without many of their drawbacks. It has strong
+similiarities to perl, python, C, Java and pascal, while being both
+lightweight, modular, and embeddable.
+
+Install ferite to use/develop programs using the ferite langauge.
+
+%description devel
+Ferite headers and development libraries.
+
+%prep
+%setup -n ferite-%{version}
+
+%build
+if [ -e ./configure ]; then
+%configure --prefix=%{_prefix} --bindir=%{_bindir} \
+  --libdir=%{_libdir} --includedir=%{_includedir} \
+  --mandir=%{_mandir} --datadir=%{_datadir}
+else
+./autogen.sh --prefix=%{_prefix} --bindir=%{_bindir} \
+ --libdir=%{_libdir} --includedir=%{_includedir} \
+ --mandir=%{_mandir} --datadir=%{_datadir};
+%configure --prefix=%{_prefix} --bindir=%{_bindir} \
+  --libdir=%{_libdir} --includedir=%{_includedir} \
+  --mandir=%{_mandir} --datadir=%{_datadir}
+fi
+make
+make
+make
+make
+make
+make
+make
+make
+make
+make
+
+###########################################################################
+
+%install
+rm -rf $RPM_BUILD_ROOT
+make DESTDIR=$RPM_BUILD_ROOT install
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%post
+/sbin/ldconfig
+mkdir -p %{_prefix}/share/doc/ferite/api
+%{_prefix}/bin/feritedoc --regenerate
+
+%postun
+/sbin/ldconfig
+
+%files
+%defattr(-,root,root)
+%doc ABOUT AUTHORS ChangeLog DEVELOPERS LICENSE
+%doc README RELEASE.NOTES ROADMAP TODO
+%{_bindir}/ferite
+%{_bindir}/feritedoc
+%{_bindir}/farm
+%{_bindir}/manual-builder-html
+%{_bindir}/manual-builder-pdf
+%{_libdir}/*.so.*
+%{_libdir}/ferite/*
+%{_datadir}/ferite/*
+%{_prefix}/share/doc/ferite/examples/*
+%{_prefix}/share/doc/ferite/html-manuals/*
+%{_prefix}/share/doc/ferite/ABOUT
+%{_prefix}/share/doc/ferite/AUTHORS
+%{_prefix}/share/doc/ferite/DEVELOPERS
+%{_prefix}/share/doc/ferite/LICENSE
+%{_prefix}/share/doc/ferite/RELEASE.NOTES
+%{_prefix}/share/doc/ferite/ROADMAP
+%{_prefix}/share/doc/ferite/TODO
+%{_prefix}/share/doc/ferite/feritedoc.pdf
+%{_prefix}/share/doc/ferite/manual.pdf
+/usr/share/man/man1/builder.1.gz
+/usr/share/man/man1/ferite.1.gz
+
+%files devel
+%{_bindir}/ferite-config
+%{_bindir}/builder
+%{_bindir}/cache_ferite
+%{_bindir}/generate-module
+%{_libdir}/*.so
+%{_libdir}/*.*a
+%{_includedir}/ferite/*
+%{_includedir}/ferite.h
+%{_prefix}/share/doc/ferite/embed.pdf
+%{_prefix}/share/aclocal/ferite.m4
+
+%changelog
+* Wed Jul 15 2009 Chris Ross <chris@darkrock.co.uk>
+- Fired Michael
+- Fixed spec file
+
+* Thu Jul 11 2002 Michael Jennings <mej@kainx.org>
+- Fired term
+- Fixed spec file
+
+* Wed Dec 27 2000 Lyle Kempler <term@twistedpath.org>
+- Created spec file

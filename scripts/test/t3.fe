@@ -1,0 +1,14 @@
+uses "console";
+number i = 1;
+
+switch( i ) {
+case 1:
+        break;
+case 2:
+       switch(1) {
+         default:
+                 break;
+         }
+        Console.println("BAD");
+        break;
+}

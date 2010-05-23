@@ -1,0 +1,934 @@
+/*
+ * Copyright (C) 2000-2007 Chris Ross and various contributors
+ * Copyright (C) 1999-2000 Chris Ross
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "array.lib";
+
+module-header
+{
+
+#include <stdlib.h>
+#include "util.h"
+
+#ifdef VCWIN32
+# include <snprintf.h>
+#endif
+
+}
+
+/**
+ * @namespace Array
+ * @brief Provides a set of functions to manipulate arrays.
+ */
+namespace Array
+{
+    /**
+    * @function each
+     * @brief This function takes a closure and applies it to each element within the array
+     * @declaration function each( array a )
+     * @param array a The array
+     * @description The function will go through each element within the array and call the supplied
+     *              closure. If you wish to terminate the iteration you need to return false, otherwise
+     *              the function will continue to run.
+     * @return true if there is no recipient or the iteration was successful, false otherwise
+     * @example <nl/>
+     *  <code>Array.each( someArray ) <keyword>using</keyword> ( value ) { <nl/>
+     *  <tab/>Console.println( "Value: " + value ); <nl/>
+     *  };</code><nl/>
+     */
+    function each( array a )
+    {
+        if( recipient() != null )
+        {
+            number i = 0;
+            number size = Array.size(a);
+            
+            for( i = 0; i < size; i++ )
+            {
+                void rval = deliver( a[i] );
+                if( rval == false or rval == null )
+                    return false;
+            }
+        }
+        return true;
+    }
+    /**
+    * @function eachWithIndex
+     * @brief This function takes a closure and applies it to each element within the array providing the index as the second parameter.
+     * @declaration function eachWithIndex( array a )
+     * @param array a The array
+     * @description The function will go through each element within the array and call the supplied
+     *              closure. If you wish to terminate the iteration you need to return false, otherwise
+     *              the function will continue to run.
+     * @return true if there is no recipient or the iteration was successful, false otherwise
+     * @example <nl/>
+     *  <code>Array.eachWithIndex( someArray ) <keyword>using</keyword> ( value, index ) { <nl/>
+     *  <tab/>Console.println( "Value: " + value + " at index $index" ); <nl/>
+     *  };</code><nl/>
+     */
+    function eachWithIndex( array a )
+    {
+        if( recipient() != null )
+        {
+            number i = 0;
+            number size = Array.size(a);
+            
+            for( i = 0; i < size; i++ )
+            {
+                void rval = deliver( a[i], i );
+                if( rval == false or rval == null )
+                    return false;
+            }
+        }   
+        return true;
+    }
+    /**
+     * @function map
+     * @brief This function takes a closure and applies it to each named element within the array
+     * @declaration function map( array a )
+     * @param array a The array
+     * @description The function will go through each element within the array that is linked to a name, and call the supplied
+     *              closure with the name and the value. If you wish to terminate the iteration you need to return false, otherwise
+     *              the function will continue to run.
+     * @return true if there is no recipient or the iteration was successful, false otherwise
+     * @example <nl/>
+     *  <code>Array.map( someArray ) <keyword>using</keyword> ( key, value ) { <nl/>
+     *  <tab/>Console.println( "Key '$key' has value '$value'" ); <nl/>
+     *  };</code><nl/>
+     */
+    function map( array a )
+    {
+        if( recipient() != null )
+        {
+			array copy = a;
+            array keys = Array.keys(copy);
+            number i = 0;
+            number size = Array.size(keys);
+            
+            for( i = 0; i < size; i++ )
+            {
+                void rval = deliver( keys[i], copy[keys[i]] );
+                if( rval == false or rval == null )
+                    return false;
+				copy.del(keys[i]);
+            }
+        }
+        return true;
+    }
+    
+    /**
+     * @function size
+     * @brief Returns the number of items that are in an array
+     * @declaration function size( array a )
+     * @param array a The array
+     * @return The number of items that are in the array
+     * @example <nl/>
+     * <code><type>array</type> a = [ 1, 2, 3 ];<nl/>
+     * <type>number</type> size = Array.size(a);</code><nl/>
+     */
+    native function size( array a ) : number
+    {
+        FE_RETURN_LONG( a->size );
+    }
+    
+    /**
+     * @function keys
+     * @brief Returns an array of strings representing the keys in the array
+     * @declaration function keys( array a )
+     * @param array a The array
+     * @return An array containing the key strings
+     * @description This function returns an array of the key strings which are
+     *              present in the specified array. Note that the returned
+     *              array is in hash order (which is basically random), not in
+     *              the same order as the array that was passed in.
+     * @example <nl/>
+     * <code><type>array</type> a = [ "Name" => "Chris", "Age" => "Too Old" ];<nl/>
+     * <type>array</type> keys = Array.keys(a);</code><nl/>
+     */
+    native function keys( array a ) : array
+    {
+        FeriteVariable *array, *var;
+        char buf[512];
+        FeriteHashBucket *buk;
+        FeriteIterator *iter;
+        int t = 0;
+
+        array = ferite_create_uarray_variable(script,"Array.keys", a->hash->size, FE_STATIC);
+        iter = ferite_create_iterator(script);
+        while( (buk = (FeriteHashBucket*)ferite_hash_walk(script, a->hash,iter)) != NULL )
+        {
+            snprintf(buf,512,"index-%d",t);
+            var = fe_new_str( buf, buk->id, 0, FE_CHARSET_DEFAULT );
+            ferite_uarray_add( script, VAUA(array), var, NULL, FE_ARRAY_ADD_AT_END );
+            t++;
+        }
+        ffree(iter);
+        FE_RETURN_VAR(array);
+    }
+
+    /**
+     * @function push
+     * @brief Pushes a variable onto the end of an array
+     * @declaration function push( array a, void var )
+     * @param array a The array to push the variable onto
+     * @param void var The variable to push onto the end of the array
+     * @example <nl/>
+     * <code><type>array</type> a = [ 1, 2, 3 ];<nl/>
+     * Array.push(a,4); &raquo; a = [ 1, 2, 3, 4 ]</code><nl/>
+     */
+    native function push( array a, void var ) : undefined
+    {
+        ferite_uarray_push( script, a, var );
+    }
+
+   /**
+    * @function pop
+    * @brief Pops a variable from the end of an array
+    * @declaration function pop( array a )
+    * @param array a The array to pop a variable from 
+    * @return The variable which was popped from the end of the array
+    * @example <nl/>
+    * <code><type>array</type> a = [ 1, 2, 3, 4 ];<nl/>
+    * <type>number</type> size = Array.pop(a); &raquo a = [ 1, 2, 3 ]</code><nl/>
+    */
+    native function pop( array a ) : void
+    {
+        FeriteVariable *var = ferite_uarray_pop( script, a );
+        FE_RETURN_VAR( var );
+    }
+
+  /**
+   * @function unshift
+   * @brief Shifts a variable onto the start of an array
+   * @declaration function unshift( array a, void var )
+   * @param array a The array to shift a variable onto
+   * @param void var The variable to shift onto the start of the array
+     * @example <nl/>
+     * <code><type>array</type> a = [ 1, 2, 3 ];<nl/>
+     * Array.unshift(a, 4); &raquo a = [ 4, 1, 2, 3 ]</code><nl/>
+   */
+    native function unshift( array a, void var ) : undefined
+    {
+        ferite_uarray_unshift( script, a, var );
+    }
+
+  /**
+   * @function shift
+   * @brief Shifts a variable from the start of an array
+   * @declaration function shift( array a )
+   * @param array a The array to shift a variable from
+   * @return The variable which was shifted from the start of the array
+     * @example <nl/>
+     * <code><type>array</type> a = [ 1, 2, 3 ];<nl/>
+     * <type>number</type> size = Array.shift(a); &raquo a = [ 2, 3 ]</code><nl/>
+   */
+    native function shift( array a ) : void
+    {
+        FeriteVariable *var = ferite_uarray_shift( script, a );
+        FE_RETURN_VAR( var );
+    }
+
+  /**
+   * @function del
+   * @brief Deletes an item from an array
+   * @declaration function del( array a, void var )
+   * @param array a The array to delete an item from
+   * @param void var The index or key of the item to delete
+   * @description This function deletes an item from the specified array, if it
+   *              exists. The var parameter can be either the index number or
+   *              the key string of the item to delete.
+     * @example <nl/>
+     * <code><type>array</type> a = [ 1, 2, "Three" => 3 ];<nl/>
+     * Array.del(a, 0); &raquo a = [ 2, "Three" => 3 ]<nl/>
+     * Array.del(a, "Three"); &raquo a = [ 2 ]</code><nl/>
+   */
+    native function del( array a, void var ) : undefined
+    {
+        ferite_uarray_del_var( script, a, var );
+    }
+
+  /**
+   * @function getIndex
+   * @brief Finds the index number of a hashed item from its key string
+   * @declaration function getIndex( array a, string var )
+   * @param array a The array
+   * @param string var The key string
+   * @return The index of the array item, or -1 on failure
+     * @example <nl/>
+     * <code><type>array</type> a = [ 1, 2, "Three" => 3 ];<nl/>
+     * <type>number</type> three = Array.index(a, "Three");</code><nl/>
+   */
+    native function getIndex( array a, string var ) : number
+    {
+        FeriteVariable *ptr = ferite_hash_get( script, a->hash, var->data );
+        if( ptr != NULL )
+        {
+            FE_RETURN_LONG(ptr->index);
+        }
+        FE_RETURN_LONG(-1);
+    }
+
+    /**
+     * @function getName
+     * @brief Finds the key string of an array item
+     * @declaration function getname( array a, number index )
+     * @param array a The array
+     * @param number index The index of the array item
+     * @return The key string of the item, or an empty string on failure
+     * @example <nl/>
+     * <code><type>array</type> a = [ 1, 2, "Three" => 3 ];<nl/>
+     * <type>string</type> name = Array.getName(a, 2);</code><nl/>
+     */
+    native function getName( array a, number index ) : string
+    {
+        long rindex = (long)index;
+        FeriteString *str = NULL;
+        FeriteVariable *var = NULL;
+        
+        if( a->size > rindex )
+        {
+            var = a->array[rindex];
+            str = ferite_str_new( script, var->vname, 0, FE_CHARSET_DEFAULT );
+        }
+        else
+          str = ferite_str_new( script, "", 0, FE_CHARSET_DEFAULT );
+        FE_RETURN_STR( str, FE_TRUE );        
+    }
+    
+    /**
+     * @function print
+     * @brief Dumps an array to stdout
+     * @declaration function print( array vars )
+     * @param array vars The array to dump
+     * @description This is a debugging function used to dump an array directly
+     *              to stdout, bypassing the Console system, and as such should
+     *              not normally be used.
+     */
+    native function _print( array vars ) : undefined
+    {
+        FeriteIterator *iter;
+        FeriteHashBucket *buk;
+        iter = ferite_create_iterator(script);
+
+        while((buk = (FeriteHashBucket*)ferite_hash_walk(script,vars->hash,iter)) != NULL)
+        {
+            printf("['%s'] = ",buk->id);
+            if(((FeriteVariable *)(buk->data))->type == F_VAR_STR)
+            {
+                printf("'%.*s'\n",(int)FE_STRLEN(((FeriteVariable*)(buk->data))), FE_STR2PTR(((FeriteVariable*)(buk->data))));
+            }
+            else
+            {
+                printf("<ferite %s>\n", ferite_variable_id_to_str(script,((FeriteVariable*)(buk->data))->type));
+            }
+        }
+        ffree(iter);
+    }
+
+  /**
+   * @function keyExists
+   * @brief Discovers whether there is an item with a particular key in an array
+   * @declaration function keyExists( array a, string key )
+   * @param array a The array
+   * @param string key The key string to look for
+   * @return true if it exists, false if it does not
+     * @example <nl/>
+     * <code><type>array</type> a = [ 1, 2, "Three" => 3 ];<nl/>
+     * <keyword>if</keyword>( Array.keyExists(a, "Three") )<nl/>
+     * <tab/>Array.del(a, "Three");</code><nl/>
+   */
+    native function keyExists( array a, string key ) : boolean
+    {
+        if( ferite_hash_get( script, a->hash, key->data ) != NULL )
+        {
+            FE_RETURN_TRUE;
+        }
+        FE_RETURN_FALSE;
+    }
+
+  /**
+   * @function valueExists
+   * @brief Discovers whether there is an item with a particular value in an array
+   * @declaration function valueExists( array a, void value )
+   * @param array a The array
+   * @param void value The value to look for
+   * @return True if it exists, false if it does not
+     * @example <nl/>
+     * <code><type>array</type> a = [ 1, 2, "Three" => 3 ];<nl/>
+     * <keyword>if</keyword>( Array.valueExists(a, 4) )<nl/>
+     * <tab/>Array.push(a, 4);</code><nl/>
+   */
+    native function valueExists( array a, void value ) : boolean
+    {
+        int i;
+
+        for (i=0;i<a->size;i++)
+        {
+            if(F_VAR_TYPE(a->array[i]) == F_VAR_TYPE(value))
+            {
+                switch(F_VAR_TYPE(value))
+                {
+                  case F_VAR_STR:
+                    if (ferite_str_cmp(script,VAS(a->array[i]), VAS(value)))
+                      FE_RETURN_TRUE;
+                    break;
+                  case F_VAR_LONG:
+                    if (VAI(a->array[i]) == VAI(value))
+                      FE_RETURN_TRUE;
+                    break;
+                  case F_VAR_DOUBLE:
+                    if (VAF(a->array[i]) == VAF(value))
+                      FE_RETURN_TRUE;
+                    break;
+                  case F_VAR_OBJ:
+                    if (VAO(a->array[i]) == VAO(value))
+                      FE_RETURN_TRUE;
+                    break;
+                  case F_VAR_UARRAY:
+                    if (ferite_uarray_cmp(script, VAUA(a->array[i]), VAUA(value)))
+                      FE_RETURN_TRUE;
+                    break;
+                }
+            }
+        }
+        FE_RETURN_FALSE;
+    }
+
+  /**
+   * @function join
+   * @brief Converts an array to a string with a specified string between the items
+   * @declaration function join( array a, string value )
+   * @param array a The array to convert into a string
+   * @param string value A delimiting string to place between each pair of array items
+   * @return A string representation of the array
+     * @example <nl/>
+     * <code><type>array</type> a = [ 1, 2, 3 ];<nl/>
+     * <type>string</type> data = Array.join(a, ":"); &raquo data = "1:2:3"</code><nl/>
+   */
+    native function __join( array a, string value ) : string
+    {
+        char *string, *join = "";
+        FeriteString *str = NULL;
+        FeriteBuffer *buf = ferite_buffer_new(script,0);
+        FeriteVariable *var = NULL;
+        int i, len;
+
+        for (i=0;i<a->size;i++)
+        {
+
+            if( a->array[i] != NULL )
+            {
+                str = ferite_variable_to_str( script, a->array[i], FE_FALSE );
+                if( str != NULL )
+                  ferite_buffer_printf(script,buf,"%s%.*s", join, str->length, str->data);
+                ferite_str_destroy(script, str );
+            }
+            if(!i)
+              join = value->data;
+        }
+        string = ferite_buffer_get(script,buf, &len);
+        ferite_buffer_delete(script,buf);
+
+        var = fe_new_str_static("joined_array", string, len, FE_CHARSET_DEFAULT );
+        ffree( string );
+        FE_RETURN_VAR( var );
+    }
+
+	function join( array a, string spacer ) {
+		string output;
+		if( recipient() != null )
+        {
+            number i = 0;
+            number size = Array.size(a);
+            
+            for( i = 0; i < size; i++ )
+            {
+                output += deliver( a[i] );
+				if( i < (size - 1) )
+					output += spacer;
+            }
+			return output;
+        }
+		return .__join( a, spacer );
+	}
+	
+	
+    /**
+     * @function combine
+     * @declaration function combine( array keys, array values )
+     * @brief Combines two arrays into a single array
+     * @param array keys The key strings
+     * @param array values The variables associated with the keys
+     * @return An array containing the specified keys and values
+     * @description Combines the specified arrays into a single array, where
+     *              the strings in the keys array are used as keys to the
+     *              values from the values array. In the case of duplicate
+     *              keys, the last one in the array is used. If the arrays are
+     *              not the same size, the combination stops when the end of
+     *              the shortest array is reached. Any keys which are not
+     *              strings are ignored.
+     * @example <nl/>
+     * <code><type>array</type> a = [ "Four", "Five", "Six" ];<nl/>
+     * <type>array</type> b = [ 4, 5, 6 ];<nl/>
+     * <type>array</type> c = Array.combine(a, b); &raquo c = [ 'Four' => 4, 'Five' => 5, 'Six' => 6 ]</code><nl/>
+     */
+    function combine(array keys, array values)
+    {
+        array ret;
+        number i, n = Array.size(keys);
+
+        if(n > Array.size(values)) n = Array.size(values);
+
+        for(i = 0; i < n; i++) if(keys[i] isa string) ret[keys[i]] = values[i];
+
+        return ret;
+    }
+
+    /**
+     * @function find
+     * @declaration function find(array a, string var)
+     * @brief Locates an item in an array by value and returns its index number
+     * @param array a The array to search through
+     * @param void var The value of the item to search for
+     * @return The index of the array item, or -1 if no match was found.
+     * @example <nl/>
+     * <code><type>array</type> a = [ "Four", "Five", "Six" ];<nl/>
+     * <type>number</type> location = Array.find(a, "Four");</code><nl/>
+     */
+    function find(array a, void var)
+    {
+        number i, n = Array.size(a);
+
+        for(i = 0; i < n; i++) if(a[i] == var) return i;
+        return -1;
+    }
+
+    /**
+     * @function intersect
+     * @declaration function intersect( array a, array b )
+     * @brief Calculates the intersection of two arrays
+     * @param array a The first array, which the values are taken from
+     * @param array b The second array
+     * @return An array containing only keys which are in both input arrays
+     * @description This function calculates the intersection of the two input
+     *              arrays. The output array contains only keys which are in
+     *              both of the input arrays. The values associated with the
+     *              items in the output array are taken from array a. If there
+     *              aren't any intersecting keys, the returned array will be
+     *              empty.
+     * @example <nl/>
+     * <code><type>array</type> a = [ "Four" => 4, "Five" => 5, "Six" => 6 ];<nl/>
+     * <type>array</type> b = [ 4, "Five" => 5, 6 ];<nl/>
+     * <type>array</type> c = Array.intersect(a, b); &raquo c = [ 'Five' => 5 ]</code><nl/>
+     */
+    function intersect(array a, array b)
+    {
+        array ret;
+        string name;
+        number i, siz = Array.size(a);
+
+        for(i = 0; i < siz; i++)
+            if((name = Array.getName(a, i)) != "")
+                if(Array.getIndex(b, name) != -1) ret[name] = a[i];
+
+        return ret;
+    }
+
+    /**
+     * @function union
+     * @declaration function union( array a, array b )
+     * @brief Calculates the union of two arrays
+     * @param array a The first array, which the values are taken from
+     * @param array b The second array
+     * @return An array containing one of each key that is in the two sets
+     * @description This function unifies the two input arrays, producing a
+     *              single output array containing one item for each of the
+     *              keys that is in the input arrays. Where a key is present
+     *              in both input arrays, the value is taken from array a.
+     *              Items which don't have keys are dropped.
+     * @example <nl/>
+     * <code><type>array</type> a = [ "Four" => 4, "Five" => 5, "Six" => 6 ];<nl/>
+     * <type>array</type> b = [ 4, "Seven" => 7, 6 ];<nl/>
+     * <type>array</type> c = Array.union(a, b); &raquo c = [ 'Seven' => 7, 'Four' => 4, 'Five' => 5, 'Six' => 6 ]</code><nl/>
+     */
+    function union(array a, array b)
+    {
+        array ret;
+        string name;
+        number i, siz = Array.size(b);
+
+        for(i = 0; i < siz; i++)
+            if((name = Array.getName(b, i)) != "") ret[name] = b[i];
+
+        siz = Array.size(a);
+        for(i = 0; i < siz; i++)
+            if((name = Array.getName(a, i)) != "") ret[name] = a[i];
+
+        return ret;
+    }
+
+    /**
+     * @function subtract
+     * @declaration function subtract( array a, array b )
+     * @brief Subtracts array b from array a
+     * @param array a The minuend
+     * @param array b The subtrahend
+     * @return An array containing all the keys which are in a but not b
+     * @description This function removes any items from array a which have
+     *              the same key as an item in array b. Items which don't have
+     *              keys are dropped.
+     * @example <nl/>
+     * <code><type>array</type> a = [ "Four" => 4, "Five" => 5, "Six" => 6 ];<nl/>
+     * <type>array</type> b = [ 4, "Five" => 5, 6 ];<nl/>
+     * <type>array</type> c = Array.subtract(a, b); &raquo c = [ 'Four' => 4, 'Six' => 6 ]</code><nl/>
+     */
+    function subtract(array a, array b)
+    {
+        array ret;
+        string name;
+        number i, siz = Array.size(a);
+
+        for(i = 0; i < siz; i++)
+            if((name = Array.getName(a, i)) != "")
+                if(Array.getIndex(b, name) == -1) ret[name] = a[i];
+
+        return ret;
+    }
+
+    final number SORT_ASCENDING = 0;
+    final number SORT_DESCENDING = 1;
+
+    /**
+     * @function sort
+     * @declaration function sort( array a, number direction )
+     * @brief Sorts an array
+     * @param array a The array to sort
+     * @param number direction Array.SORT_ASCENDING or Array.SORT_DESCENDING
+     * @return The sorted array
+     * @description This function sorts an array into the specified order.
+     *              It uses the standard C qsort() function, so it is not
+     *              guaranteed to be a "stable" sort (ie. items with equal
+     *              value may get arbitrarily mixed up). All of the items in
+     *              the array must be of the same type. Currently only numbers,
+     *              strings, arrays, and objects can be sorted. Arrays are
+     *              sorted by their size (smallest to largest). Objects to be
+     *              sorted must all be of the same class, and the class must
+     *              have a static member function called compare() which
+     *              accepts two objects as parameters and returns a negative
+     *              number if the first object is "smaller" than the second one,
+     *              a positive number if the first object is "larger" than the
+     *              second one, and 0 if they are equal. On error, an empty
+     *              array is returned. If the direction parameter is omitted,
+     *              an ascending sort is performed.<nl/>
+     *              <nl/>
+     *              It is possible to avoid the restriction on types by passing 
+     *              sort a closure. The closure must take two parameters and return
+     *              -1 if the first is less than the second, 0 if they are the same,
+     *              and 1 otherwise.
+     * @example <nl/>
+     * <code><type>array</type> a = [ 5, 6, 4 ];<nl/>
+     * <type>array</type> b = Array.sort(a, Array.SORT_ASCENDING); &raquo b = [ 4, 5, 6 ]<nl/>
+     * <type>array</type> c = Array.sort(a, Array.SORT_DESCENDING); &raquo c = [ 6, 5, 4 ]</code>
+     * <nl/>
+     * You can also sort using a closure:<nl/><nl/>
+     * <code><type>array</type> a = [ 5, 6, 4 ];<nl/>
+     * <type>array</type> b = Array.sort(a, Array.SORT_ASCENDING) <keyword>using</keyword> ( a, b ) {<nl/>
+     * <tab/><keyword>if</keyword>( a < b ) return -1;<nl/> 
+     * <tab/><keyword>if</keyword>( a == b ) return 0;<nl/> 
+     * <tab/><keyword>if</keyword>( a > b ) return 1;<nl/> 
+     * };</code><nl/>
+     */
+    native function sort(array a, number direction) : array
+    {
+        int i, add_pos;
+	FeriteFunction *ff = NULL;
+	struct sort_variable *arr;
+        FeriteVariable *ret, *dup;
+
+        if(!(ret = ferite_create_uarray_variable(script, "Array::sort",
+                                                         a->size, FE_STATIC))) {
+            FE_RETURN_VOID;
+        }
+
+        if(!(arr = fmalloc(a->size * sizeof(struct sort_variable)))) {
+            FE_RETURN_VAR(ret);
+        }
+
+        if(a->size == 0) FE_RETURN_VAR(ret);
+
+        for(i = 0; i < a->size; i++) {
+            arr[i].var = ferite_uarray_get_index(script, a, i);
+            /* This ugliness is because the compare function needs the script
+             * pointer, but the standard libc qsort() function doesn't have the
+             * ability to pass a context pointer to the compare function. So
+             * we end up bundling the context pointer with every item in the
+             * array to be sorted. */
+	    arr[i].script = script;
+            arr[i].closure = current_recipient;
+        }
+
+        if(a->size > 1) {
+
+            if( current_recipient == NULL )
+            { 
+                /* Check that the members of the array are all the same type. We
+                * also need to handle the special case of one being a double and
+                * the other being a long: */
+                for(i = 1; i < a->size; i++) {
+                    if((F_VAR_TYPE(arr[i].var) != F_VAR_TYPE(arr[0].var)) &&
+                        !(F_VAR_TYPE(arr[i].var) == F_VAR_LONG && F_VAR_TYPE(arr[0].var) ==
+                        F_VAR_DOUBLE) && !(F_VAR_TYPE(arr[i].var) == F_VAR_DOUBLE &&
+                                             F_VAR_TYPE(arr[0].var) == F_VAR_LONG)) {
+                        ffree(arr);
+                        ferite_set_error(script, -1, "Variables in array to be "
+                                            "sorted must all be of the same type");
+                        FE_RETURN_VAR(ret);
+                    }
+                }
+
+                /* If the members are objects, check that they are all of the same
+                * class, and that the class has a suitable comparison function: */
+                if(F_VAR_TYPE(arr[0].var) == F_VAR_OBJ) {
+                    for(i = 1; i < a->size; i++) {
+                        if(VAO(arr[i].var)->oid != VAO(arr[0].var)->oid) {
+                            ffree(arr);
+                            ferite_set_error(script, -1, "Objects in array to be "
+                                        "sorted must all be of the same class");
+                            FE_RETURN_VAR(ret);
+                        }
+                    }
+                    ff = ferite_class_get_function(script, VAO(arr[0].var)->klass,
+                                                                   "compare");
+                    for(; ff; ff = ff->next) {
+                        if(ff->signature[0] && ff->signature[0]->variable &&
+                                F_VAR_TYPE(ff->signature[0]->variable) == F_VAR_OBJ &&
+                                ff->signature[1] && ff->signature[1]->variable &&
+                                F_VAR_TYPE(ff->signature[1]->variable) == F_VAR_OBJ &&
+                                                            !ff->signature[2]) {
+                            break;
+                        }
+                    }
+                    if(!ff) {
+                        ffree(arr);
+                        ferite_set_error(script, -1, "No suitable compare function "
+                                "found in the class of the objects to be sorted");
+                        FE_RETURN_VAR(ret);
+                    }
+                }
+            }
+            /* The actual sort itself. fe_compare_vars() is in util.c */
+            qsort(arr, a->size, sizeof(struct sort_variable), fe_compare_vars);
+        }
+
+        if((int)direction == 1) add_pos = FE_ARRAY_ADD_AT_START;
+        else add_pos = FE_ARRAY_ADD_AT_END;
+        for(i = 0; i < a->size; i++) {
+	    if((dup = ferite_duplicate_variable(script, arr[i].var, NULL))) {
+                ferite_uarray_add(script, VAUA(ret), dup, dup->vname, add_pos);
+            }
+	}
+
+        ffree(arr);
+		FE_RETURN_VAR(ret);
+    }
+    
+    /**
+     * @function sort
+     * @declaration function sort( array a )
+     * @brief Sorts an array in an ascending direction
+     * @param array a The array to sort
+     * @return The sorted array
+     * @description This function sorts an array into the specified order.
+     *              It uses the standard C qsort() function, so it is not
+     *              guaranteed to be a "stable" sort (ie. items with equal
+     *              value may get arbitrarily mixed up). All of the items in
+     *              the array must be of the same type. Currently only numbers,
+     *              strings, arrays, and objects can be sorted. Arrays are
+     *              sorted by their size (smallest to largest). Objects to be
+     *              sorted must all be of the same class, and the class must
+     *              have a static member function called compare() which
+     *              accepts two objects as parameters and returns a negative
+     *              number if the first object is "smaller" than the second one,
+     *              a positive number if the first object is "larger" than the
+     *              second one, and 0 if they are equal. On error, an empty
+     *              array is returned. If the direction parameter is omitted,
+     *              an ascending sort is performed.<nl/>
+     *              <nl/>
+     *              It is possible to avoid the restriction on types by passing 
+     *              sort a closure. The closure must take two parameters and return
+     *              -1 if the first is less than the second, 0 if they are the same,
+     *              and 1 otherwise.
+     * @example <nl/>
+     * <code><type>array</type> a = [ 5, 6, 4 ];<nl/>
+     * <type>array</type> b = Array.sort(a); &raquo b = [ 4, 5, 6 ]</code>
+     * <nl/>
+     * You can also sort using a closure:<nl/><nl/>
+     * <code><type>array</type> a = [ 5, 6, 4 ];<nl/>
+     * <type>array</type> b = Array.sort(a) <keyword>using</keyword> ( a, b ) {<nl/>
+     * <tab/><keyword>if</keyword>( a < b ) return -1;<nl/> 
+     * <tab/><keyword>if</keyword>( a == b ) return 0;<nl/> 
+     * <tab/><keyword>if</keyword>( a > b ) return 1;<nl/> 
+     * };</code><nl/>
+     */
+    function sort(array a)
+    {
+        return Array.sort(a, Array.SORT_ASCENDING) using recipient();
+    }
+    
+    /**
+     * @function last
+     * @brief Fetch the last value within the array.
+     * @declaration function last( array a )
+     * @param array a The array to fetch the value from
+     * @return The last value within the array
+     * @example <nl/>
+     * <code><type>array</type> a = [ 5, 6, 4 ];<nl/>
+     * <type>void</type> v = Array.last(a); &raquo v = 6</code><nl/>
+     */
+    function last( array a ) 
+    {
+        if( Array.size(a) > 0 )
+            return a[Array.size(a) - 1];
+    }
+    
+    /**
+     * @function resize
+     * @brief Resize the array that is being used. 
+     * @description Sometimes you need more space within an array and this can give it to you. 
+     *              The best time to use this function is to make an array large very quickly.
+     * @declaration function resize( array a )
+     * @param array a The array to resize
+     * @param number size The new size
+     * @example <nl/>
+     * <code><type>array</type> a = [ 5, 6, 4 ];<nl/>
+     * Array.resize(a,1000000); &raquo a = very big</code><nl/>
+     */
+    native function resize( array a, number size ) : undefined {
+        ferite_uarray_set_size( script, a, VAI(params[1]) );
+    }
+	
+	/**
+	 * @function process
+	 * @declaration function process( array a )
+	 * @brief Itterate through an array delivering a value to a closure whilst building a new array and returning it
+	 * @param array a The array to process
+	 * @return The result of the process
+	 * @example <nl/>
+		<code><type>array</type> a = [ 1, 2, 3 ];<nl/>
+		<code><type>array</type> b = Array.process(a) using ( value ) { return value + 3; };<nl/>
+	    &raquo b = [ 4, 5, 6 ]</code><nl/>
+	 */
+	function process( array a ) {
+		array r;
+		if( recipient() ) {
+			number size = a.size();
+			for( number i = 0; i < size; i++ ) {
+				r[] = deliver(a[i]);
+			}
+		}
+		return r;
+	}
+	/**
+	 * @function setPath
+	 * @declaration function setPath( array &a, array path, void value )
+	 * @brief With a given tree of arrays, set a value within a given path.
+	 * @description The aim of this function is to make setting values within a tree of arrays. 
+					<p>
+					For instance if you have the following array:
+					<p>
+					<code>
+						array a = [ <nl/>
+						<tab/><tab/><tab/>'left' => 1, <nl/>
+						<tab/><tab/><tab/>'right' => 3 <nl/>
+						<tab/><tab/>]; <nl/>
+					</code>
+					<p>
+					Is has two paths 'left' and 'right'. If we call <p><code>Array.setPath( a, [ 'center', 'top' ], 2 );</code><p>
+					The array will now look like this:<p>
+					<code>
+						array a = [ <nl/>
+						<tab/><tab/><tab/>'left' => 1, <nl/>
+						<tab/><tab/><tab/>'center' => [ 'top' => 2 ], <nl/>
+						<tab/><tab/><tab/>'right' => 3 <nl/>
+						<tab/><tab/>]; <nl/>
+					</code>
+	 * @param array &a The array to inject into
+	 * @param array path The path to use
+	 * @param void value The data to set
+	 */
+	function setPath( array &a, array path, void value ) {
+		if( path.size() > 1 ) {
+			if( not a.keyExists(path[0]) ) {
+				a[path[0]] = [];
+			}
+			a[path[0]].setPath( path[1..], value );
+		} else if( path.size() == 1 ) {
+			if( a.keyExists(path[0]) )
+				a.del(path[0]);
+			a[path[0]] = value;
+		}
+	}
+	/**
+	 * @function getPath
+	 * @declaration function getPath( array &a, array path )
+	 * @brief Get back a value previously set using the setPath function
+	 * @param array &a The array
+	 * @param array path The path. e.g. [ 'path', 'to', 'value' ];
+	 * @return The value if it exists
+	 */
+	function getPath( array &a, array path ) {
+		void r;
+		if( path.size() > 1 ) {
+			if( not a.keyExists(path[0]) ) {
+				a[path[0]] = [];
+			}
+			return a[path[0]].getPath( path[1..] );
+		} else if( path.size() == 1 ) {
+			return (a.keyExists(path[0]) ? a[path[0]] : r);
+		}
+	}
+
+	/**
+	 * @function append
+	 * @declaration function append( array a, array b )
+	 * @brief Take array a, append the values of b and return a new array.
+	 * @param array a Left hand side array
+	 * @param array b Right hand side array
+	 * @return The two arrays appended into one
+	 */
+	function append( array a, array b ) {
+		b.each() using ( item ) {
+			a[] = item;
+		};
+		return a;
+	}
+}
+/**
+ * @end
+ */

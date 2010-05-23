@@ -1,0 +1,190 @@
+uses "console", "number", "test", "sys";
+
+class NumberTest extends Test 
+{
+    function atan() { 
+        if( Number.atan(1) != 0.785398 )
+            return 1;
+        monitor {
+            if( Number.atan(90) )
+                return 2;
+        } handle {
+        } else {
+            return 2;
+        }
+        if( Number.atan(0.5) != 0.463647 )
+            return 3;
+        if( Number.atan(0) != 0 )
+            return 4;
+        return Test.SUCCESS;
+    }    
+    function tan() { 
+        if( Number.tan(1) != 1.557407 )
+            return 1;
+        if( Number.tan(.5) != 0.546302 )
+            return 2;
+        if( Number.tan(0) != 0 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function acos() { 
+        if( Number.acos(1) != 0 )
+            return 1;
+        monitor {
+            if( Number.acos(90) )
+                return 2;
+        } handle {
+        } else {
+            return 2;
+        }
+        if( Number.acos(0.5) != 1.047197 )
+            return 3;
+        if( Number.acos(0) != 1.570796 )
+            return 4;
+        return Test.SUCCESS;
+    }
+    function cos() { 
+        if( Number.cos(1) != 0.540302 )
+            return 1;
+        if( Number.cos(.5) != 0.877582 )
+            return 2;
+        if( Number.cos(0) != 1 )
+            return 3;
+        return Test.SUCCESS;
+    }    
+    function atan2() {
+        if( Number.atan2(0,0) != 0 )
+            return 1;
+        if( Number.atan2(1,0) != 1.570796 )
+            return 2;
+        if( Number.atan2(0,1) != 0 )
+            return 3;
+        if( Number.atan2(1,1) != 0.785398 )
+            return 4;
+        return Test.SUCCESS;
+    }
+    function asin() { 
+        if( Number.asin(1) != 1.570796 )
+            return 1;
+        monitor {
+            if( Number.asin(90) )
+                return 2;
+        } handle {
+        } else {
+            return 2;
+        }
+        if( Number.asin(0.5) != 0.523598 )
+            return 3;
+        if( Number.asin(0) != 0 )
+            return 4;
+        return Test.SUCCESS;
+    }
+    function sin() { 
+        if( Number.sin(1) != 0.841471 )
+            return 1;
+        if( Number.sin(.5) != 0.479425 )
+            return 2;
+        if( Number.sin(0) != 0 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function sqrt() { 
+        monitor {
+            Number.sqrt(-1);
+        } handle {
+        } else {            
+            return 1; 
+        }
+        if( Number.sqrt(4.0) != 2.0 )
+            return 2;
+        if( Number.sqrt(9.0) != 3.0 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function isLong() { 
+        if( !Number.isLong(10) )
+            return 1;
+        if( Number.isLong(10.1) )
+            return 2;
+        return Test.SUCCESS; 
+    }
+    function floor() { 
+        if( Number.floor(10.5) != 10 )
+            return 1;
+        if( Number.floor(9.9) != 9 )
+            return 2;
+        if( Number.floor(10.9) != 10 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function ceil() { 
+        if( Number.ceil(10.5) != 11 )
+            return 1;
+        if( Number.ceil(9.9) != 10 )
+            return 2;
+        if( Number.ceil(10.9) != 11 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function round() { 
+        if( Number.round(10.5) != 11 )
+            return 1;
+        if( Number.round(9.9) != 10 )
+            return 2;
+        if( Number.round(10.9) != 11 )
+            return 3;
+        return Test.SUCCESS;        
+    }
+    function abs() { 
+        if( 10.5 != Number.abs(10.5) )
+            return 1;
+        if( 10.5 != Number.abs(-10.5) )
+            return 2;
+        if( 11 == Number.abs(10.5) )
+            return 3;
+        return Test.SUCCESS; 
+    }
+    function pow() { 
+        if( Number.pow(2,2) != 4.0 )
+            return 1;
+        if( Number.pow(3,2) != 9.0 )
+            return 2;
+        return Test.SUCCESS; 
+    }
+    function isDouble() { 
+        if( Number.isDouble(10) )
+            return 1;
+        if( !Number.isDouble(10.1) )
+            return 2;
+        return Test.SUCCESS; 
+    }
+    function exp() { 
+        if( Number.floor(Number.exp(1)) != 2.0 )
+            return 1;
+        if( Number.floor(Number.exp(5)) != 148.0 )
+            return 2;
+        if( Number.floor(Number.exp(10)) != 22026.0 )        
+            return 3;
+        return Test.SUCCESS; 
+    }    
+    function log10() { 
+        if( Number.floor(Number.log10(1)) != 0.0 )
+            return 1;
+        if( Number.floor(Number.log10(5)) != 0.0 )
+            return 2;
+        if( Number.floor(Number.log10(10)) != 1.0 )        
+            return 3;
+        return Test.SUCCESS; 
+    }
+    function log() { 
+        if( Number.floor(Number.log(1)) != 0.0 )
+            return 1;
+        if( Number.floor(Number.log(5)) != 1.0 )
+            return 2;
+        if( Number.floor(Number.log(10)) != 2.0 )        
+            return 3;
+        return Test.SUCCESS; 
+    }
+}
+object o = new NumberTest();
+return o.run('Number');

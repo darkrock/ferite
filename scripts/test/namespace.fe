@@ -1,0 +1,38 @@
+#!/usr/bin/env ferite
+
+uses "console";
+
+namespace blah
+{
+    number i;
+
+    function blit( string blip )
+    {
+        Console.println( "in blit: " + blip );
+        blah.i = 10;
+    }
+
+    namespace inside
+    {
+        function insidei()
+        {
+            Console.println( "blah.inside.insidei()" );
+        }
+        
+        function testi()
+        {
+            Console.println( "Going to call .insidei()" );
+            .insidei();
+            
+            Console.println( "Going to call super.blit( 'foo' );" );
+            super.blit( 'foo' );
+        }
+    }
+}
+
+blah.i = 1;
+Console.println( "blah.i=" + blah.i );
+blah.blit( "werd up gangsta" );
+Console.println( "blah.i=" + blah.i );
+blah.inside.insidei();
+blah.inside.testi();

@@ -1,0 +1,52 @@
+#!/usr/bin/env ferite
+
+uses "console";
+
+number i = 0, j;
+
+while( i < 10 )
+{
+    Console.println( "[$i]------------" );
+
+    switch( i++ )
+    {
+      case 0:
+        Console.println( "case 0" );
+        break;
+      case 10-9:
+        for( j = 0; j < 10; j++ )
+        {
+            switch( j )
+            {
+              case 0:
+                Console.println( "j:case0" );
+                break;
+              case 1:
+                Console.println( "j:case1" );
+                break;
+              default:
+                Console.println( "j:default" );
+            }
+        }
+        continue;
+      case 2:
+        Console.println( "case 2" );
+      case 9/3:
+      case 2+2:
+        Console.println( "case 4" );
+        break;
+      default:
+        Console.println( "default" );
+    }
+}
+
+switch( "Hello" )
+{
+  case "Hello":
+    Console.println( "Hello World" );
+    break;
+  case "World":
+    Console.println( "We wont see this" );
+    break;
+}
+

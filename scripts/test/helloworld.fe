@@ -1,0 +1,5 @@
+#!/usr/bin/env ferite
+
+uses "console";
+
+Console.println( "Hello World" );

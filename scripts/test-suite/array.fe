@@ -1,0 +1,396 @@
+#!/usr/bin/env ferite
+
+/*
+ *  Stephan Engström <sem@cention.se>
+ */
+
+uses "test","array","sys","console","string";
+
+class fred
+{
+    string name;
+    number num;
+    
+    function constructor(string name, number num)
+    {
+        .name = name;
+        .num = num;
+    }
+    
+    static function compare(object a, object b)
+    {
+        if(a.num < b.num) return -1;
+        else if(a.num == b.num) return Test.SUCCESS;
+        else return 1;
+    }
+    
+    function toString()
+    {
+        return "[ " + .num + " : " + .name + " ]";
+    }
+}
+
+class barney {}
+
+function MakeNumberArray( )
+{
+    number i;
+    array a;
+    for(i = 0; i < 20; i++ )
+        a[] = i;
+    return a;
+}
+function MakeStringArray( )
+{
+    number i;
+    array a;
+    for(i = 0; i < 20; i++ )
+        a["$i"] = i;
+    return a;
+}
+
+class ArrayTest extends Test
+{
+    function each() 
+    {
+        number expected = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19;
+        number build = 0;
+        Array.each( MakeNumberArray() ) using ( value ) {
+            build += value;
+        };
+        if( expected != build )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function eachWithIndex() 
+    {
+        array  a = MakeNumberArray();
+        number s = Test.SUCCESS;
+        Array.eachWithIndex( a ) using ( value, index ) {
+            if( a[index] != value )
+            {
+                s = index;
+                return false;
+            }
+        };
+        return s;
+    }
+    function map() 
+    {
+        string expected = "012345678910111213141516171819";
+        string build = "";
+        Array.map( MakeStringArray() ) using ( key, value ) {
+            build += key;
+        };
+        if( String.length(expected) != String.length(build) )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function size() {
+        array str = MakeStringArray();
+        array nr = MakeNumberArray();
+        
+        if( Array.size( str ) != 20 )
+            return 1;
+        if( Array.size( nr ) != 20 )
+            return 2;
+        str[] = "foo";
+        if( Array.size( str ) != 21 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function keys( )
+    {
+        array str = MakeStringArray();
+        array keys = Array.keys( str );
+        if( Array.size( keys ) != 20 )
+            return 1;
+        str[] = 0;
+        keys = Array.keys( str );
+        if( Array.size( keys ) != 20 )
+            return 2;
+        str["foo"] = 0;
+        keys = Array.keys( str );
+        if( Array.size( keys ) != 21 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function push( )
+    {
+        array str = MakeStringArray();
+        Array.push( str, "foo" );
+        if( Array.size( str ) != 21 )
+            return 1;
+        if( str[20] != "foo" )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function pop( )
+    {
+        array str = MakeStringArray();
+        number i = Array.pop( str );
+        if ( i != 19 )
+            return 1;
+        monitor
+        {
+            i = str["19"];
+        }
+        handle
+        {
+        }
+        else
+        {
+            return 2;
+        }
+        return Test.SUCCESS;
+    }
+    function unshift( )
+    {
+        array str = MakeStringArray();
+        Array.unshift( str, "foo" );
+        if( str[0] != "foo" )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function shift( )
+    {
+        array str = MakeStringArray();
+        number i = Array.shift( str );
+        if( str[0] != 1 )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function del( )
+    {
+        array str = MakeStringArray();
+        Array.del( str, 10 );
+        if( str[10] != 11 )
+            return 1;
+        monitor
+        {
+            Array.del( str, 99 );
+        }
+        handle
+        {
+        }
+        else
+        {
+            return 2;
+        }
+        return Test.SUCCESS;
+    }
+    function getIndex( )
+    {
+        array str = MakeStringArray();
+        number i = Array.getIndex( str, "12" );
+        if( i != 12 )
+            return 1;
+        i = Array.getIndex( str, "foo" );
+        if( i != -1 )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function getName() 
+    {
+        array str = MakeStringArray();
+        string index = Array.getName(str,12);
+        if( index != "12" )
+            return 1;
+        index = Array.getName(str,1000000);
+        if( index != "" )
+            return 2;        
+        return Test.SUCCESS;
+    }
+    function print( )
+    {
+        return Test.SUCCESS;
+    }
+    function keyExists( )
+    {
+        array str = MakeStringArray();
+        if( !Array.keyExists( str, "12" ) )
+            return 1;
+        if( Array.keyExists( str, "22" ) )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function valueExists( )
+    {
+        array str = MakeStringArray();
+        if( !Array.valueExists( str, 19 ) )
+            return 1;
+        if( Array.valueExists( str, 21 ) )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function join( )
+    {
+        array str = MakeStringArray();
+        number i;
+        for( i = 0; i<15; i++ )
+            Array.pop( str );
+        if( Array.join( str,"-" ) != "0-1-2-3-4" )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function combine()
+    {
+        array a = [ "Four", "Five", "Six" ];
+        array b = [ 4, 5, 6 ];
+        array c = Array.combine(a, b); 
+        array d = [ 'Four' => 4, 'Five' => 5, 'Six' => 6 ];
+        array e = [ 4, 'Five' => 5, 'Six' => 6 ];
+        if( d != c )
+            return 1;
+        if( e == c )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function find()
+    {
+        array a = [ "Four", "Five", "Six" ];
+        number location = Array.find(a, "Four");
+        if( location != 0 )
+            return 1;
+        location = Array.find(a,"Seven");
+        if( location != -1 )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function intersect() 
+    {
+        array a = [ "Four" => 4, "Five" => 5, "Six" => 6 ];
+        array b = [ 4, "Five" => 5, 6 ];
+        array c = Array.intersect(a, b); 
+        array d = [ 'Five' => 5 ];
+        array e = [ 5 ];
+        if( c != d )
+            return 1;
+        if( c == e )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function union() 
+    {
+        array a = [ "Four" => 4, "Five" => 5, "Six" => 6 ];
+        array b = [ 4, "Seven" => 7, 6 ];
+        array c = Array.union(a, b); 
+        array d = [ 'Seven' => 7, 'Four' => 4, 'Five' => 5, 'Six' => 6 ];
+        array e = [ 7, 4, 5, 6 ];
+        if( c != d )
+            return 1;
+        if( c == e )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function subtract() 
+    {
+        array a = [ "Four" => 4, "Five" => 5, "Six" => 6 ];
+        array b = [ 4, "Five" => 5, 6 ];
+        array c = Array.subtract(a, b); 
+        array d = [ 'Four' => 4, 'Six' => 6 ];
+        array e = [ 4, 6 ];
+        if( c != d )
+            return 1;
+        if( c == e )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function sort() 
+    {
+        array a, b, c;
+        number n;
+        string s;
+        object o;
+        
+        a = [ 7, 2, 11, 4, 3, 8 ];
+        
+        b = Array.sort(a, Array.SORT_ASCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "2 3 4 7 8 11 " ) return 1;
+
+        b = Array.sort(a, Array.SORT_DESCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "11 8 7 4 3 2 " ) return 2;
+        
+        a = [ 93.6, 9.78, 73.3, 24.8, 9.63, 8.21 ];
+        b = Array.sort(a, Array.SORT_ASCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "8.210000 9.630000 9.780000 24.800000 73.300000 93.600000 " ) return 3;
+        
+        b = Array.sort(a, Array.SORT_DESCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "93.600000 73.300000 24.800000 9.780000 9.630000 8.210000 " ) return 4;
+        
+        a = [ 4, 7, 12.3, 12, 13, 6.99, 18, 2.4 ];
+        b = Array.sort(a, Array.SORT_ASCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "2.400000 4 6.990000 7 12 12.300000 13 18 " ) return 5;
+        
+        b = Array.sort(a, Array.SORT_DESCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "18 13 12.300000 12 7 6.990000 4 2.400000 " ) return 6;
+        
+        a = [ "wilma", "barney", "fred", "betty", "bambam", "dino", "pebbles" ];
+        b = Array.sort(a, Array.SORT_ASCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "bambam barney betty dino fred pebbles wilma " ) return 7;
+
+        b = Array.sort(a, Array.SORT_DESCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "wilma pebbles fred dino betty barney bambam " ) return 8;
+        
+        a = [ [ 1, 1, 1, 1 ], [ 2 ], [ 3, 3, 3 ], [ 4, 4 ] ];
+        b = Array.sort(a, Array.SORT_ASCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "[ 2 ] [ 4, 4 ] [ 3, 3, 3 ] [ 1, 1, 1, 1 ] " ) return 9;
+
+        b = Array.sort(a, Array.SORT_DESCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "[ 1, 1, 1, 1 ] [ 3, 3, 3 ] [ 4, 4 ] [ 2 ] " ) return 10;
+        
+        a = [];
+        a[] = new fred("fred", 74);
+        a[] = new fred("wilma", 33);
+        a[] = new fred("barney", 62);
+        a[] = new fred("pebbles", 14);
+        a[] = new fred("bambam", 12);
+        a[] = new fred("betty", 4);
+        a[] = new fred("dino", 104);
+        b = Array.sort(a, Array.SORT_ASCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "[ 4 : betty ] [ 12 : bambam ] [ 14 : pebbles ] [ 33 : wilma ] [ 62 : barney ] [ 74 : fred ] [ 104 : dino ] " ) return 11;
+
+        b = Array.sort(a, Array.SORT_DESCENDING);
+        s = "";
+        Array.each( b ) using ( n ){ s += "$n "; };
+        if( s != "[ 104 : dino ] [ 74 : fred ] [ 62 : barney ] [ 33 : wilma ] [ 14 : pebbles ] [ 12 : bambam ] [ 4 : betty ] " ) return 12;
+        
+        return Test.SUCCESS;
+    }
+    function last() 
+    {
+        array a = MakeNumberArray();
+        number i = Array.last(a);
+        if( i != 19 )            
+            return 1;
+        return Test.SUCCESS;
+    }
+    function resize()
+    {
+        return Test.SUCCESS;
+    }
+}
+object o = new ArrayTest( );
+return o.run("Array");

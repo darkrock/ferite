@@ -1,0 +1,155 @@
+
+uses "console", "thread", "test", "sys";
+
+class NoThread extends Thread {
+    function constructor() {
+    }
+}
+class YesThread extends Thread {
+    atomic number keepRunning = 1;
+    function run() {
+        while( .keepRunning ) {
+            .sleep( 50 );
+        }
+    }
+}
+class ExceptionThread extends Thread {
+    function run() {
+        1 + "1";
+    }
+}
+class SleeperThread extends Thread {
+    function run() {
+        .sleep(500);
+    }
+}
+    
+function GeneralThreadTest() {
+    object o = new NoThread();
+    object p = new YesThread();
+
+    monitor {
+        o.start();
+    } 
+    handle { }
+    else { return 1; }
+
+    monitor {
+        p.start();
+    }
+    handle { return 2; }
+
+    while( not p.isRunning() ) ;
+
+    if( not p.isRunning() )
+        return 3;
+    
+    p.keepRunning = false;
+    
+    Sys.sleep(1);
+    if( p.isRunning() )
+        return 4;
+    
+    return Test.SUCCESS;
+}
+global {
+    number GTTV = -1;
+}
+function RunGeneralThreadTest() {
+    if( GTTV == -1 )
+        GTTV = GeneralThreadTest();
+    return GTTV;
+}
+class ThreadTest extends Test {
+    function start() { return RunGeneralThreadTest(); }
+    function isRunning() { return RunGeneralThreadTest(); }
+    function sleep() { return RunGeneralThreadTest(); }
+    function run() { return RunGeneralThreadTest(); }
+    
+    function setPassExceptions() { 
+        object o = new ExceptionThread();
+        monitor { 
+            o.start();
+            Sys.sleep(1);
+        } handle { return 1; }
+        o.setPassExceptions(true);
+        monitor { 
+            o.start();
+            Sys.sleep(1);
+        } handle { }
+        else { return 2; }
+        
+        return Test.SUCCESS;
+    }
+    function join() { 
+        number start, end;
+        object o = new SleeperThread();
+        start = Sys.timestamp();
+        o.start(false);
+        Thread.join(o);
+        end = Sys.timestamp();
+
+        if( (end - start) < 0.5 )
+            return 1;
+        return Test.SUCCESS;
+    }    
+}
+class MutexTest extends Test {
+    // I don't know how to do these so they work nicely so I shall ignore them for the moment
+    function unlock() { return Test.IGNORE; }
+    function lock() { return Test.IGNORE; } 
+}
+global {
+    object event;
+    number value = 1;
+}
+
+class Producer extends Thread {
+    atomic number keepRunning = 1;
+    function run() {
+        value = Test.SUCCESS;
+        event.signal();
+    }
+}
+class Consumer extends Thread {
+    atomic number finalValue = 2;
+    function run() {
+        event.wait();
+        .finalValue = value;
+    }
+}
+class TimedConsumer extends Thread {
+    atomic number finalValue = 2;
+    function run() {
+        event.timedWait(1);
+        .finalValue = Test.SUCCESS;
+    }
+}
+
+class EventTest extends Test {
+    function wait() {
+        object producer = new Producer();
+        object consumer = new Consumer();
+        event = new Event();
+        
+        consumer.start();
+        producer.start();
+        Sys.sleep(1);
+        
+        producer.keepRunning = false;
+        return consumer.finalValue;
+    }
+    function signal() { return .wait(); }
+    function timedWait() { 
+        object consumer = new TimedConsumer();
+        consumer.start();
+        Sys.sleep(2);
+        return consumer.finalValue;
+    }    
+}
+
+object t = new ThreadTest();
+object u = new MutexTest();
+object v = new EventTest();
+
+return t.run('Thread') + u.run('Mutex') + v.run('Event');

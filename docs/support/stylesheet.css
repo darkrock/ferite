@@ -1,0 +1,32 @@
+body { 
+    margin-left:10px;
+    margin-right:10px;
+    margin-top:10px;
+    margin-bottom:10px;
+    color:#0000a0;
+    background-color:#FFFFFF;
+    font-size: normal;
+    background-image:url(background.png);
+    background-repeat:repeat-y;
+}
+
+table {
+    background-color: #FFFFFF;
+}
+
+th  {
+    font-size: normal;
+}
+
+td {
+    font-size: normal;
+}
+
+div.mediaobject { align:center; }
+div.caption     { align:center; }
+
+.PROGRAMLISTING {
+    border-left: 2px solid #000000;
+    background-color: #DDDDFF;
+    padding: 5px;
+}

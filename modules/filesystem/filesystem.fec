@@ -1,0 +1,856 @@
+/*
+ * Copyright (C) 2001-2007 Chris Ross, Stephan Engstrom, Alex Holden et al
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "stream";
+uses "filesystem.lib";
+
+module-header
+{
+#include "../../config.h"
+#include "../../libs/aphex/include/aphex.h"
+#include "../stream/util_stream.h"
+#ifndef WIN32
+#include <dirent.h>
+#include <sys/file.h>
+#define ENDOFLINE "\n"
+     #include <sys/types.h>
+     #include <sys/stat.h>
+     #include <fcntl.h>
+#else
+#include <windows.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <io.h>
+
+#define ENDOFLINE "\r\n"
+#endif
+
+}
+
+module-init {
+    int i;
+    FeriteVariable *fv;
+    FeriteNamespace *Sysns;
+    
+#include "consts.h"
+    
+    Sysns = ferite_register_namespace(script, "FileSystem", script->mainns);
+    for(i = 0; *constant_names[i]; i++) {
+        fv = ferite_create_number_long_variable(script, constant_names[i], constant_values[i], FE_STATIC);
+        MARK_VARIABLE_AS_FINALSET(fv);
+        ferite_register_ns_variable(script, Sysns, constant_names[i], fv);
+    }
+}
+
+/**
+ * @namespace FileSystem
+ * @brief The core container for the filesystem utilities and constants
+ */
+namespace modifies FileSystem {
+    
+    /**
+     * @variable O_RDONLY
+     * @type number
+     * @brief Flag to set the file as read only upon open
+     */
+    
+    /**
+     * @variable O_WRONLY
+     * @type number
+     * @brief Flag to set the file as write only upon open
+     */
+    
+    /**
+     * @variable O_RDWR
+     * @type number
+     * @brief Flag to set the file as read and write upon open
+     */
+    
+    /**
+     * @variable O_CREAT
+     * @type number
+     * @brief Flag to create the file upon opening if it does not exist
+     * @description The owner (user ID) of the file is set to the effective
+     *              user  ID of the process. The group ownership (group
+     *              ID) is set either to the effective group ID of  the
+     *              process or to the group ID of the parent directory
+     *              (depending on filesystem type  and  mount  options,
+     *              and  the  mode  of the parent directory).
+     */
+    
+    /**
+    * @variable O_EXCL
+     * @type number
+     * @brief Make sure that the file is exclusive
+     * @description Use this bit anded '&' with O_CREAT to make sure the 
+     *              the file, when created does not already exists.
+     */
+    
+    /**
+    * @variable O_TRUNC
+     * @type number
+     * @brief Open the file and trucate it to 0 length
+     * @description The open flags must contain the ability to write to the file
+     *              and it must be a regular disk file [not a device].
+     */
+    
+    /**
+    * @variable O_APPEND
+     * @type number
+     * @brief Cause writes to be append to the end of the file
+     * @description Using this flag means that before each write occurs the 
+     *              file pointer is set to the end of the file as if an explicit
+     *              seek had been done.
+     */    
+}
+/**
+ * @end
+ */
+
+/**
+ * @class File
+ * @brief This class provides a means for accessing a file for reading or writing
+ * @description Do not create instances of this class directly. The way to read / write a file
+ *              is to use the File.open or File.create functions which will create an instance and return it
+ *              for you. For methods that are availible for use please see below and Stream.StdioStream
+ * @extends Stream.StdioStream
+ */
+class File extends Stream.StdioStream 
+{
+    /**
+     * @variable filename
+     * @type string
+     * @brief The name of the file the object wraps
+     */
+    final string filename;
+    
+    /**
+     * @function open
+     * @static
+     * @declaration static function open( string filename, number flags )
+     * @brief Open a system file using the flags specified
+     * @param string filename The file to open
+     * @param number flags Bit and'd flags
+     * @description This is the method of opening a file in ferite. Use the O_ variables in the FileSystem namespace
+     *              to create the flags to pass. It will return a File object which will allow for
+     *              clean interaction of the file, please see FileStream for more information. To open a file
+     *              for reading you simply have to do:<nl/><nl/>
+     *              object file = File.open( "path/to/file.txt", FileSystem.O_RDONLY );<nl/><nl/>
+     * It is possible for you to pass this function a block that takes one argument. The block will be passed
+       a File object. Once the block has finished executing the file will be closed and the function will return
+       null.
+     * @return A FileStream object on success, null otherwise
+     */
+    private native static function __open( string filename, number flags ) : File
+    {
+        FeriteClass *cls = NULL;
+        FeriteVariable *object = NULL, **args = NULL;
+        int fd = 0;
+        
+        if(( fd = open( filename->data, (int)flags )) != -1 )
+        {
+            if((cls = ferite_find_class( script, script->mainns, "File" )) != NULL)
+            {
+                args = ferite_create_parameter_list_from_data( script, "l", fd );
+                object = ferite_new_object( script, cls, args );
+                ferite_delete_parameter_list( script, args );
+                FE_RETURN_VAR( object );
+            }
+            close( fd );
+        }
+        else
+        {
+            ferite_set_error( script, errno, "%s", strerror(errno) );
+        }
+        FE_RETURN_NULL_OBJECT;
+    }
+    static function open( string filename, number flags ) {
+        object o = .__open( filename, flags );
+        if( o != null )
+        {
+            o.filename = filename;
+        
+            if( recipient() != null )
+            {
+                deliver( o );
+                o.close();
+                return null;
+            }
+        }
+        return o;
+    }
+    /**
+    * @function open
+     * @static
+     * @declaration static function open( string filename )
+     * @brief Open a system file using the flags specified
+     * @param string filename The file to open
+     * @description This is the method of opening a file in ferite. To open a file
+     *              for reading you simply have to do:<nl/><nl/>
+     *              object file = File.open( "path/to/file.txt" );<nl/><nl/>
+     *              This function is equivalent to the following function call:<nl/><nl/>
+     *              object file = File.open( "path/to/file.txt", FileSystem.O_RDONLY );<nl/><nl/>
+     *              If passed a using block, it will pass the file object to the block and then close
+     the file afterwards.
+     * @return A FileStream object on success, null otherwise
+     */
+    static function open( string filename ) {
+        return .open( filename, FileSystem.O_RDONLY ) using recipient();
+    }
+    
+    /**
+     * @function create
+     * @static 
+     * @declaration static function create( string filename, number mode )
+     * @brief Create a disk file with the specified modes
+     * @param string filename The name of the file to create
+     * @param number mode The modes to use in an octal form
+     * @description This method will overwrite any existing file. The modes are in the form of an
+     *              octal number eg. 0644 - This has three parts, the 6 and two 4's. The first dictates
+     *              the access modes for the owner, the second the access modes for the group, and the
+     *              third, the access modes for everyone else. In the case of 0644, it'll allow read/write
+     *              for the owner, and read only for everyone else. This is the most common mode. If
+     *              an object is returned, it'll be a FileStream object with the ability to write to.<nl/><nl/>
+     *              object file = File.create( "path/to/file.txt", 0644 );<nl/><nl/>
+     *              If passed a using block, it will pass the file object to the block and then close
+                    the file afterwards.
+     * @return A FileStream object on success, null otherwise
+     */
+    private native static function __create( string filename, number mode ) : File
+    {
+        FeriteClass *cls = NULL;
+        FeriteVariable *object = NULL, **args = NULL;
+        int fd = 0;
+        
+        if(( fd = creat( filename->data, (int)mode )) != -1 )
+        {
+            if((cls = ferite_find_class( script, script->mainns, "File" )) != NULL)
+            {
+                args = ferite_create_parameter_list_from_data( script, "l", fd );
+                object = ferite_new_object( script, cls, args );
+                ferite_delete_parameter_list( script, args );
+                FE_RETURN_VAR( object );
+            }
+            close( fd );
+        }
+        else
+        {
+            ferite_set_error( script, errno, "%s", strerror(errno) );
+        }
+        FE_RETURN_NULL_OBJECT;
+    }
+    static function create( string filename, number flags ) {
+        object o = .__create( filename, flags );
+        if( o != null )
+        {
+            o.filename = filename;
+            
+            if( recipient() != null )
+            {
+                deliver( o );
+                o.close();
+                return null;
+            }
+        }
+        return o;
+    }    
+    /**
+    * @function create
+     * @static
+     * @declaration static function create( string filename )
+     * @brief Create a system file using the flags specified
+     * @param string filename The file to create
+     * @description This is the method of creating a file in ferite ready to write. To create a file
+     *              for writing you simply have to do:<nl/><nl/>
+     *              object file = File.create( "path/to/file.txt" );<nl/><nl/>
+     *              This function is equivalent to the following function call:<nl/><nl/>
+     *              object file = File.create( "path/to/file.txt", 0644 );<nl/><nl/>
+     *              If passed a using block, it will pass the file object to the block and then close
+                    the file afterwards.
+     * @return A FileStream object on success, null otherwise
+     */
+    static function create( string filename ) {
+        return .create( filename, 0644 ) using recipient();
+    }
+    
+    /**
+    * @function remove
+     * @static
+     * @declaration static function remove( string filename )
+     * @brief Delete a name and possibly the file it refers to
+     * @param string filename The name to delete
+     * @return 'true' on success, 'false' otherwise and err.str will be set with the error
+     */
+    native static function remove( string filename ) : boolean
+    {
+        if( remove( filename->data ) == -1 )
+        {
+            ferite_set_error( script, errno, "Unable to remove file %s: %s", filename->data, strerror(errno) );
+            FE_RETURN_FALSE;
+        }
+        FE_RETURN_TRUE;
+    }
+    /**
+    * @function move
+     * @static
+     * @declaration static function move( string oldpath, string newpath )
+     * @brief Move an item from one location to another
+     * @param string oldpath The current location
+     * @param string newpath The new location
+     * @return 'true' on success, 'false' otherwise and err.str will be set with the error
+     */
+    native static function move( string oldpath, string newpath ) : boolean
+    {
+        if( rename( oldpath->data, newpath->data ) == -1 )
+        {
+            ferite_set_error( script, errno, "%s", strerror(errno) );
+            FE_RETURN_FALSE;
+        }
+        FE_RETURN_TRUE;
+    }    
+    /**
+    * @function truncate
+     * @declaration function truncate( number length )
+     * @brief Truncate the file to the length specified
+     * @param number length The length to use
+     * @return 'true' on sucess, 'false' otherwise with err.str being set
+     */
+    native function truncate( number length ) : boolean
+    {
+        int retval = 0;
+        stream_flush( script, self );
+        retval = ftruncate( StreamObject->file_descriptor, (off_t)length );
+        if( retval == -1)
+        {
+            ferite_set_error( script, errno, "%s", strerror( errno ) );
+            StreamObject->errmsg = fstrdup( strerror( errno ) );
+            FE_RETURN_FALSE;
+        }
+        stream_clear_input( self->odata);
+        FE_RETURN_TRUE;
+    }
+    /**
+    * @function seek
+     * @declaration function seek( number offset, number whence )
+     * @brief Seek to a certain offset in the file from the place specified
+     * @param number offset The offset to seek to
+     * @param number whence How the offset should be interpreted
+     * @return The new offset on success, -1 on error
+     * @description The whence parameter can be one of Stream.SEEK_SET (offset
+     *              relative to start of file), Stream.SEEK_CUR (offset relative
+     *              to current position), or Stream.SEEK_END (offset relative to
+     *              the end of the file).
+     */
+    native function seek( number offset, number whence ) : number
+    {
+        int retval = 0;
+        stream_flush( script, self );
+        retval = lseek( StreamObject->file_descriptor, (off_t)offset, (int)whence );
+        if( retval == -1)
+        {
+            ferite_set_error( script, errno, "%s", strerror( errno ) );
+            StreamObject->errmsg = fstrdup( strerror( errno ) );
+            FE_RETURN_LONG(retval);
+        }
+        stream_clear_input( self->odata );        
+        FE_RETURN_LONG(retval);
+    }
+    /**
+    * @function pos
+     * @declaration function pos( )
+     * @brief Get the current position in the file
+     * @return The offset on success, or -1 on fail
+     */
+    native function pos( ) : number
+    {
+        int retval = 0;
+        stream_flush( script, self );
+        retval = lseek( StreamObject->file_descriptor, 0, SEEK_CUR );
+        if( retval == -1 )
+        {
+            ferite_set_error( script, errno, "%s", strerror( errno ) );
+            StreamObject->errmsg = fstrdup( strerror( errno ) );
+        }
+        FE_RETURN_LONG( retval );
+    }
+    /**
+    * @function length
+     * @declaration function length( )
+     * @brief Get the length of the file stream
+     * @return The length on success or -1 on fail
+     */
+    native function length( ) : number
+    {
+        off_t offset = 0,length = 0;
+        
+        stream_flush( script, self );
+        offset = lseek( StreamObject->file_descriptor, 0, SEEK_CUR );
+        if( offset == -1 )
+        {
+            ferite_set_error( script, errno, "%s", strerror( errno ) );
+            StreamObject->errmsg = fstrdup( strerror( errno ) );
+            FE_RETURN_LONG( -1 );
+        }
+        length = lseek( StreamObject->file_descriptor, 0, SEEK_END );
+        lseek( StreamObject->file_descriptor, offset, SEEK_SET );
+        FE_RETURN_LONG( length );
+    }
+    
+    /**
+    * @function lock
+     * @declaration function lock(number shared, number wait)
+     * @brief Attempt to gain an advisory lock on the file
+     * @param number shared If true, get a shared lock instead of exclusive
+     * @param number wait If true, wait for the lock instead of failing
+     * @return -1 on error, 0 on success, 1 if already locked
+     * @description This function attempts to obtain an advisory lock on
+     *              the associated file using the flock() mechanism. Note
+     *              that it is only useful if all mechanisms accessing the
+     *              file also use the same locking mechanism as the OS
+     *              itself will not enforce the lock. If shared is true,
+     *              a shared lock will be attempted instead of the default
+     *              exclusive type. A shared lock is one that multiple
+     *              processes can share at the same time, but will still
+     *              cause an attempted exclusive lock to fail. An exclusive
+     *              lock is one that only one process can posess at a time.
+     *              If wait is true and the lock is held by another process,
+     *              the function will wait for the lock to become free and
+     *              then take it straight away, rather than returning
+     *              immediately. If an error occurs, it will return -1 and
+     *              err.str will be set. If the lock attempt is successful,
+     *              it will return 0. If wait is false and the lock is held
+     *              by another process, it will return 1. To remove a lock,
+     *              either call unlock() or close the file. Locks are
+     *              automatically destroyed if the program exits. Note:
+     *              this function is not available on all operating
+     *              systems.
+     */
+    native function lock(number shared, number wait) : number
+    {
+#ifdef HAVE_FLOCK
+        int op = 0;
+        
+        if((int)shared) op = LOCK_SH;
+        else op = LOCK_EX;
+        
+        if(!(int)wait) op |= LOCK_NB;
+        
+        if(flock(StreamObject->file_descriptor, op))
+        {
+            if(errno == EWOULDBLOCK) FE_RETURN_LONG(1);
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_LONG(-1);
+        }
+        else FE_RETURN_LONG(0);
+#else
+        ferite_set_error(script, EINVAL, "lock() is not supported by this OS");
+        FE_RETURN_LONG(-1);
+#endif
+    }
+    
+    /**
+    * @function unlock
+     * @declaration function unlock()
+     * @brief Removes a lock that was placed with lock()
+     * @return true on success or false on error
+     * @description This function removes an advisory lock on the associated
+     *              file which was created by the lock() function. If an
+     *              error occurs, false is returned and err.str is set.
+     */
+    native function unlock() : boolean
+    {
+#ifdef HAVE_FLOCK
+        if(flock(StreamObject->file_descriptor, LOCK_UN))
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+#else
+        ferite_set_error(script, EINVAL, "flock() is not supported by this OS");
+        FE_RETURN_LONG(-1);
+#endif
+
+    }
+    /**
+     * @function toString
+     * @brief Read the entire file into a string
+     * @return The file contents
+     */
+    function toString()
+    {
+        .seek( 0, Stream.SEEK_SET );
+        return .read(.length());
+    }
+    
+    function eos()
+    {
+        return (.pos() == .length()) and super.eos();
+    }
+	/**
+	 * @function name
+	 * @declaration static native function name( string name )
+	 * @brief Return the name part of a given path
+	 * @param string name The path to inspect
+	 * @return The file name
+	 * @static
+	 */
+	static native function name( string name ) : string {
+		char *path = aphex_file_name( name->data );
+		char *ret = fstrdup(path);
+		aphex_free( path );
+		if( ret ) {
+			FE_RETURN_CSTR( ret, FE_TRUE );
+		}
+		FE_RETURN_CSTR( "", FE_FALSE );
+	}
+}
+/**
+ * @end
+ */
+
+/**
+* @class Directory
+ * @brief This class provides a means for accessing a directory for reading
+ * @description Do not create instances of this class directly. The way to read a directory
+ *              is to use the Directory.open or Directory.listing functions which will create an instance and return it
+ *              for you.
+ */
+class Directory 
+{
+    /**
+     * @function make
+     * @static 
+     * @declaration static function make( string dirname, number mode )
+     * @brief Create a directory with the given modes
+     * @param string dir The name of the directory to create
+     * @param number mode The modes to create it with
+     * @description This creates a directory using the octal modes supplied like File.create
+     * @return 'true' on success, 'false' otherwise and err.str will be set with the error
+     */
+    native static function make( string dirname, number mode ) : boolean
+    {
+#ifndef WIN32
+        if( mkdir( dirname->data, (mode_t)mode ) == -1 )
+#else
+		if( mkdir( dirname->data ) == -1 )
+#endif
+        {
+            ferite_set_error( script, errno, "%s", strerror(errno) );
+            FE_RETURN_FALSE;
+        }
+        FE_RETURN_TRUE;
+    }
+    /**
+    * @function getCurrent
+     * @static 
+     * @declaration static function getCurrent( )
+     * @brief Get the current working directory
+     * @return The current working directory as a string
+     */
+    native static function getCurrent( ) : string 
+    {
+        int len = 128;
+        FeriteVariable *v = NULL;
+        char *buf = NULL, *ret = NULL;
+        
+        if((buf = fmalloc(len)))
+        {
+            do
+            {
+                if(!(ret = getcwd(buf, len - 1)) && errno == ERANGE)
+                {
+                    len *= 2;
+                    buf = frealloc(buf, len);
+                }
+            }
+            while(!ret && buf && errno == ERANGE);
+        }
+        
+        if(ret)
+        {
+            v = fe_new_str_static("Sys::getcwd", ret, 0, FE_CHARSET_DEFAULT);
+        }
+        else
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            v = fe_new_str_static("", "", 0, FE_CHARSET_DEFAULT);
+        }
+        if(buf) ffree(buf);
+        FE_RETURN_VAR(v);
+    }
+    /**
+    * @function setCurrent
+     * @static 
+     * @declaration static function setCurrent( string path )
+     * @brief Change the current working directory to the path specified
+     * @param string path The path to change to
+     * @return 'true' on success, 'false' otherwise and err.str will be set with the error
+     */
+    native static function setCurrent( string path ) : boolean
+    {
+        if( chdir( path->data ) == -1 )
+        {
+            ferite_set_error( script, errno, "%s", strerror( errno ) );
+            FE_RETURN_FALSE;
+        }
+        FE_RETURN_TRUE;
+    }
+    
+    /**
+     * @function remove
+     * @static
+     * @declaration static function remove( string path, number recursive )
+     * @brief Remove a directory from the system
+     * @param string path The directory to remove
+     * @param number recursive Whether to recursively remove the contents of the directory
+     * @return true on success, false otherwise.
+     */
+    static function remove( string path, boolean recursive )
+    {
+        if( not recursive )
+            return File.remove( path );
+        else {
+            Directory.open( path ) using ( item ) {
+                if( item != "." and item != ".." and not File.remove( "$path/$item" ) )
+                    Directory.remove( "$path/$item", true );            
+            };
+            return File.remove( path );
+        }
+    }
+    
+    /**
+     * @function open
+     * @static
+     * @declaration static function open( string directory )
+     * @brief Create a directory object, open a directory and return the object for use.
+     * @description If this function is given a closure, it will itterate over the directories
+       entries, pasing each one to the closure.
+     * @return A directory object on success if no closure, null otherwise
+     */
+    static function open( string directory ) {
+		object o = null;
+		monitor {
+		    o = new Directory(directory);
+		} handle {
+			return null;
+		} else {
+	        if( o != null and recipient() != null )
+	        {
+	            string s = "";
+	            while( (s = o.getEntry()) != "" )
+	                deliver(s);
+	            o.close();
+	            o = null;
+	        }
+		}
+        return o;
+    }
+    /**
+     * @function constructor
+     * @declaration function constructor(string directory)
+     * @brief The constructor for a Dir object
+     * @param string directory The path to the directory to read from
+     * @returns True on success or false on failure
+     * @description This function is the constructor for the Directory class.
+     *              You should supply it with the name of the directory
+     *              you wish to read the file names from. You may then
+     *              either call the toArray() method to generate an array
+     *              of filenames in one step or repeatedly call the
+     *              readdir() to read the file names one at a time. To
+     *              "rewind" to the beginning or to read another directory
+     *              without creating a new Dir object, call constructor
+     *              again and the directory stream will be closed and
+     *              reopened.
+     */
+    native function constructor(string directory)
+    {
+        if(self->odata) aphex_directory_delete(self->odata);
+        if(!(self->odata = aphex_directory_read(directory->data)))
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_NULL_OBJECT;
+        }
+    }
+    
+    /**
+     * @function getEntry
+     * @declaration function getEntry()
+     * @brief Reads a file name from the directory stream
+     * @returns The next file name as a string
+     * @description This function reads the next file name from this
+     *              directory stream object and returns it as a string.
+     *              On error, an empty string is returned and err.number
+     *              is set to the system error number (which is always
+     *              greater than 0). When there are no more files left to
+     *              read, an empty string is returned and err.number is
+     *              set to 0.
+     */
+    native function getEntry() : string
+    {
+        char *de = NULL;
+        FeriteVariable *fv = NULL;
+        AphexDirectory *dir = self->odata;
+
+        if( dir == NULL )
+        {
+            ferite_set_error(script, EBADF, "The directory stream is not open");
+            fv = ferite_create_string_variable_from_ptr(script, "", "", 0, FE_CHARSET_DEFAULT, FE_STATIC);
+            FE_RETURN_VAR(fv);
+        }
+        
+		if( dir->pos == dir->size )
+			de = "";
+		else
+			de = dir->contents[dir->pos++];
+		
+		fv = ferite_create_string_variable_from_ptr(script,
+													"Sys::Dir::readdir", de, 0,
+													FE_CHARSET_DEFAULT, FE_STATIC);
+         FE_RETURN_VAR(fv);
+    }
+    
+    /**
+    * @function toArray
+     * @declaration function toArray()
+     * @brief Creates an array from the list of files in this directory
+     * @returns An array of file name strings
+     * @description This function returns an array of strings containing
+     *              the names of the files in the directory this Dir object
+     *              points to. You should either call this function or
+     *              repeatedly call the readdir() function, not both. You
+     *              can only call toArray() once unless you call the
+     *              constructor again to reopen the directory stream.
+     */
+    function toArray()
+    {
+        string s;
+        array ret;
+        
+        while(1)
+        {
+            s = .getEntry();
+            if(s == "") return ret;
+            ret[] = s;
+        }
+    }
+    
+    /**
+     * @function close
+     * @declaration function close()
+     * @brief You should call this function when you have finished reading
+     * @return true on success, false otherwise
+     */
+    function close()
+    {
+        return .destructor();
+    }
+    
+    native function destructor()
+    {
+        if(self->odata != NULL)
+        {
+            aphex_directory_delete(self->odata);
+            self->odata = NULL;
+            FE_RETURN_TRUE;
+        }
+        FE_RETURN_FALSE;
+    }    
+	
+	/**
+	 * @function name
+	 * @declaration static function name( string name )
+	 * @brief With a given path, get the name of the directory (this effectively removes the last element)
+	 * @param string name The path to process
+	 * @return The path component
+	 * @static
+	 * @example "/path/to/foo" is converted to "/path/to"
+	 */
+	static native function name( string name ) : string {
+		char *path = aphex_directory_name( name->data );
+		char *ret = fstrdup(path);
+		aphex_free( path );
+		if( ret ) {
+			FE_RETURN_CSTR( ret, FE_TRUE );
+		}
+		FE_RETURN_CSTR( "", FE_FALSE );
+	}
+	
+	static function walk( string path, object clos ) {
+		object stat = Posix.stat(path);
+		if( stat and stat.isRegularFile() ) {
+			clos.invoke(path);
+		} else {
+			Directory.open( path ) using ( item ) {
+				if( item != '.' and item != '..' ) {
+					string fullPath = path + '/' + item;
+					.walk( fullPath, clos );
+				}
+			};
+		}
+	}
+	/**
+	 * @function walk
+	 * @declaration static function walk
+	 * @static
+	 * @brief Recursively walk a directory structure providing each file found to a closure
+	 * @param string path The top level directory to walk
+	 * @rparam string path The full path to the file being scanned
+	 * @recipient
+	 * @example Directory.walk( '/' ) using ( file ){ Console.println(file); }
+	 */
+	static function walk( string path ) {
+		object o = recipient();
+		.walk( path, o );
+	}
+	
+	static function build( string path ) {
+		return .build( path, 0755 );
+	}
+	
+	static function build( string path, number mode ) {
+		array list = [];
+		boolean change = false;
+		list = path.toArray('/');
+		list.eachWithIndex() using ( element, index ) {
+			if( index > 0 ) {
+				string directory = list[..index].join('/');
+				object directory_o = Directory.open(directory);
+				if( not directory_o ) {
+					Directory.make(directory, mode);
+					change = true;
+				}
+			}
+		};
+		return change;
+	}
+}
+/**
+ * @end
+ */

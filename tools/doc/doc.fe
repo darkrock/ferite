@@ -1,0 +1,308 @@
+uses "console", "array", "regexp", "xml", "GetOptLong", "posix", "filesystem";
+uses "parser.fe", "structs.fe", "template.fe";
+
+global
+{
+    string version = "1.0";
+    string filename = "";
+    string templatef = "";
+    array  extrafiles;
+    array  modulemap;
+    array  modulelist;
+    object template;
+    string template_args = "";
+    string installpath = "";
+    string prefix = "";
+    string ferite_prefix = "";
+    string lastparserfile = "";
+}
+
+function display_usage( boolean show_help )
+{
+    Console.println( "Usage: feritedoc [options]" );
+    if( show_help )
+      Console.println( "  Type 'feritedoc --help' for options" );
+}
+
+function display_help()
+{
+    display_version();
+    Console.println( "" );
+    display_usage(false);
+    Console.println( "" );
+
+    Console.println( " Option                 Description" );
+    Console.println( "--------------------------------------------------------------" );
+    Console.println( " --file value           Use 'value' as the file to parse for docs" );
+    Console.println( " --template value       Use 'value' as the template to generate the docs" );
+    Console.println( " --extra-file value     Add 'value' to a list of files to parse aswell" );
+    Console.println( " --template-args value  A string of key=value pairs to pass to the template" );
+    Console.println( "                        e.g. --template-args \"colour=blue,bg=image/foo.jpg\"" );
+    Console.println( " --prefix value         Use 'value' as the prefix of generated files" );
+    Console.println( " --regenerate           Re-build the system wide api documentation" );
+    Console.println( " --listmodules          List the modules that are installed in the system" );
+    Console.println( " --version              Display the version number and exit" );
+    Console.println( " --help                 This help display" );
+}
+
+function display_version()
+{
+    Console.println( "feritedoc v$version" );
+}
+
+function locate_module_name( object node )
+{
+    if( node != null )
+    {
+        string tmp = "";
+        
+        // Check to see if we are the documentation list
+        if( node.getElementName() == "name" )
+            return node.getElementData();
+        
+        // Check to see if any of our children are the documentation list
+        tmp = locate_module_name( node.getFirstChild() );
+        if( tmp != "" )
+            return tmp;
+        
+        // Check to see if any of our siblings are the documentation list
+        tmp = locate_module_name( node.getNextSibling() );
+        if( tmp != "" )
+            return tmp;
+    }
+    return "";    
+}
+
+function locate_documentation_list( object node )
+{
+    if( node != null )
+    {
+        object tmp = null;
+        
+        // Check to see if we are the documentation list
+        if( node.getElementName() == "documentation-list" )
+            return node;
+        
+        // Check to see if any of our children are the documentation list
+        tmp = locate_documentation_list( node.getFirstChild() );
+        if( tmp != null )
+            return tmp;
+        
+        // Check to see if any of our siblings are the documentation list
+        tmp = locate_documentation_list( node.getNextSibling() );
+        if( tmp != null )
+            return tmp;
+    }
+    return null;
+}
+
+function iterate_document_list( object node ) 
+{
+    if( recipient() != null && node != null )
+    {
+        if( node.getElementName() == "documentation-list" )
+        {
+            iterate_document_list( node.getFirstChild() ) using recipient();
+            return;
+        }
+        if( node.getElementName() == "include" )
+            deliver( node.getElementData() );
+        
+        iterate_document_list( node.getNextSibling() ) using recipient();
+    }
+}
+
+function regenerate_documents()
+{
+    string module_descriptions = ferite_prefix + "/lib/ferite/module-descriptions/";
+    object directory = Directory.open( module_descriptions );
+    
+    Console.println( "Regenerating Core Documentation" );
+    Console.println( " - Trying to scan '$module_descriptions'" );
+
+    extrafiles = [];
+    modulemap = [];
+    Array.each( directory.toArray() ) using ( file ) {
+        if( file != "" && file != "." && file != ".." && file != "CVS" )
+        {
+            object xml = new XML.TreeParser();
+            object documentationList = null;
+            string module_name = "";
+            
+            Console.println( " - Loading Module Description: '" + file + "'" );
+            xml.parseFile( module_descriptions + file );
+            module_name = locate_module_name( xml.getDocumentElement() );
+			modulelist[] = module_name;
+
+            documentationList = locate_documentation_list( xml.getDocumentElement() );
+            
+            iterate_document_list( documentationList ) using ( documentSource ) {
+                string addfilename = ferite_prefix + "/lib/ferite/module-source/" + String.trim( documentSource, "" );
+                Console.println( "    o Adding: $documentSource to parser list" );
+                extrafiles[] = addfilename;
+                modulemap[addfilename] = module_name;
+            };
+        }        
+    };
+    
+    if( prefix == "" )
+        prefix = ferite_prefix + "/share/doc/ferite/api/";
+    
+    templatef = "html";
+    filename = "";
+
+//    monitor {    
+      run_parser();
+/*    } handle {
+		if( lastparserfile != "" ) 
+			Console.println( "There was a parse error in file $lastparserfile - please check and run --regenerate again." );
+        else
+			Console.println( "There was a generation error whilst building the documentation for $lastparserfile." );
+		Console.println(err.str);
+    } else {
+      Console.println( "----------------------------------------------------------------------------" );
+      Console.println( "" );
+      Console.println( " Congratulations - the core ferite api documentation has been re-generated." );
+      Console.println( " To view the documentation please point your browser at: " );
+      Console.println( "    $prefix"+"index.html" );
+      Console.println( "" );
+      Console.println( "----------------------------------------------------------------------------" );
+    }*/
+}
+
+function list_modules()
+{
+    string module_descriptions = ferite_prefix + "/lib/ferite/module-descriptions/";
+    object directory = Directory.open( module_descriptions );
+	object module_match = new Regexp( '(.*?)\.xml' );    
+	array  list = [];
+	
+    Console.println( "Listing registered modules:" );	
+    Array.each( directory.toArray() ) using ( file ) {
+        if( module_match.match(file) ) {
+			object o = module_match.lastMatch();
+			list[] = o.capture(0);
+		}
+    };
+	list = Array.sort(list);
+	Array.each( list ) using ( item ) {
+		Console.println( "- $item" );
+	};
+}
+
+function parse_options()
+{
+    object getopt = new GetOptLong(argv);
+    array arg = [];
+
+    getopt.set_options( [
+                         [GetOptLong.REQUIRED_ARGUMENT, "--file"],
+                         [GetOptLong.REQUIRED_ARGUMENT, "--template"],
+                         [GetOptLong.REQUIRED_ARGUMENT, "--extra-file"],
+                         [GetOptLong.REQUIRED_ARGUMENT, "--template-args"],
+                         [GetOptLong.REQUIRED_ARGUMENT, "--prefix"],
+                         [GetOptLong.REQUIRED_ARGUMENT, "--install-path"],
+                         [GetOptLong.REQUIRED_ARGUMENT, "--ferite-prefix"],
+                         [GetOptLong.NO_ARGUMENT, "--help"],
+                         [GetOptLong.NO_ARGUMENT, "--version"],
+                         [GetOptLong.NO_ARGUMENT, "--regenerate"],
+                         [GetOptLong.NO_ARGUMENT, "--listmodules"]
+		] );
+
+    while( arg = getopt.get() )
+    {
+        switch( arg[0] )
+        {
+          case "--file":
+              filename = arg[1];
+              break;
+          case "--template":
+              templatef = arg[1];
+              break;
+          case "--extra-file":
+              extrafiles[] = arg[1];
+              break;
+          case "--template-args":
+              template_args = arg[1];
+              break;
+          case "--install-path":
+              installpath = arg[1];
+              break;
+          case "--prefix":
+              prefix = arg[1];
+              break;
+          case "--ferite-prefix":
+              ferite_prefix = arg[1];
+              break;
+          case "--help":
+              display_help();
+              Sys.exit(0);
+              break;
+          case "--version":
+              display_version();
+              Sys.exit(0);
+              break;
+          case "--regenerate":
+              regenerate_documents();
+              Sys.exit(0);
+          case "--listmodules":
+              list_modules();
+              Sys.exit(0);
+              break;
+        }
+    }
+}
+function module_name_for_file( string file )
+{
+    if( Array.keyExists( modulemap, file ) )
+        return modulemap[file];
+    return "";
+}
+
+function run_parser()
+{
+    object parser = new Parser();
+    object tree = null;
+    number i = 0;
+
+    // First we try and load the template, all of these self register
+    // with the system and we should have a template object
+    if( templatef != "" )
+    {
+        template = include( "$installpath/template/$templatef.fe" );
+        if( template == null )
+        {
+            Console.println( "Unable to load template '$templatef', aborting" );
+            Sys.exit(0);
+        }
+        else
+          Console.println( "Using template $templatef" );
+
+        // Add the files
+        parser.addFile( filename, module_name_for_file(filename) );
+        for( i = 0; i < Array.size(extrafiles); i++ )
+          parser.addFile( extrafiles[i], module_name_for_file(extrafiles[i]) );
+
+        // Parse the files
+        tree = parser.start();
+		lastparserfile = "";
+
+        // Process the template
+        Console.println( "Processing generated source tree" );
+        template.process(tree);
+        template.postprocess();
+        
+        Console.println( "Complete!" );
+    }
+    else
+      Console.println( "No template specified - please specify one [eg. html]" );
+}
+
+if( Array.size(argv) > 2 )
+{
+    // Parse command line options
+    parse_options();
+    run_parser();
+}
+else
+    display_usage(true);

@@ -1,0 +1,29 @@
+#!/usr/bin/env ferite
+
+/* -*- mode: c; mode: fold -*- */
+uses "console";
+
+function factorial( number n)
+{
+    if ( n==0 || n==1)
+    {
+        return 1;
+    }
+    else
+    {
+        return n*factorial(n-1);
+    }
+}
+
+number k = 0, i = 0, sum = 0;
+
+for(k=0; k<10; k++)
+{
+    sum = 0;
+    for (i=0; i<50; i++)
+    {
+        sum = sum+factorial(i);
+    }
+}
+
+Console.print( "sum=" + sum +"\n" );

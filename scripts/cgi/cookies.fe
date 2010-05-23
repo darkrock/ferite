@@ -1,0 +1,156 @@
+/*
+ * Copyright (C) 2002 Daniel Nakata <dnakata@chan.co.jp>,
+ *                    Alex Holden <alex@linuxhacker.org>,
+ *                    Stephan Engstrom <stephan@cention.se>,
+ *                    Chris Ross <chris@darkrock.co.uk>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "sys", "string";
+
+/**
+ * This module is a simple framework for cookie/browser interaction.
+ *
+ * I'm open to every suggestion, and yes, I'm attempting to clean the
+ * source up presently.
+ *
+ * Please make suggestions on how to make this module better to:
+ * Daniel Nakata <dnakata@chan.co.jp>
+ */
+       
+
+/**
+ * !class Cookie
+ * !brief this class provides a 'lite' cookie interface for ferite+cgi
+ */
+class Cookie {
+
+	/**
+	 * !function getCookies
+	 * !declaration static function getCookie( string domain )
+	 * !brief fetches all accessible cookies on the remote browser (must be called prior to sending the http header)
+	 * !returns a hash array of elements
+	 */
+	static function getCookies( ) {
+		array cookie;
+		string hrep, cookie_env;
+		object cgiRegex;
+		string tvarA, tvarB;
+		number i;
+		
+		cookie_env = Sys.env.read("HTTP_COOKIE");
+
+		cgiRegex = new Regexp( "([^; ]+)" );
+		cgiRegex.matchAll( cookie_env ) using ( match ) {
+			object	pairRegex;
+			string	myKeypair = match.capture( 0 );
+
+			pairRegex = new Regexp( "([^=]+)=(.*)" );
+			pairRegex.matchAll( myKeyPair ) using ( pairmatch ) {
+				object	escMatch;
+				tvarA = pairmatch.capture( 0 );
+				tvarB = pairmatch.capture( 1 );
+
+				escMatch = new Regexp( "%(..)" );
+				escMatch.replaceAll( tvarA ) using ( hexmatch ) {
+					return String.numToChar( String.toNumber( "0x" + hexmatch.capture(0) ) );
+				};
+				escMatch.replaceAll( tvarB ) using ( hexmatch ) {
+					return String.numToChar( String.toNumber( "0x" + hexmatch.capture(0) ) );
+				};
+
+				cookie[tvarA] = tvarB;
+			};
+		};
+		
+		return cookie;
+	}
+
+	/**
+	 * !function setCookie
+	 * !declaration static function setCookie( array cookie, string expires, string path, string domain )
+	 * !param array cookie the cookie contents as a hash array
+	 * !param string expires the time in which the cookie expires.  (%a, %d-%b-%Y %T UTC)
+	 * !param string path the path on the server to which the cookie applies
+	 * !param string domain the domain to which the cookie applies. must have leading '.' (period) for an effective cookie.
+	 * !brief set a cookie on the clients browser (must be called prior to sending the http header)
+	 */
+	static function setCookie( array cookie, string expires, string path, string domain ) {
+		array cookie_filling;
+		string nchar = "", newval = "", cookie_key = "", cookie_val = "";
+		string fc = "Set-Cookie: ";
+		number x, y;
+
+		cookie_filling = Array.keys( cookie );
+		for (x=0; x < Array.size(cookie_filling); x++) {
+
+			// Delimiter...
+			Console.print(fc);
+		
+			// Convert key names...
+			for (y=0; y < String.length(cookie_filling[x]); y++) {
+				if(String.charToNum(cookie_filling[x][y]) < 48 || String.charToNum(cookie_filling[x][y]) > 123) {
+					// Has a special, convert it.
+					nchar = "%"+String.toHex(cookie_filling[x][y]);
+					newval += nchar;
+					nchar = "";
+				} else {
+					newval += cookie_filling[x][y];
+				}
+			}
+			cookie_filling[x] = newval;
+			newval = "";
+
+			// While we're here, lets spit this bit.
+			Console.print(cookie_filling[x]);
+
+			// Okay, now the hashs' value...
+			cookie_key = ""+cookie_filling[x];
+			cookie_val = ""+cookie[cookie_key];
+
+			for (y=0; y < String.length( ""+cookie_val ); y++) {
+				if(String.charToNum(""+cookie_val[y]) < 48 || String.charToNum(""+cookie_val[y]) > 123) {
+					// Has a special, convert it.
+					nchar = "%"+String.toHex(cookie_val[y]);
+					newval += nchar;
+					nchar = "";
+				} else {
+					newval += cookie_val[y];
+				}
+			}
+			cookie_val = newval;
+			cookie[cookie_key] = cookie_val;
+			newval = "";
+
+			// And the value...
+			Console.print("="+cookie[cookie_filling[x]]);
+
+			fc = "; ";
+		}
+		Console.print("; expires=$expires; path=$path; domain=$domain; version=1\n");
+	}
+}

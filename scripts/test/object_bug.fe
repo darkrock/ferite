@@ -1,0 +1,30 @@
+
+uses "console";
+
+class copytest {
+   public string str;
+   
+   function toString(){
+       return .str;
+   }
+}
+
+class output {
+   public array foo;
+}
+
+object o = new output(); 
+
+array arr;
+object a, b;
+
+arr["a"] = "b";
+o.foo[] = arr;
+
+/* Copy Test */
+a = new copytest();
+a.str = "Foo";
+b = a.copy();
+b.str = "Bar";
+
+Console.println( "Copy Test [should be Foo Bar]: '$a $b'" );

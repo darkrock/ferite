@@ -1,0 +1,474 @@
+#!/usr/bin/env ferite
+
+/*
+ *  Stephan Engström <sem@cention.se>
+ */
+
+uses "test","reflection","array","sys","console";
+
+function ChangeValue( string value, number times )
+{
+    return value + times + value + times;
+}
+class Foo
+{
+    static number a;
+    string b;
+    array c;
+    object d;
+    void e;
+    
+    function toString() 
+        return "FooClass";
+    
+    function testParameters( string a, number b, object c )
+        return "FooObject";
+}
+namespace Fnar {
+    function A() {
+    }
+    function B() {
+    }
+    namespace C {
+    }
+    class D {
+    }
+    number F;
+    string G;
+}
+class Bar
+{
+    static function A( ){}
+    function B( ){}
+}
+class NamespaceTest extends Test
+{
+    function getClasses(){
+        object o = new Namespace(Fnar);
+        array a = o.getClasses();
+        if( not Array.valueExists( a, 'D' ) )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function getVariables(){
+        object o = new Namespace(Fnar);
+        array a = o.getVariables();
+        if( not Array.keyExists( a, 'F' ) )
+            return 1;
+        if( not Array.keyExists( a, 'G' ) )
+            return 2;
+        if( Array.size(a) > 2 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function getNamespace(){
+        object o = new Namespace(Fnar);
+        if( o.getNamespace() != Fnar )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function getFunctions(){
+        object o = new Namespace(Fnar);
+        array a = o.getFunctions();
+        if( not Array.valueExists( a, 'A' ) )
+            return 1;
+        if( not Array.valueExists( a, 'B' ) )
+            return 2;
+        if( Array.size(a) > 2 )
+            return 3;        
+        return Test.SUCCESS;
+    }
+    function fullyQualifiedName(){
+        object o = new Namespace(Fnar);
+        object p = new Namespace(Fnar.C);
+        if( o.fullyQualifiedName() != "Fnar" )
+            return 1;
+        if( p.fullyQualifiedName() != "Fnar.C" )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function getFunction(){
+        object o = new Namespace(Fnar);
+        if( o.getFunction('A') == null )
+            return 1;
+        if( o.getFunction('C') != null )
+            return 2;
+		return Test.SUCCESS;           
+    }
+    function getNamespaces(){
+        object o = new Namespace(Fnar);
+        array a = o.getNamespaces();
+        if( not Array.valueExists( a, 'C' ) )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function getScriptNamespace(){
+        object o = Namespace.getScriptNamespace();
+        if( not Array.valueExists(o.getClasses(),"NamespaceTest") )
+            return 1;
+        return Test.SUCCESS;
+    }
+}
+class ClassTest extends Test
+{
+    function getVariables( )
+    {
+		object cls = new Class(Foo);
+		array a = cls.getVariables( );
+		if( Array.size( a ) != 1 )
+			return 1;
+		if( a[0] != "number" )
+			return 2;
+        if( Array.getName(a,0) != "a" )
+            return 3;
+		return Test.SUCCESS;
+    }
+    function getFunctions( )
+    {
+		object cls = new Class(Foo);
+		array f = cls.getFunctions( );
+		if( Array.size( f ) != 0 )
+			return 1;
+		cls = new Class(Bar);
+		f = cls.getFunctions( );
+		if( Array.size( f ) != 1 )
+			return 2;
+		if( f[0] != "A" )
+			return 3;
+		return Test.SUCCESS;
+    }
+    function newObject() {
+        void k = Class.classWithName("Foo"), l;
+        object o;
+        if( k == null )
+            return 1;
+        o = k.newObject();
+        if( o.toString() != "FooClass" )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function locate() {
+        void k = Class.locate("Foo"), l;
+        object o;
+        if( k == null )
+            return 1;
+        o = new k();
+        if( o.toString() != "FooClass" )
+            return 2;
+        l = Class.locate("NonExistantClass");
+        if( l != null )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function classWithName() {
+        void k = Class.classWithName("Foo"), l;
+        object o;
+        if( k == null )
+            return 1;
+        o = k.newObject();
+        if( o.toString() != "FooClass" )
+            return 2;
+        l = Class.classWithName("NonExistantClass");
+        if( l != null )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function name() {
+        string n = Class.name(Foo);
+        if( n != "Foo" )
+            return 1;
+        n = Class.name(Bar);
+        if( n != "Bar" )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function getClass() {
+        object cls = new Class(Foo);
+        if( Foo != cls.getClass() )
+            return 1;
+		return Test.SUCCESS;
+    }
+    function getFunction() {
+        object cls = new Class(Bar);
+        if( cls.getFunction('A') == null )
+            return 1;
+        if( cls.getFunction('B') != null )
+            return 2;
+		return Test.SUCCESS;        
+    }
+    function fullyQualifiedName() {
+        object cls = new Class(Bar);
+        if( cls.fullyQualifiedName() != 'Bar' )
+            return 1;
+        if( cls.fullyQualifiedName() == '' )
+            return 2;
+		return Test.SUCCESS;        
+    }
+}
+
+class Baz extends Foo
+{
+    number z;
+	function y() {
+	}
+}
+class ObjectTest extends Test
+{
+    function className( )
+    {
+		object foo = new Foo( );
+		object o = new Object( foo );
+		if( o.className( ) != "Foo" )
+			return 1;
+		foo = new Baz( );
+		o = new Object( foo );
+		if( o.className( ) != "Baz" )
+			return 2;
+        return Test.SUCCESS;
+    }
+    function fromData( )
+    {
+		object o = Object.fromData( "Foo", [] );
+        if( o == null )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function getObject() {
+        object baz = new Baz();
+        object foo = new Foo();
+        object bazw = new Object(baz);
+        object foow = new Object(foo);
+        
+        if( not (bazw.getObject() instanceof Baz) )
+            return 1;
+        if( foow.getObject() instanceof Baz )
+            return 2;
+        if( not (foow.getObject() instanceof Foo) )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function getFunction() {
+        object foo = new Foo();
+        object foow = new Object(foo);
+        object f;
+        
+        if( foow.getFunction("toString") == null )
+            return 1;
+        if( foow.getFunction("NonExistantFunction") != null )
+            return 2;
+        f = foow.getFunction("toString");
+        if( f != null and f.exec() != "FooClass" )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function getVariable() {
+        object baz = new Baz();
+        object foo = new Foo();
+        object bazw = new Object(baz);
+        object foow = new Object(foo);
+        monitor {
+            number z = foow.getVariable("z");
+        } handle {
+        } else {
+            return 1;
+        }
+        monitor {
+            number z = bazw.getVariable("z");
+        } handle {
+            return 2;
+        } 
+        return Test.SUCCESS;
+    }
+    function setVariable() {
+        object baz = new Baz();
+        object foo = new Foo();
+        object bazw = new Object(baz);
+        object foow = new Object(foo);
+        monitor {
+            number z = foow.setVariable("z",1);
+        } handle {
+        } else {
+            return 1;
+        }
+        monitor {
+            number z = bazw.setVariable("z",100);
+        } handle {
+            return 2;
+        } 
+        if( bazw.getVariable("z") != 100 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function getVariables( )
+    {
+		object baz = new Baz( );
+		object o = new Object( baz );
+		array a = o.getVariables( );
+		if( Array.size( a ) != 5 )
+			return 1;
+		if( not Array.keyExists(a, "z") )
+			return 2;
+		return Test.SUCCESS;
+    }
+    function setVariables( )
+    {
+		object baz = new Baz( );
+		object o = new Object( baz );
+		array a;
+		a["z"] = 42;
+		o.setVariables( a );
+		if( baz.z != 42 )
+			return 1;
+		return Test.SUCCESS;
+    }
+    function hasMember( )
+    {
+		object baz = new Baz( );
+		if( !Object.hasMember( baz, "z" ) )
+			return 1;
+		if( Object.hasMember( baz, "a" ) )
+			return 2;
+		return Test.SUCCESS;
+    }
+	function hasFunction() {
+		object baz = new Baz( );
+		object o = new Object( baz );
+		if( !o.hasFunction("y" ) )
+			return 1;
+		if( o.hasFunction("z" ) )
+			return 2;
+		return Test.SUCCESS;		
+	}
+	function hasVariable() {
+		object baz = new Baz( );
+		object o = new Object( baz );
+		if( !o.hasVariable("z" ) )
+			return 1;
+		if( o.hasVariable("y" ) )
+			return 2;
+		return Test.SUCCESS;		
+	}
+}
+class FunctionTest extends Test
+{
+    function exec( )
+    {
+        object o = new Function('ChangeValue');
+        string v;
+        
+        if( o == null )
+            return 1;
+        
+        monitor {
+            v = o.exec();
+        } handle {
+        } else {
+            return 2;
+        }
+        
+        monitor {
+            v = o.exec("Fnar",10);
+        } handle {
+            return 3;
+        } 
+        
+        if( v != "Fnar10Fnar10" )
+            return 4;
+        
+        return Test.SUCCESS;
+    }
+    function execWithArray()
+    {
+        object o = new Function('ChangeValue');
+        string v;
+        
+        if( o == null )
+            return 1;
+        
+        monitor {
+            v = o.execWithArray([]);
+        } handle {
+        } else {
+            return 2;
+        }
+        
+        monitor {
+            v = o.execWithArray(["Fnar",10]);
+        } handle {
+            return 3;
+        } 
+        
+        if( v != "Fnar10Fnar10" )
+            return 4;
+        
+        return Test.SUCCESS;
+    }
+    function getParameterDetails()
+    {
+        object o = new Foo();
+        object f = new Function( o, "testParameters" );
+        object f2 = new Function( o, "toString" );
+        
+        if( f == null )
+            return 1;
+        if( f2 == null )
+            return 2;
+        if( f.getParameterDetails() == [] )
+            return 3;
+        if( f2.getParameterDetails() != [] )
+            return 4;
+        if( f.getParameterDetails() != [ 'a' => 'string', 'b' => 'number', 'c' => 'object' ] )
+            return 5;
+        return Test.SUCCESS;
+    }
+}
+
+class ReflectionTest extends Test
+{
+    array a;
+    function constructor( )
+    {
+		void v;
+		super( );
+		.a = [];
+		.a[] = 1;
+		.a[] = "foo";
+		.a[] = new Foo( );
+		.a[] = [1,2,3,4];
+		.a[] = v;
+    }
+    function type( )
+    {
+		if( Reflection.type(.a[0]) != "number" )
+			return 1;
+		if( Reflection.type(.a[1]) != "string" )
+			return 2;
+		if( Reflection.type(.a[2]) != "object" )
+			return 3;
+		if( Reflection.type(.a[3]) != "array" )
+			return 4;
+		if( Reflection.type(.a[4]) != "void" )
+			return 5;
+		if( Reflection.type(Foo) != "class" )
+			return 6;
+		return Test.SUCCESS;
+    }
+}
+number rval1 = 0, rval2 = 0, rval3 = 0, rval4 = 0, rval5 = 0;
+
+object o = new ClassTest( );
+rval1 = o.run("Class");
+
+o = new ObjectTest( );
+rval2 = o.run("Object");
+
+o = new FunctionTest( );
+rval3 = o.run("Function");
+
+o = new ReflectionTest( );
+rval4 = o.run("Reflection");
+
+o = new NamespaceTest();
+rval5 = o.run("Namespace");
+
+return rval1 + rval2 + rval3 + rval4 + rval5;

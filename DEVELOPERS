@@ -1,0 +1,18 @@
+Hi
+
+Feel free to hack, tweak, change, modify anything you want. But please be
+warned, if you make a change to the engine ie. aphex, triton, or the sources
+in src/ and you email it to the devel list - it'll go under serious scrutiny
+and has a potential to be rejected (this is not a personal thing but it may
+just not fit with the vision or direction that the engine wants to go in)
+
+Bug fixes are more than welcome :)
+
+Patches will not be accepted unless they comply to the BSD licensing of
+ferite. This means that you retain a copyright on your code - but you can't
+make any provisions that restrict ferite from being distributed as it is.
+
+Have fun and we look forward to hearing from you,
+
+Chris Ross
+Lead Developer

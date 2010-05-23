@@ -1,0 +1,64 @@
++-----------------------------------------------------------------------------+
+| Ferite TODO List                                                            |
++-----------------------------------------------------------------------------+
+
+Compiler:
+
+ Big jobs:
+
+  [1]  byte code dumping to a file
+  [2]  unicode support
+  [4]  str[index] = assignment
+
+ Small jobs:
+
+  [ ]  byte stream loading of a script file
+  [5]  'uses' overload call back to the application to see what modules can be used.
+  [ ]  implement 'final' and 'abstract' for functions within classes.
+    *  fix climbing the inheritance list for protocols [done]
+    *  cwd of currently included script to make inclusions more naturally relative [done]
+    *  fix self variable access in closures [done]
+  
+------------------------------------------------------------------------------
+
+Executor:
+
+    * 'throw' or 'raise' keyword
+    * basic types as object [done]
+    * fix overloaded methods: basically if there is foo() and foo(n) in a 
+       super class, and foo() in a subclass, foo(n) can't be called. [done]
+------------------------------------------------------------------------------
+
+Objects:
+
+  [??] Operator overloads
+    * Class based mixins - ability to inject one class into another
+
+------------------------------------------------------------------------------
+
+modules:
+
+  [13] Module restrictions, security subsystem - allowing for restrictions to
+       be placed on what modules can be loaded. This is part of [5].
+     * Write absolute to relative [done]
+------------------------------------------------------------------------------
+
+builder:
+
+     * fix overloading in native modules by hand for namespaces  
+  
+------------------------------------------------------------------------------
+
+documentation:
+
+  [14] Complete the embedding guide
+  [15] Document overloading in user manual
+     * Document regular expressions in user manual
+     * Need to add documentation regarding closures and protocols
+	 
+------------------------------------------------------------------------------
+
+General:
+
+  [17] The ability to compile the c files from pcre into the library
+  [18] Ability to compile without module loading support

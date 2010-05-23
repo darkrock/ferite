@@ -1,0 +1,54 @@
+#!/usr/bin/env ferite
+
+uses "console", "filesystem";
+
+class modifies File
+{
+   function ConvertToString()
+       return .read( .length() );
+}
+
+function fileToString( string filename )
+{
+    object file = File.open( filename );
+    string str = file.read( file.length() );
+    file.close();
+    return str;
+}
+
+object blah;
+object anotherfile = File.open("/etc/fstab");
+
+Console.println( "------------------------------------------------------" );
+Console.println( fileToString( "/etc/fstab" ) );
+Console.println( "------------------------------------------------------" );
+
+if( blah == null )
+{
+    Console.println( "blah is null" );
+}
+
+Console.println( "------------------------------------------------------" );
+Console.println( anotherfile.ConvertToString() );
+Console.println( "------------------------------------------------------" );
+anotherfile.close();
+
+if( anotherfile instanceof File )
+  Console.println( "instanceof works" );
+else
+  Console.println( "instanceof does not work" );
+
+if( anotherfile instanceof Stream.Stream )
+  Console.println( "instanceof does not work" );
+else
+  Console.println( "instanceof still works" );
+
+if( anotherfile isa object )
+  Console.println( "isa works" );
+else
+  Console.println( "isa does not work" );
+
+if( anotherfile isa string )
+  Console.println( "isa does not work" );
+else
+  Console.println( "isa still works" );

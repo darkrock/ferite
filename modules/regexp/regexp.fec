@@ -1,0 +1,860 @@
+/*
+ * Copyright (C) 2003-2007 Chris Ross
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+module-header 
+{
+
+#include <pcre.h>
+	
+#define RegexpObject		   ((FeriteRegex*)self->odata)
+#define fe_isnumeric( c ) (c >= '0' && c <= '9')
+	
+}
+
+uses "regexp.lib";
+uses "array";
+
+/**
+ * @class MatchObject 
+ * @brief This class is what is used to return match information from regular expression object
+ * @description This object is used to provide match information with regular expressions. They are
+   returned from match(), in an array returned from matchAll(), and passed in as the parameters to
+   the closures. It is important to note that when counting captures they start at 0, NOT 1 like 
+   backticks.
+ * @example <code>
+ <type>object</type> r = <keyword>new</keyword> Regexp('([A-Za-z]*) ([0-9]*)' );<nl/>
+ <type>object</type> m = r.match( "Chris 42" );<nl/>
+ Console.println( "Captures: ${m.captures()}" ); &amp;raquo [ "Chris", "42" ]</code><nl/> 
+ */
+class MatchObject {
+	
+	private number start = 0;
+	private number end = 0;
+	private string match = "";
+	private array  captures;
+   
+	function constructor( string m, number s, number e, array c ){
+		.match = m;
+		.start = s;
+		.end = e;
+		.captures = c;
+	}
+	
+	/**
+	 * @function match
+	 * @declaration  function match()
+	 * @brief The match this object represents
+	 * @return A string containing the match value
+	 */
+	 function match()
+		return .match;
+	/**
+	 * @function start
+	 * @declaration  function start()
+	 * @brief The location in the original string where the match starts
+	 * @return An number containing the index
+	 */
+	function start()
+		return .start;
+	
+	/**
+	 * @function end
+	 * @declaration  function end()
+	 * @brief The location in the original string where the match ends
+	 * @return An number containing the index
+	 */
+	function end()
+		return .end;
+
+	/**
+	 * @function span
+	 * @declaration  function span()
+	 * @brief The start and end of the match returned in a two element array
+	 * @return A two element array
+	 */
+	function span()
+		return [.start, .end];
+	
+	/**
+	 * @function capture
+	 * @declaration function capture( number index )
+	 * @brief Get a specific capture from the match
+	 * @param number index The index to get; the start index is 0
+	 * @return The captured string if the index exists or an empty string
+	 */
+	function capture( number index )
+	{
+		if( index < Array.size(.captures) )
+			return .captures[index];
+		
+		return "";
+	}
+	
+	/**
+	 * @function captures
+	 * @declaration  function captures()
+	 * @brief All of the captures within an array
+	 * @return An array with strings as each element
+	 */
+	function captures()
+		return .captures;
+	
+	function toString()
+		return "{Regexp Match: ${.match}, Span: ${.span()}, Captures: ${.captures}}";
+}
+/**
+ * @end
+ */
+
+/** 
+ * @class Regexp
+ * @brief The core class of the regular expression engine.
+ * @description Regular expressions provide a very powerful method of matching, modifying and extracting
+information from strings. Using special syntax, code that would usually require line after 
+line of special matching code can be summarised within a one line regular expression 
+(from here on in referred to as a regex). ferite's regex's are providied by means of PCRE
+(Perl Compatible Regular Expressions, a C library that can be found at
+ <a href="http://www.pcre.org">http://www.pcre.org</a>) and as a result are almost
+ identical in use to Perl's. Regex's look like this:
+ <p>
+ <b>Example:</b>
+ <p>
+ <code>Regexp.replace('1(2)3', input, '456');</code>
+ <p>
+ This one will match all occurrences of the string "123" and swap them with "456"
+ <p>
+ <code>Regexp.replace('W(or(l))d', input, 'Ch\1ris\2');</code>
+ <p>
+ This is more complicated and will match occurrences of "World" and swap them with
+ "Chorlrisl". The reason being is due to back ticks which are discussed soon.
+ <p>
+ There are three types of regular expression support and that is match, swap and split. They are
+ used as follows:
+ <p>
+ <code>
+ Regexp.match( 'expression to match', intput )<nl/>
+ Regexp.replace( 'expression to match', intput, 'replacement' )<nl/>
+ Regexp.split( 'expression to split with', intput )<nl/>
+ </code>
+ <p>
+ You can either use the quick methods metioned above or create regexp objects by 
+ creating an object from the Regexp class.
+ 
+ <h4>Options</h4>
+ 
+ There are a number of options that can be used to modify the method that the regular
+ expression's execution and processing. These can only be passed in when you create a
+ manual Regexp object. The options are:
+ <p>
+ <ul>
+ <li>
+ <b>x</b> - This option allows the regular expression to be multi line,
+ and also allows comments using the # character. This is useful for long regular
+ expressions where it is important to remember what each individual part performs.
+ <p>
+ <code>
+ <type>object</type> r = <keyword>new</keyword> Regexp('^(.*?) # Match Dots<nl/>
+ chris # Match Chris<nl/>
+ $', 'm' );</code>
+ <p>
+ </li>
+ 
+ <li>
+ <b>s</b> - This allows the <b>. (dot meta character)</b> matching character to match 
+ newlines (\n's).
+ <p>
+ </li>
+ 
+ <li>
+ <b>m</b> - This gets the <b>^</b> and <b>$</b> meta characters to match at newlines 
+ within the source string. 
+ <p>
+ <code><type>object</type> r = <keyword>new</keyword> Regexp('^(.*)$', 'm' );<nl/>
+ r.replaceAll( "Hello\nWorld\nFrom\nChris", "Foo" );</code>
+ <p>
+ The above regex will return "Foo\nFoo\nFoo\nFoo".
+ <p>
+ </li>
+ 
+ <li>
+ <b>i</b> - This causes the regex engine to match cases without looking at the case of 
+ characters being processed. Therefore a expression 'abc' will match 'ABC'.
+ <p>
+ </li>
+ 
+ <li>
+ <b>g</b> - This forces all matches along a line to be matched. Normally it is only the 
+ first occurance that is matched. The *All functions use this option.
+ <p>
+ </li>
+
+<!-- 
+ <li>
+ <b>o</b> - This causes the regular expression to be compiled at compile time rather than 
+ runtime. This is useful for regular expressions that dont change but are used alot within 
+ a script.
+ <p>
+ </li>
+ -->
+ 
+ <li>
+ <b>A</b> - The pattern will only match if it matches at the beginning of the string being 
+ searched. This is equivalent to specifying ^ at the beginning of the regular expression.
+ <p>
+ </li>
+ 
+ <li><b>D</b> - This option allows the user to have only the <b>$</b> tie to the end of a 
+ line when it is at the end of the regular expression.
+ </li>
+ 
+ </ul>
+ 
+ <h4>Backticks and Capturing</h4>
+ When brackets are used within a regular expression they capture the values when the
+ expression matches. These can be used for two main purposes: either fetching the values
+ through the match object function capture() or for use within the replace pattern.
+ To use within the replacement expression you need to use backticks.
+ <p>
+ Backticks are used within the swap mode of the regular expressions. It allows you to
+ used captured strings within string that should replace the matched expression. 
+ They are used as follows: a '\' (back slash) followed by the number that you want to use.
+ The example below will match all 3 digit numbers and reverse their ordering.
+ <p>
+ <code>Regexp.replaceAll( '(\d)(\d)(\d)', input, '\3\2\1' );</code>
+ <p>
+ To work out what capture number to use, you need to count from left to right within
+ the expression with each opening bracket being an increment. For a match object
+ the counting starts at 0, with backticks it starts at 1.
+ 
+ <h4>More</h4>
+ This is only a brief insight into regular expressions, and a suggested read is
+ "Mastering Regular Expressions" by Jeffrey E. F. Friedl (published by O'Reilly), and
+ that will tell you everything you need to know about regular expressions. :-) It is
+ also suggested that the libpcre documentation is worth reading on
+ <a href="http://www.pcre.org">http://www.pcre.org</a>.
+*/
+class Regexp {
+	
+	/**
+	 * @function match
+	 * @static
+	 * @declaration static function match( string regexp, string container )
+	 * @brief A quick method of running a regular expression match on a string
+	 * @param string regexp The regular expression to compile and use
+	 * @param string container The string to match against
+	 * @return A match object, or null otherwise
+	 */
+	static function match( string regexp, string container ) {
+		object o = new Regexp( regexp );
+		object match = o.match(container);
+		return match;
+	}
+	/**
+	*  @function matchAll
+	 * @static
+	 * @declaration static function matchAll( string regexp, string container )
+	 * @brief A quick method of running a regular expression match all matches on a string
+	 * @param string regexp The regular expression to compile and use
+	 * @param string container The string to match against
+	 * @return An array of match objects
+	 */
+	static function matchAll( string regexp, string container ) {
+		object o = new Regexp( regexp );
+		return o.matchAll(container);
+	}
+	/**
+	*  @function replace
+	 * @static
+	 * @declaration static function replace( string regexp, string container, string replacement )
+	 * @brief A quick method of running a regular expression replace on the first match on a string
+	 * @param string regexp The regular expression to compile and use
+	 * @param string container The string to match against
+	 * @param string replacement The string to swap for the match.
+	 * @return The string container with all matches swap with replacement
+	 */
+	static function replace( string regexp, string container, string replacement ) {
+		object o = new Regexp( regexp );
+		return o.replace(container,replacement);
+	}
+	/**
+	*  @function replaceAll
+	 * @static
+	 * @declaration static function replaceAll( string regexp, string container, string replacement )
+	 * @brief A quick method of running a regular expression replace on all matches on a string
+	 * @param string regexp The regular expression to compile and use
+	 * @param string container The string to match against
+	 * @param string replacement The string to swap for the match.
+	 * @return The string container with all matches swap with replacement
+	 */
+	static function replaceAll( string regexp, string container, string replacement ) {
+		object o = new Regexp( regexp );
+		return o.replaceAll(container,replacement);
+	}
+	
+	private object lastMatch;
+	private string regexp;
+	private string flags;
+	
+	/**
+	 * @function constructor
+	 * @declaration function constructor( string regexp )
+	 * @brief Create a regular expression using the string passed into the class
+	 * @param string regexp The regular expression to compile
+	 * @return The regular expression object
+	 */
+	function constructor( string regexp )
+	{
+		.regexp = regexp;
+		.flags = "";
+		.__compile();
+	}
+	
+	/**
+	 * @function constructor
+	 * @declaration function constructor( string regexp, string flags )
+	 * @brief Create a regular expression using the string passed into the class
+	 * @param string regexp The regular expression to compile
+	 * @param string flags The flags to use when compiling and executing an expression
+	 * @return The regular expression object
+	 */
+	function constructor( string regexp, string flags )
+	{
+		.regexp = regexp;
+		.flags = flags;
+		.__compile();
+	}
+	
+	native function destructor()
+	{
+		if( RegexpObject != NULL )
+		{
+			ferite_delete_regex( RegexpObject );
+			self->odata = NULL;
+		}
+		return NULL;
+	}
+	
+	/**
+	 * @function getRegexp
+	 * @declaration  function getRegexp()
+	 * @brief Get the regular expression as a string
+	 * @return The expression as a string
+	 */
+	function getRegexp()
+		return .regexp;
+	
+	private native function __compile() : undefined
+	{
+		FeriteVariable *regexp = ferite_object_get_var( script, self, "regexp" );
+		FeriteVariable *flags = ferite_object_get_var( script, self, "flags" );
+		self->odata = ferite_generate_regex( script, VAS(regexp)->data, VAS(flags)->data );	
+	}
+	
+	private native function __regexp( string match, string replace, boolean all, boolean replacing ) : void
+	{
+		FeriteRegex *rgx = RegexpObject;
+		FeriteVariable *retv = NULL; /* rturn value */
+		size_t captured_str_cnt = 0; /* number of strings that will be captured in ()'s */
+		int *offsets;		 /* array of subpattern offsets */
+		int size_offsets;	 /* size of the array */
+		size_t start_offset;	 /* damn nation, this is the new start :) */
+		int current_var = 0;  /* the global variable we need to update */
+		int current_match = 0;
+		int count = 0;		/* count the number of subexpressions */
+		size_t i;
+		char **stringlist /* the subparts () values */;
+		int g_notempty = 0;
+		char **captured_str_names = NULL;
+		
+		FeriteVariable *c_match_object = NULL;
+		FeriteVariable *c_match = NULL;
+		FeriteVariable *c_start = NULL;
+		FeriteVariable *c_end = NULL;
+		FeriteVariable *c_groups = NULL;
+		FeriteVariable **plist = NULL;
+		
+		FeriteVariable *rep_yield_ret = NULL;
+		FeriteString   *rep_tmp_holder = NULL;
+		FeriteString   *rep_new_string = NULL;
+		int endOfLastMatch = 0;
+		
+		FE_ENTER_FUNCTION;
+		/*
+#ifdef FUD
+#undef FUD
+#define FUD( p ) printf p ;
+#endif*/
+		
+		if( replacing )
+			rep_new_string = ferite_str_new( script, "", 0, FE_CHARSET_DEFAULT );
+		
+		/* if the regex is not compiled already -> compile it */
+		if( RegexpObject->compiled_re == NULL )
+		{
+			RegexpObject->compiled_re = ferite_compile_regex( script, RegexpObject->compile_buf, RegexpObject->pcre_options );
+			if( RegexpObject->compiled_re == NULL )
+			{
+				ferite_error( script, 0, "Unable to compile regular expression '%s'\n", RegexpObject->compile_buf );
+				retv = ferite_create_number_long_variable( script, "regex-exec-return", 0, FE_STATIC );
+				FE_LEAVE_FUNCTION( retv );
+			}
+		}
+		
+		/* get the number of subparts */
+		captured_str_cnt = pcre_info( rgx->compiled_re, NULL, NULL ) + 1;
+		/* create an offset array */
+		size_offsets = (int)(captured_str_cnt * 3);
+		offsets = (int *)fmalloc(size_offsets * sizeof(int));
+
+		/* get the named strings */
+		captured_str_names = (char **)fcalloc(captured_str_cnt, sizeof(char *));
+		{
+			int name_cnt = 0, name_size, ni = 0, rc = 0;
+			char *name_table = NULL;
+			unsigned short name_idx;
+
+#define ABORT_WITH_ERROR() \
+				ferite_error( script, rc, "Trying to execute regexp: internal pcre_fullinfo() error %d", rc); \
+				ffree(offsets); \
+				ffree(captured_str_names); \
+				retv = ferite_create_number_long_variable( script, "regex-exec-return", 0, FE_STATIC ); \
+				FE_LEAVE_FUNCTION( retv );
+
+			rc = pcre_fullinfo(rgx->compiled_re, rgx->extra_info, PCRE_INFO_NAMECOUNT, &name_cnt);
+			if( rc < 0 ) {
+				ABORT_WITH_ERROR();
+			} else if( name_cnt > 0 ) {
+				int rc1, rc2;
+				rc1 = pcre_fullinfo(rgx->compiled_re, rgx->extra_info, PCRE_INFO_NAMETABLE, &name_table);
+				rc2 = pcre_fullinfo(rgx->compiled_re, rgx->extra_info, PCRE_INFO_NAMEENTRYSIZE, &name_size);
+				rc = rc2 ? rc2 : rc1;
+				if (rc < 0) {
+					ABORT_WITH_ERROR();
+				}
+
+				while (ni++ < name_cnt) {
+					unsigned char major = (unsigned char)name_table[0];
+					unsigned char minor = (unsigned char)name_table[1];
+					name_idx = (0xff * major) + minor;
+					if( name_idx < captured_str_cnt ) {
+						captured_str_names[name_idx] = name_table + 2;
+					} else {
+						ferite_error( script, 0, "Fatal error trying to fetch names out of captured name table, please report regular expression and this message to ctr@ferite.org [index: %d, %d.%d]", name_idx, major, minor ); 
+						ffree(offsets); 
+						ffree(captured_str_names); 
+						FE_RETURN_VOID;
+					}
+					name_table += name_size;
+				}
+			}
+		}		
+		
+		
+		/* setup the return value */
+		retv = ferite_create_uarray_variable( script, "regex-exec-return", 32, FE_STATIC );
+		
+		start_offset = 0;
+		current_var = 1;
+		current_match = 1;
+		
+		do
+		{
+			/* execute regex */
+			FUD(( "REGEX: Executing against \"%s\"\n", match->data ));
+			count = pcre_exec( rgx->compiled_re, rgx->extra_info, match->data, (unsigned int)match->length,
+							   (int)start_offset, g_notempty, offsets, size_offsets );
+			/* check for too many substrings */
+			if( count == 0 )
+			{
+				ferite_warning( script, "A match was found but too many substrings found.\n" );
+				count = size_offsets / 3;
+			}
+			
+			FUD(( "REGEX: match count = %d\n", count ));
+			/* we matched something */
+			if( count >= 0 )
+			{
+				/* get the list of substrings */
+				if( pcre_get_substring_list( match->data, offsets, (int)count, (const char ***)&stringlist) < 0 )
+				{
+					ffree(offsets);
+					ferite_error( script, 0, "Unable to obtain captured strings in regular expression.\n");
+					
+					if( retv != NULL )
+						ferite_variable_destroy( script, retv );
+					
+					FE_RETURN_VOID;
+				}
+				
+				c_match = ferite_create_string_variable_from_ptr( script, "RGX-MATCH", (char *)stringlist[0], strlen((char *)stringlist[0]), FE_CHARSET_DEFAULT, FE_STATIC );
+				MARK_VARIABLE_AS_DISPOSABLE( c_match );				
+				c_start = ferite_create_number_long_variable( script, "RGX-START", offsets[0], FE_STATIC );
+				MARK_VARIABLE_AS_DISPOSABLE( c_start );
+				c_end   = ferite_create_number_long_variable( script, "RGX-START", offsets[0] + strlen(stringlist[0]), FE_STATIC );
+				MARK_VARIABLE_AS_DISPOSABLE( c_end );
+				c_groups = ferite_create_uarray_variable( script, "RGX-GROUPS", count, FE_STATIC );
+				MARK_VARIABLE_AS_DISPOSABLE( c_groups );
+				
+				FUD(( "c_match: %s, c_start: %d, c_end: %d, c_groups: %p\n", VAS(c_match)->data, VAI(c_start), VAI(c_end), c_groups ));
+				for( i = 1; i < count; i++ )
+				{
+					FeriteVariable *var = ferite_create_string_variable_from_ptr( script, "RGX-GROUP-PTR", (char *)stringlist[i], strlen((char *)stringlist[i]), 
+																				  FE_CHARSET_DEFAULT, FE_STATIC );
+					ferite_uarray_add( script, VAUA(c_groups), var, captured_str_names[i], FE_ARRAY_ADD_AT_END );
+				}
+				
+				plist = ferite_create_parameter_list( script, 5 );
+				plist[0] = c_match;
+				plist[1] = c_start;
+				plist[2] = c_end;
+				plist[3] = c_groups;
+				
+				c_match_object = ferite_new_object( script, ferite_find_class( script, script->mainns, "MatchObject" ), plist );
+				UNMARK_VARIABLE_AS_DISPOSABLE( c_match_object );
+				
+				FUD(( "match object %p\n", c_match_object ));
+				
+				ferite_delete_parameter_list( script, plist );
+				
+				if( current_recipient != NULL )
+				{
+					FeriteFunction *f = NULL;
+					FeriteVariable *yretv = NULL;
+					
+					if( replacing && replace->length > 0 )
+					{
+						ferite_warning( script, "Ignoring replacement string '%s' as a block has been passed\n", replace->data );
+					}
+					
+					plist = ferite_create_parameter_list( script, 2 );
+					plist[0] = c_match_object;
+					
+					f = ferite_object_get_function_for_params( script, current_recipient, "invoke", plist );
+					yretv = ferite_call_function( script, current_recipient, NULL, f, plist );
+					
+					if( yretv == NULL )
+					{
+						ferite_error( script, 0, "Unable to invoke yield block\n" );
+						FE_RETURN_VOID;
+					}
+					else if( !replacing )
+						ferite_variable_destroy( script, yretv );
+					else
+						rep_yield_ret = yretv;
+					
+					ferite_delete_parameter_list( script, plist );					
+				} 
+				else if( replacing && current_recipient == NULL ) /* We only do this if there is no block */
+				{
+					FeriteString *replace_buffer = ferite_str_new( script, NULL, 0, FE_CHARSET_DEFAULT );
+					int loc = 0;
+					int endOfLastReplacement = 0;
+					char target_backtick[3] = "";
+					int target_index = 0;
+					
+					for( loc = 0; loc < replace->length && loc < (replace->length - 1); loc++ )
+					{
+						if( replace->data[loc] == '\\' )
+						{
+							if( fe_isnumeric( replace->data[loc+1] ) )
+							{
+								ferite_str_data_cat( script, replace_buffer, replace->data + endOfLastReplacement, loc - endOfLastReplacement );
+								loc++; /* So we can look at the numbers */
+								
+								if( fe_isnumeric( replace->data[loc] ) )
+								{
+									target_backtick[0] = replace->data[loc];
+									loc++;
+									
+									if( fe_isnumeric( replace->data[loc] ) )
+									{
+										target_backtick[1] = target_backtick[0];
+										target_backtick[0] = replace->data[loc];
+										loc++;
+									}
+									
+									target_index = atol( target_backtick );
+									
+									if( target_index < count )
+									{
+										ferite_str_data_cat( script, replace_buffer, (char*)stringlist[target_index], strlen((char*)stringlist[target_index]) ); 
+									}
+								}
+								endOfLastReplacement = loc;
+								loc--;
+								continue;
+							}
+						}
+					}
+					
+					if( endOfLastReplacement < replace->length )
+						ferite_str_data_cat( script, replace_buffer, replace->data + endOfLastReplacement, strlen(replace->data + endOfLastReplacement) );
+					
+					/* Do backref replacements */
+					FUD(( "Duplicating replacement\n" ));
+					rep_tmp_holder = replace_buffer;
+				}
+
+				FUD(( "are we replacing? %d\n", (int)replacing ));
+				
+				if( !replacing )
+					ferite_uarray_add( script, VAUA(retv), c_match_object, NULL, FE_ARRAY_ADD_AT_END );
+				else
+				{
+					FeriteString *replacement = NULL;
+					
+					FUD(( "rep_yield_rep: %p\n", rep_yield_ret ));
+					
+					if( rep_yield_ret != NULL )
+						replacement = ferite_variable_to_str( script, rep_yield_ret, FE_FALSE );
+					else
+						replacement = rep_tmp_holder;
+					
+					FUD(( "replacement: %p\n", replacement ));
+					/* 
+						We cat from end of last match to the start of the current match from the original string 
+					 Then we cat on the match
+					 Then we set the end of the last match to be the end of this match 
+					 */
+					
+					ferite_str_data_cat( script, rep_new_string, match->data + endOfLastMatch, offsets[0] - endOfLastMatch );
+					ferite_str_cat( script, rep_new_string, replacement );
+					endOfLastMatch = offsets[0] + strlen(stringlist[0]);
+					
+					ferite_str_destroy( script, replacement );
+					ferite_variable_destroy( script, rep_yield_ret );
+					ferite_variable_destroy( script, c_match_object );
+					rep_yield_ret = NULL;
+				}
+				
+				if( ferite_use_mm_with_pcre )
+				{
+					ffree( stringlist );
+				}
+				else
+					pcre_free( stringlist );
+			}
+			else /* we didn't match something */
+			{
+				if (g_notempty != 0 && start_offset < (int)match->length )
+				{
+					offsets[0] = (int)start_offset;
+					offsets[1] = (int)(start_offset + 1);
+				}
+				else
+					break;
+			}
+			
+			g_notempty = ( offsets[1] == offsets[0] ) ? PCRE_NOTEMPTY : 0;
+			
+			/* Advance to the position right after the last full match */
+			start_offset = offsets[1];
+		}
+		while( all );
+		
+		if( replacing )
+		{
+			/* If there is some string left ? If so cat it onto the end */
+			if( endOfLastMatch < match->length )
+				ferite_str_data_cat( script, rep_new_string, match->data + endOfLastMatch, strlen(match->data + endOfLastMatch) );
+			
+			ferite_variable_destroy( script, retv );
+			retv = ferite_create_string_variable( script, "retv", rep_new_string, FE_STATIC );
+			ferite_str_destroy( script, rep_new_string );
+		}
+		ffree( captured_str_names );
+		ffree( offsets );
+		FE_RETURN_VAR( retv );
+	}
+	
+	
+	/**
+	 * @function match
+	 * @declaration function match( string str )
+	 * @brief Run a match on a string
+	 * @param string str The string to execute the regular expression on
+	 * @return A match object or null if no match
+	 * @description It possible to give this call a closure to handle the match.
+	 * @example <nl/>
+	 * <code>object o = new Regexp( '([0-9]+)' );<nl/>
+	 * o.match( "123 456 789 345" ) using ( match ) {<nl/>
+	 * <tab/>Console.println( "Got match: '${match.match()}' in range '${match.span()}'" );<nl/>
+	 * <tab/>Console.println( " captures: ${match.captures()}\n" );<nl/>
+	 * };</code>
+	 * <nl/>
+	 * The above example will only match 123.
+	 */
+	function match( string str )
+	{
+		array a = .__regexp( str, "", false, false ) using recipient();
+		
+		if( Array.size(a) < 1 )
+			return null;
+		.lastMatch = a[0];
+		return a[0];
+	}
+	
+	/**
+	 * @function matchAll
+	 * @declaration function matchAll( string str )
+	 * @brief Run a match on a string, unlike match this function will return all matches
+	 * @param string str The string to execute the regular expression on
+	 * @return An array of match objects or null if no match
+	 * @description It possible to give this call a closure to handle the match. 
+	 * @example <nl/>
+	 * <code>object o = new Regexp( '([0-9]+)' );<nl/>
+	 * o.matchAll( "123 456 789 345" ) using ( match ) {<nl/>
+	 * <tab/>Console.println( "Got match: '${match.match()}' in range '${match.span()}'" );<nl/>
+	 * <tab/>Console.println( " captures: ${match.captures()}\n" );<nl/>
+	 * };</code>
+	 * <nl/>
+	 * The above example will match '123', '456', '789' and '345'.
+	 */
+	function matchAll( string str ) // with block
+	{
+		.lastMatch = null;
+		return .__regexp( str, "", true, false ) using recipient();
+	}
+	
+	/**
+	 * @function replace
+	 * @declaration function replace( string str )
+	 * @brief Replace the first match in a string
+	 * @param string str The string to run the replace on
+	 * @return A string combing the original with the replacements
+	 * @description This function can takes a closure, the return of the closure is used in the replacement.
+	 * @example <nl/>
+	 * <code>object o = new Regexp( "([0-9]+)" );<nl/>
+	 * string replaced = o.replace( "1234 is the 123456" ) using ( match ) {<nl/>
+	 * <tab/>return "${match.match()}.feriteRocks";<nl/>
+	 * };</code>
+	 * <nl/>
+	 * The result of the above code will be '1234.feriteRocks is the 123456'
+	 */
+	function replace( string str )
+		return .replace( str, "" ) using recipient();
+	
+	/**
+	 * @function replace
+	 * @declaration function replace( string str, string replacement )
+	 * @brief Replace the first match in a string
+	 * @param string str The string to run the replace on
+	 * @param string replacement The string to replace matches with, if empty, and a closure is provided, it'll use the closure's return value for the replacement.
+	 * @return A string combing the original with the replacements
+	 * @description This function can't take a closure. 
+	 * @example <nl/>
+	 * <code>object o = new Regexp( "([0-9]+)" );<nl/>
+	 * string replaced = o.replace( "1234 is the 123456", "LargeNumbers" );</code>
+	 * <nl/>
+	 * The result of the above code will be 'LargeNumbers is the 123456'
+	 */
+	function replace( string str, string replace )  // optional with block
+	{
+		.lastMatch = null;
+		return .__regexp( str, replace, false, true ) using recipient();
+	}
+	
+	/**
+	 * @function replaceAll
+	 * @declaration function replaceAll( string str )
+	 * @brief Replace the all of the matches in a string
+	 * @param string str The string to run the replace on
+	 * @return A string combing the original with the replacements
+	 * @description This function can takes a closure, the return of the closure is used in the replacement.
+	 * @example <nl/>
+	 * <code>object o = new Regexp( "([0-9]+)" );<nl/>
+	 * string replaced = o.replaceAll( "1234 is the 123456" ) using ( match ) {<nl/>
+	 * <tab/>return "${match.match()}.feriteRocks";<nl/>
+	 * };</code>
+	 * <nl/>
+	 * The result of the above code will be '1234.feriteRocks is the 123456.feriteRocks'
+	 */
+	function replaceAll( string str )
+		return .replaceAll( str, "" ) using recipient();
+	
+	/**
+	 * @function replaceAll
+	 * @declaration function replaceAll( string str, string replacement )
+	 * @brief Replace all of the matches in a string
+	 * @param string str The string to run the replace on
+	 * @param string replacement The string to replace matches with, if empty, and a closure is provided, it'll use the closure's return value for the replacement.
+	 * @return A string combing the original with the replacements
+	 * @description This function can't take a closure.
+	 * @example <nl/>
+	 * <code>object o = new Regexp( "([0-9]+)" );<nl/>
+	 * string replaced = o.replace( "1234 is the 123456", "LargeNumbers" );</code>
+	 * <nl/>
+	 * The result of the above code will be 'LargeNumbers is the LargeNumbers'
+	 */
+	function replaceAll( string str, string replace )
+	{
+		.lastMatch = null;
+		return .__regexp( str, replace, true, true ) using recipient();
+	}
+
+	/**
+	 * @function split
+	 * @static
+	 * @declaration static function split( string regexp, string line )
+	 * @brief A quick method of splitting a string up using a regexp as the delimeter
+	 * @param string regexp The regular expression to compile and use
+	 * @param string container The string to match against
+	 * @return An array of strings
+	 * @example <code>
+<tt>uses</tt> "console", "regexp";<nl/>
+<nl/>
+Console.println( Regexp.split( ",", "x,x,,;t t" ) ); &raquo [ "x", "x", "", ";t t" ]<nl/>
+</code><nl/>
+	 */	
+	static function split( string regexp, string line ) 
+	{
+		array r, m = Regexp.matchAll( '(.*?)((' + regexp + ')|$)', line );
+		Array.each(m) using (match) {
+			r[] = match.capture(0);
+		};
+		return r[..-2];
+	}
+	
+	/**
+	 * @function lastMatch
+	 * @declaration function lastMatch()
+	 * @brief Get the last sucessful match
+	 * @return The last match or null otherwise
+	 */
+	function lastMatch()
+		return .lastMatch;
+	
+	function toString() {
+		return "Regular Expression Object: ${.regexp}";
+	}
+}
+/**
+ * @end
+ */
+

@@ -1,0 +1,814 @@
+/*
+ * Copyright (C) 2001-2007 Chris Ross, Stephan Engstrom, Alex Holden et al
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "stream.lib";
+uses "string";
+
+module-header
+{
+#include "../../config.h"
+#include "../../libs/aphex/include/aphex.h"
+#include "util_stream.h"
+}
+
+/**
+ * @namespace Stream
+ * @brief This is the core of the stream layer that provides the io operations for ferite scripts.
+ */
+namespace Stream
+{
+    /**
+     * @variable SEEK_SET
+     * @type number
+     * @brief The offset is set to offset bytes from the begining of the stream
+     */
+    final number SEEK_SET = 0;
+    /**
+     * @variable SEEK_CUR
+     * @type number
+     * @brief The offset is set to current location plus offset bytes
+     */
+    final number SEEK_CUR = 1;
+    /**
+     * @variable SEEK_END
+     * @type number
+     * @brief The offset is set to the size of the file plus offset bytes
+     */
+    final number SEEK_END = 2;
+
+    /**
+     * @variable EndOfLine
+     * @type string
+     * @brief The end of line delimeter, each new Stream object will use the current value of this variable as it's
+              default line delimeter.
+     */
+    string EndOfLine = "\n";
+
+    class PointerObject
+    {
+    }
+
+    /**
+     * @class Stream
+     * @brief Provides the mechanism for stream objects - it has a number of methods for use
+     */
+    abstract class Stream
+    {
+       /**
+        * @function constructor
+        * @declaration function constructor( )
+        * @brief The constructor of the Stream. Must be called when inheriting
+        */
+       native function constructor( )
+       {
+           FeriteVariable *v = ferite_find_namespace_element_contents( script, script->mainns, "Stream.EndOfLine", FENS_VAR );
+           struct Stream *Stream = fcalloc( 1, sizeof( struct Stream ) );
+           Stream->lock = aphex_mutex_recursive_create();
+           Stream->endofline = ( v != NULL ? fstrdup(VAS(v)->data) : fstrdup("\n") );
+           Stream->input_buffer.data = fmalloc( STREAM_READ_BUFFER );
+           Stream->input_buffer.length = 0;
+           Stream->output_buffer = ferite_buffer_new( script, 0 );
+           Stream->read = ferite_object_get_function( script, self, "__read__" );
+           Stream->write = ferite_object_get_function( script, self, "__write__" );
+           Stream->errmsg = NULL;
+           Stream->eos = FE_FALSE;
+           Stream->aggressive = FE_FALSE;
+           self->odata = Stream;
+       }
+       native function destructor( )
+       {
+           FeriteFunction *close;
+           FeriteVariable *retval;
+           struct Stream *Stream = self->odata;
+
+           aphex_mutex_destroy( Stream->lock );
+           stream_flush( script, self );
+           ferite_buffer_delete( script, Stream->output_buffer );
+           close = ferite_object_get_function( script, self, "__close__" );
+           if( close != NULL )
+           {
+               retval = ferite_call_function( script, self, NULL, close, NULL );
+               ferite_variable_destroy( script, retval );
+           }
+           ffree( Stream->input_buffer.data );
+           ffree( Stream->endofline );
+           if( Stream->errmsg != NULL )
+           {
+               ffree( Stream->errmsg );
+           }
+           ffree( Stream );
+       }
+       /**
+        * @function getError
+        * @declaration function getError( )
+        * @brief Get the last error from the stream as a string
+        * @return The error message
+        */
+       native function getError( ) : string
+       {
+           FeriteVariable *v = NULL;
+           struct Stream *Stream = self->odata;
+           v = fe_new_str_static("StreamError", Stream->errmsg, 0, FE_CHARSET_DEFAULT );
+           if( Stream->errmsg )
+             ffree( Stream->errmsg );
+           Stream->errmsg = NULL;
+           FE_RETURN_VAR( v );
+       }
+       /**
+        * @function setEndOfLine
+        * @declaration function setEndOfLine( string s )
+        * @brief Set the end of line delimeter for the reading and writing methods
+        * @param string s The end of line delimeter to use
+        */
+       native function setEndOfLine( string s ) : boolean
+       {
+           struct Stream *Stream = self->odata;
+           lock_object;
+           if( Stream->endofline )
+             ffree( Stream->endofline );
+           Stream->endofline = fstrdup( s->data );
+           unlock_object;
+           FE_RETURN_TRUE;
+       }
+       /**
+        * @function setAggressive
+        * @declaration function setAggressive( number agr )
+        * @brief Set the stream to be aggressive
+        * @param boolean n Whether the stream should be aggressive, true or false.
+        * @description Forces the stream to flush at every single read or write operation. Normal operation
+        *              means that the stream will only flush when necessary.
+        */
+       native function setAggressive( boolean n ) : boolean
+       {
+           struct Stream *Stream = self->odata;
+           Stream->aggressive = VAI(params[0]);
+           FE_RETURN_TRUE;
+       }
+       /**
+        * @function print
+        * @declaration function print( string s )
+        * @brief Write a string to the stream
+        * @param string s The string to print
+        */
+       function print( string s )
+       {
+           return self.write( s );
+       }
+       /**
+        * @function putc
+        * @declaration function putc( string c )
+        * @brief Write a character to the stream
+        * @param string c The character to write - the only character will be written is the first one
+        */
+       function putc( string c )
+       {
+           return self.write( c[0] );
+       }
+       /**
+        * @function write
+        * @declaration function write( string s )
+        * @brief Write a string to the stream
+        * @param string s The string to print
+        */
+       native function write( string s ) : number
+       {
+           struct Stream *Stream = self->odata;
+           int eoflen = strlen( Stream->endofline );
+
+           lock_object;
+           ferite_buffer_add( script, Stream->output_buffer, s->data, s->length );
+           if( Stream->aggressive || memcmp( s->data + s->length - eoflen, Stream->endofline, eoflen ) == 0 )
+               stream_flush( script, self );
+           unlock_object;
+           FE_RETURN_LONG( s->length );
+       }
+       /**
+        * @function println
+        * @declaration function println( string s )
+        * @brief Write a string to the stream, appending the end of line string afterwards
+        * @param string s The string to print
+        */
+       function println( string s )
+       {
+           return self.writeln( s );
+       }
+       /**
+        * @function writeln
+        * @declaration function writeln( string s )
+        * @brief Write a string to the stream, appending the end of line string afterwards
+        * @param string s The string to print
+        */
+       native function writeln( string s ) : number
+       {
+           struct Stream *Stream = self->odata;
+           int length = strlen( Stream->endofline );
+
+           lock_object;
+           ferite_buffer_add( script, Stream->output_buffer, s->data, s->length );
+           ferite_buffer_add( script, Stream->output_buffer, Stream->endofline, length );
+           stream_flush( script, self );
+           unlock_object;
+           FE_RETURN_LONG( s->length + length );
+       }
+       /**
+        * @function printf
+        * @declaration function printf( string fmt, ... )
+        * @brief Write a string to the stream, formatted using parameters
+        * @param string s The format string
+        * @param void ... The list of parameters to use
+        * @returns The number of bytes that were written to the stream
+        * @description This function is analogous to the standard system
+        *              function printf(). It accepts a format string and
+        *              some number of variables which correspond to special
+        *              sequences in the format string. See your system manuals
+        *              or any good book on C programming for details.
+        */
+       native function printf(string fmt, ...) : number
+       {
+           FeriteFunction *func;
+           FeriteNamespaceBucket *nsb;
+           FeriteVariable *str, *len, **args;
+           
+           /* Call String.sprintf() to generate the formatted string: */
+           if(!(nsb = ferite_find_namespace(script, script->mainns,
+                                            "String.sprintf", FENS_FNC))) {
+               FE_RETURN_LONG(-1);
+           }
+           func = (FeriteFunction *)nsb->data;           
+           str = ferite_call_function(script, self, NULL, func, params );
+           
+           /* Call self.write() to output the string: */
+           func = ferite_object_get_function(script, self, "write");
+           args = ferite_create_parameter_list(script,2);
+           args[0] = str;
+           MARK_VARIABLE_AS_DISPOSABLE( str ); /* Just so that we get this cleared up */
+           len = ferite_call_function(script, self, NULL, func, args);
+           ferite_delete_parameter_list(script, args);
+
+           /* Return the number of bytes written to the stream: */
+           FE_RETURN_VAR(len);
+       }
+
+       /**
+        * @function flush
+        * @declaration function flush( )
+        * @brief Force the stream to be flushed
+        */
+       native function flush( ) : boolean
+       {
+           lock_object;
+           stream_flush( script, self );
+           unlock_object;
+           FE_RETURN_TRUE;
+       }
+       /**
+        * @function getc
+        * @declaration function getc( )
+        * @brief Read a character from the stream
+        * @return A string containing one character from the stream
+        */
+       function getc( )
+       {
+           return self.read( 1 );
+       }
+       /**
+        * @function ungetc
+        * @declaration function ungetc( string c )
+        * @description This function pushes a character back into the internal buffer. This character can be obtained
+                       by calling getc() or read(). For instance if the buffer contained 'erite\n' and .ungetc('f') was
+                       called, the internal buffer would now be 'ferite\n'. A readln() would result in 'ferite\n' being
+                       returned.
+        * @brief Push a character back onto the internal buffer
+        * @param string c The character to push onto the buffer
+        * @return 'true' on success, 'false' on fail
+        */
+       native function ungetc( string c ) : boolean
+       {
+           /* TODO: Add a ungetstring() function */
+           struct Stream *Stream = self->odata;
+           if( c->length != 1 || !(Stream->input_buffer.length < STREAM_READ_BUFFER) )
+             FE_RETURN_FALSE;
+           lock_object;
+           memmove( Stream->input_buffer.data + 1, Stream->input_buffer.data, Stream->input_buffer.length );
+           Stream->input_buffer.length++;
+           Stream->input_buffer.data[0] = c->data[0];
+           unlock_object;
+           FE_RETURN_TRUE;
+       }
+       /**
+        * @function readln
+        * @declaration  native function readln( )
+        * @brief Read a line from the stream
+        * @description The line is read from the stream using the end of line string as a delimeter. The delimeter
+        *              will be part of the string that is returned.
+        * @return The data returned
+        */ 
+       native function _readln( ) : string
+       {
+           FeriteVariable *v, *retval;
+           struct Stream *Stream = self->odata;
+           int i, len, eoflen = strlen(Stream->endofline);
+           FeriteVariable **args;
+
+           args = ferite_create_parameter_list_from_data( script, "n", (double)0 );
+           F_VAR_TYPE(args[0]) = F_VAR_LONG;
+
+           i = 0;
+           lock_object;
+           while( FE_TRUE /* i < STREAM_READ_BUFFER */ )
+           {
+               /* Search buffer for EOL, if found we create a string and move buffer up */
+               for(; i < Stream->input_buffer.length ; i++ )
+               {
+                   if( Stream->input_buffer.data[i] == Stream->endofline[0] &&
+                       memcmp( Stream->input_buffer.data + i, Stream->endofline, eoflen) == 0 )
+                   {
+                       if( i == 0)
+                         Stream->input_buffer.data[0] = '\0';
+                       v = fe_new_str_static( "read", Stream->input_buffer.data, i + eoflen, FE_CHARSET_DEFAULT );
+                       memmove( Stream->input_buffer.data,
+                                Stream->input_buffer.data + i + eoflen,
+                                Stream->input_buffer.length - i - eoflen );
+                       Stream->input_buffer.length -= i + eoflen;
+                       ferite_delete_parameter_list( script, args );
+                       unlock_object;
+           
+                       /* We have enough data within the buffer */
+                       FE_RETURN_VAR( v );
+                   }
+               }
+                /* Fill up the buffer by calling __read__ */
+               VAI(args[0]) = STREAM_READ_BUFFER - Stream->input_buffer.length;
+               retval = ferite_call_function( script, self, NULL, Stream->read, args );
+               len = FE_STRLEN(retval);
+               if( len > 0 )
+               {
+                   memcpy( Stream->input_buffer.data + Stream->input_buffer.length,
+                           FE_STR2PTR( retval ), FE_STRLEN( retval ) );
+                   Stream->input_buffer.length += len;
+               }
+               ferite_variable_destroy( script, retval );
+               if( len <= 0 )
+                 break;
+           }
+           ferite_delete_parameter_list( script, args );
+
+            /* Right, we didn't find a newline. We have either filled up the buffer or we have gotten the EOF */
+            /* Let's get it out of here anyway */
+           if( Stream->input_buffer.length == 0 )
+             Stream->input_buffer.data[0] = '\0';
+
+           v = fe_new_str_static( "read", Stream->input_buffer.data, Stream->input_buffer.length, FE_CHARSET_DEFAULT );
+           Stream->input_buffer.data[0] = '\0';
+           Stream->input_buffer.length = 0;
+           unlock_object;
+           FE_RETURN_VAR( v );
+       }
+		function readln {
+			string data = '';
+			number eolLength = Stream.EndOfLine.length();
+			number dataLength = 0;
+			string new_block = '';
+		
+			do {
+				new_block = ._readln();
+				data += new_block;
+				dataLength = data.length();
+			} while( new_block and dataLength > eolLength and data[dataLength - eolLength..dataLength - 1] != Stream.EndOfLine );
+		
+			return data;
+		}
+       /**
+        * @function read
+        * @declaration function read( number c )
+        * @brief Read a number of characters from the stream
+        * @param number c The number of characters to read
+        * @description This does not pay attention to line delimeters
+        * @return The data that is read
+        */
+       native function read( number c ) : string
+       {
+           FeriteVariable *retval,*v;
+           long count = (long)c, left,length,i=0;
+           struct Stream *Stream = self->odata;
+
+           v = fe_new_str_static( "read", NULL, count, FE_CHARSET_DEFAULT );
+           FE_STRLEN(v) = 0;
+           left = count;
+           lock_object;
+           while( left &&  Stream->read != NULL )
+           {
+               length = 0;
+
+                /* Check buffer and copy from here in first place */
+               if( Stream->input_buffer.length ) {
+//					printf("STREAM: reading from internal buffer [%d], wanting %d\n", Stream->input_buffer.length, count);
+                   length = (Stream->input_buffer.length > count) ? count : Stream->input_buffer.length;
+//					printf("STREAM: reading %d bytes from internal buffer\n", length);
+                   memcpy( FE_STR2PTR(v), Stream->input_buffer.data, length );
+//					printf("STREAM: copied: %s\n", FE_STR2PTR(v));
+//					printf("STREAM: attempting to move: <[%s]>\n", Stream->input_buffer.data + length );
+                   memmove( Stream->input_buffer.data, Stream->input_buffer.data + length, Stream->input_buffer.length - length );
+//					printf("STREAM: buffer should now be: <[%s]>\n", Stream->input_buffer.data);
+                  Stream->input_buffer.length -= length;
+                   left -= length;
+                   continue;
+               }
+                /* Call __read__ to fill up buffer (the buffer wasn't filled enough) */
+               i = VAI(params[0]);
+               VAI(params[0]) = (left > STREAM_READ_BUFFER) ? left : STREAM_READ_BUFFER;
+               retval = ferite_call_function( script, self, NULL, Stream->read, params );
+               VAI(params[0]) = i;
+               if( FE_STRLEN(retval) == 0 )
+               {
+                   ferite_variable_destroy( script, retval );
+                   break;
+               }
+                /* If we have got to much, copy the rest to the buffer */
+               if( FE_STRLEN(retval) > left )
+               {
+                   Stream->input_buffer.length = FE_STRLEN(retval) - left;
+                   memcpy( Stream->input_buffer.data, FE_STR2PTR(retval) + left , Stream->input_buffer.length );
+                   FE_STRLEN(retval) -= Stream->input_buffer.length;
+               }
+               memcpy( FE_STR2PTR(v) + (count - left), FE_STR2PTR(retval), FE_STRLEN(retval) );
+               left -= FE_STRLEN(retval);
+               ferite_variable_destroy( script, retval );
+
+           }
+           FE_STRLEN( v ) = count - left;
+           unlock_object;
+           FE_RETURN_VAR( v );
+       }
+       
+       /**
+        * @function __write__
+        * @declaration function __write__( string s )
+        * @brief Used for implementation of a Stream class
+        * @description This method must be overidden in the sub-class. It gets called whenever data is written to the
+        *              stream. It returns the number of bytes written.
+        * @param string s The data to write to the stream
+        * @return The amount of data written
+        */
+       native function __write__( string s ) : number
+       {
+           FE_RETURN_LONG( 0 );
+       }
+       /**
+        * @function __read__
+        * @declaration function __read__( number count )
+        * @brief Used for implementation of a Stream class
+        * @description This method must be overidden in the sub-class. It gets called whenever data is read from the
+        *              stream. It returns the data read. It should read up to count bytes.
+        * @param number count The number of bytes to read
+        * @return The string read
+        */
+       native function __read__( number count ) : string
+       {
+           FE_RETURN_VAR( fe_new_str_static( "read", NULL, 0, FE_CHARSET_DEFAULT ) );
+       }
+       /**
+        * @function __close__
+        * @declaration function __close__( )
+        * @brief Used for implementation of a Stream class
+        * @description This method must be overidden in the sub-class. It gets called when the stream is to be closed
+        */
+       function __close__( )
+       {
+            /* NOOP */
+       }
+       /**
+        * @function close
+        * @declaration function close( )
+        * @brief Flush and then close the stream
+        */
+       function close( )
+       {
+           self.flush();
+           self.__close__( );
+       }
+       /**
+        * @function eos
+        * @declaration function eos( )
+        * @brief Check to see if the stream is at it's end
+        * @return 'true' if it's at the end, 'false' otherwise
+        */
+       native function eos( ) : boolean
+       {
+           struct Stream *Stream = self->odata;
+           if( Stream->input_buffer.length == 0 )
+           {
+               FE_RETURN_TRUE;
+           }
+           FE_RETURN_FALSE;
+       }
+        
+        protected native function clearInputBuffer() : undefined {
+            struct Stream *Stream = self->odata;
+            stream_clear_input( Stream );
+        }
+    }
+    /**
+     * @end
+     */
+
+    /**
+     * @class StdioStream
+     * @extends Stream.Stream
+     * @brief Provides a standard io interface to a native OS stream. Use Sys.stdin(), Sys.stdout(), or Sys.stderr() to obtain
+     *        objects of this type. Other functions are likely to return instances.
+     */
+    class StdioStream extends Stream.Stream
+    {
+        native function constructor( number fd ) {
+            struct Stream *Stream = NULL;
+            FeriteVariable *c = ferite_create_object_variable_with_data( script, "StdioStream", self, FE_STATIC );           
+            ferite_variable_destroy( script, ferite_object_call_super( script, c, NULL ) );           
+            ferite_variable_destroy( script, c );
+            
+            Stream = self->odata;
+            Stream->eos = FE_FALSE;
+            Stream->file_descriptor = fd;
+            Stream->read = ferite_object_get_function( script, self, "__read__" );
+            Stream->write = ferite_object_get_function( script, self, "__write__" );
+        }
+        native function __read__( number c ) : string {
+            struct Stream *Stream = self->odata;
+            FeriteVariable *in = NULL;
+            in = fe_new_str_static("read", NULL, (int)c, FE_CHARSET_DEFAULT );
+            FE_STRLEN(in) = read( Stream->file_descriptor, FE_STR2PTR(in), (int)c );
+            Stream->eos = (FE_STRLEN(in) <= 0 ? FE_TRUE : FE_FALSE);
+            if( FE_STRLEN(in) == -1 )
+            {
+                ferite_error( script, errno, "StdioStream: Read: %s (%d)\n", strerror( errno ), errno );
+                if( Stream->errmsg != NULL )
+                {
+                    ffree( Stream->errmsg );
+                }
+                Stream->errmsg = fstrdup( strerror( errno ) );
+                FE_STRLEN(in) = 0;
+            }
+            FE_RETURN_VAR( in );
+        }
+        native function __write__( string s ) : number {
+            struct Stream *Stream = self->odata;
+            int ret = 0;
+            ret = write( Stream->file_descriptor, s->data, s->length );
+            if( ret == -1 )
+            {
+                ferite_error( script, errno, "StdioStream: Write: %s (%d)\n", strerror( errno ), errno );
+                if( Stream->errmsg != NULL )
+                {
+                    ffree( Stream->errmsg );
+                }
+                Stream->errmsg = fstrdup( strerror( errno ) );
+                FE_RETURN_LONG( 0 );
+            }
+            FE_RETURN_LONG( ret );
+        }
+        native function __close__( ) : undefined {
+            struct Stream *Stream = self->odata;
+            if( Stream->file_descriptor != -1 && Stream->file_descriptor != 0 && Stream->file_descriptor != 1 && Stream->file_descriptor != 2 )
+                close( Stream->file_descriptor );
+			STREAM_RESET(Stream);
+        }
+        native function eos() : boolean {
+            struct Stream *Stream = self->odata;
+            if( Stream->eos && Stream->input_buffer.length == 0 )
+            {
+                FE_RETURN_TRUE;
+            }
+            FE_RETURN_FALSE;
+		}
+		native function getDescriptor() : number {
+			struct Stream *s = self->odata;
+			FE_RETURN_LONG(s->file_descriptor);
+		}
+    }
+    /**
+     * @end
+     */
+
+    /**
+     * @class StringStream
+     * @extends Stream.Stream
+     * @brief Provides a way to access a string as if it were a stream
+     * @description This class inherits from the Stream class, so it supports
+     *              all the basic Stream methods such as readln(), println(),
+     *              etc. and it also supports many of the same methods that
+     *              the FileStream class has such as seek(), eos(), truncate(),
+     *              etc. It does not have the getDescriptor() method however,
+     *              so you cannot include a StringStream object in a Select
+     *              array (it wouldn't make any sense to do so anyway).
+     */
+    class StringStream extends Stream.Stream
+    {
+        string s;
+        number pos;
+
+        /**
+       * @function constructor
+       * @declaration function constructor(string s)
+       * @brief The constructor for the StringStream class
+       * @param string s The string to use for the stream data
+       * @description This function is the constructor for the StringStream
+       *              class. You should supply it with the string you want to
+       *              use for the Stream data. If you want to create an
+       *              empty StringStream, you can supply it with an empty
+       *              string (ie. "").
+       */
+        function constructor(string s)
+        {
+            .s = s;
+            .pos = 0;
+            super();
+        }
+        
+        function __read__(number cnt)
+        {
+            string ret;
+            number newpos;
+            
+            if(cnt <= 0) {
+                return "";
+            }
+            
+            newpos = .pos + cnt;
+            if(newpos > String.length(.s)) {
+                newpos = String.length(.s);
+            }
+            
+            if(.pos == newpos) {
+                return "";
+            }
+            
+            ret = .s[.pos .. newpos - 1];
+            .pos = newpos;
+            
+            return ret;
+        }
+        
+        function __write__(string s)
+        {
+            string news;
+            
+            if(.pos == String.length(.s)) {
+                .s += s;
+                .pos = String.length(.s);
+            } else {
+                if(.pos > 0) news = .s[.. .pos - 1];
+                news += s;
+                .pos += String.length(s);
+                if(.pos < String.length(.s)) news += .s[.pos ..];
+                .s = news;
+            }
+            return String.length(s);
+        }
+        
+        function __close__()
+        {
+            .s = "";
+            .pos = 0;
+        }
+        
+        /**
+         * @function eos
+         * @declaration function eos()
+         * @brief Find out if the stream pointer is at the end of the string
+         * @return True if the pointer is at the end of the string, false if not
+         */
+        function eos()
+        {
+            if(.pos == String.length(.s) and super.eos() ) 
+                return true;
+            return false;
+        }
+        
+        /**
+         * @function truncate
+         * @declaration function truncate(number length)
+         * @brief Truncates the string to the specified length
+         * @return True on success or false on error
+         */
+        function truncate(number length)
+        {
+            if(length < 0) return false;
+            else if(length == 0) .s = "";
+            else if(length < String.length(.s)) {
+                .s = .s[.. length - 1];
+            }
+            if(.pos > length) .pos = length;
+            super.clearInputBuffer();
+            return true;
+        }
+        
+        /**
+            * @function seek
+         * @declaration function seek(number offset, number whence)
+         * @brief Sets the stream pointer to the specified position in the string
+         * @param number offset The amount to offset the pointer by
+         * @param number whence Where to offset the pointer relative to
+         * @return True on success or false on error
+         * @description This function sets the stream pointer to the specified
+         *              position in the stream. The whence parameter specifies
+         *              where the offset is relative to. It can be one of:
+         *              Stream.SEEK_SET (relative to the start of the string),
+         *              Stream.SEEK_CUR (relative to the current stream position),
+         *              or Stream.SEEK_END (relative to the end of the stream).
+         *              seek() does not extend the string if the resulting
+         *              stream position would be greater than the length of
+         *              the string.
+         */
+        function seek(number offset, number whence)
+        {
+            number newpos;
+            
+            switch(whence) {
+                case Stream.SEEK_SET:
+                    newpos = offset;
+                    break;
+                case Stream.SEEK_CUR:
+                    newpos = .pos + offset;
+                    break;
+                case Stream.SEEK_END:
+                    newpos = String.length(.s) + offset;
+                    break;
+                default:
+                    return false;
+            }
+            
+            if(newpos > String.length(.s)) .pos = String.length(.s);
+            else if(newpos < 0) .pos = 0;
+            else .pos = newpos;
+            
+            super.clearInputBuffer();
+            
+            return true;
+        }
+        
+        /**
+         * @function length
+         * @declaration function length()
+         * @brief Returns the length of the string
+         * @return The length of the string
+         */
+        function length()
+        {
+            return(String.length(.s));
+        }
+        
+        /**
+            * @function pos
+         * @declaration function pos()
+         * @brief Returns the current stream pointer value
+         * @return The position of the stream pointer within the string
+         */
+        function pos()
+        {
+            return(.pos);
+        }
+        
+        /**
+            * @function toString
+         * @declaration function toString()
+         * @brief Returns the string stored within the StringStream object as an ordinary string
+         * @return The string from within the StringStream object.
+         */
+        function toString()
+        {
+            return(.s);
+        }
+    }
+    /**
+        * @end
+     */
+}
+/**
+ * @end
+ */

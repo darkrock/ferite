@@ -1,0 +1,11 @@
+#!/usr/bin/env ferite
+
+uses "console", "posix";
+
+object uname = new Posix.Uname();
+
+Console.println("sysname = " + uname.sysname);
+Console.println("release = " + uname.release);
+Console.println("version = " + uname.version);
+Console.println("machine = " + uname.machine);
+Console.println("nodename = " + uname.nodename);

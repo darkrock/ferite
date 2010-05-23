@@ -1,0 +1,140 @@
+
+uses "console", "test", "regexp", "string", "array";
+
+function CreateMatchObject() {
+    object o = new MatchObject( 'match', 42, 42 + String.length('match'), [ 'm', 'a' ] );    
+    return o;
+}
+class MatchTest extends Test {
+    function start() { 
+        object o = CreateMatchObject();
+        if( o.start() != 42 )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    function match() { 
+        object o = CreateMatchObject();
+        if( o.match() != "match" )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    function capture() { 
+        object o = CreateMatchObject();
+        if( o.capture(0) != "m" )
+            return 1;
+        if( o.capture(1) != "a" )
+            return 2;
+        return Test.SUCCESS;    
+    }
+    function span() { 
+        object o = CreateMatchObject();
+        array a = o.span();
+        if( a[0] != 42 )
+            return 1;
+        if( a[1] != (42 + String.length(o.match())) )
+            return 2;
+        return Test.SUCCESS;    
+    }
+    function end() { 
+        object o = CreateMatchObject();
+        if( o.end() != (42 + String.length(o.match())) )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    function toString() { 
+        object o = CreateMatchObject();
+        if( o.toString() == "" )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    function captures() { 
+        object o = CreateMatchObject();
+        if( o.captures() != [ 'm', 'a' ] )
+            return 1;
+        return Test.SUCCESS;    
+    }    
+}
+class RegexpTest extends Test {
+    function replace() { 
+        object o = new Regexp( "([0-9]+)" );
+        string replace = o.replace( "123 is the greatest (number 1)", "ferite" );
+        string replace2 = Regexp.replace( '([0-9]+)', "123 is the greatest (number 1)", "ferite" );
+        if( replace != 'ferite is the greatest (number 1)' )
+            return 1;
+        if( replace2 != 'ferite is the greatest (number 1)' )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function match() { 
+        object o = new Regexp( "([0-9]+)" );
+        object p = o.match( "123 456 789 345" );
+        object q = Regexp.match( '([0-9]+)', "123 456 789 345" );
+        if( p == null )
+            return 1;
+        if( p.match() != "123" )
+            return 2;
+        if( q == null )
+            return 3;
+        if( q.match() != "123" )
+            return 4;
+        if( o.lastMatch() != p )
+            return 5;
+        return Test.SUCCESS; 
+    }
+    function lastMatch() { return .match(); }
+    function matchAll() { 
+        string got = "";
+        object o = new Regexp( "([0-9]+)" );
+        array b = Regexp.matchAll( '([0-9]+)', "123 456 789 345" );
+        array a = o.matchAll( "123 456 789 345" ) using (match) {
+            got += match.match();
+        };
+        if( Array.size(a) != 4 )
+            return 1;
+        if( got != "123456789345" )
+            return 2;
+        if( Array.size(b) != 4 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function replaceAll() {
+        object o = new Regexp( "([0-9]+)" );
+        string replace = o.replaceAll( "1234 is the 123456" ) using (match) {
+            return "${match.match()}.feriteRocks";
+        };
+        string replace2 = Regexp.replaceAll( '([0-9]+)', "123 is the greatest (number 1)", "ferite" );
+        string replace3 = o.replaceAll( "1234 is the 123456", "fnar" );
+        if( replace != '1234.feriteRocks is the 123456.feriteRocks' )
+            return 1;
+        if( replace2 != 'ferite is the greatest (number ferite)' )
+            return 2;
+        if( replace3 != 'fnar is the fnar' )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function getRegexp() {
+        object o = new Regexp('.');
+        if( o.getRegexp() != '.' )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    function split() { 
+        array a = Regexp.split('ferite([0-9]+)', "Hiferite1Thereferite3fromferite5Chris" );
+        if( Array.size(a) != 4 )
+            return 1;
+        if( a[0] != "Hi" )
+            return 2;
+        if( a[1] != "There" )
+            return 3;
+        if( a[2] != "from" )
+            return 4;
+        if( a[3] != "Chris" )
+            return 5;
+        return Test.SUCCESS;
+    }
+	function toString() { return Test.IGNORE; }
+}
+
+object o = new MatchTest();
+object p = new RegexpTest();
+return o.run('MatchObject') + p.run('Regexp');

@@ -1,0 +1,139 @@
+class RMIProtocolLayer 
+{
+   object translation;
+   
+   function constructor( object translation )
+   {
+       .translation = translation;
+   }
+   
+   function obtainAttribute( string id, string serviceName, string attr )
+   {
+       string send, receive;
+ 
+       send += .encodeAttributeGetHeader( id, serviceName );
+       send += .encodeAttributeName( attr );
+       send += .encodeAttributeFooter();
+       
+       .translation.send( send );       
+       return .waitForReply( id, serviceName );
+   }
+   
+   function setAttribute( string id, string serviceName, string attr, void value )
+   {
+       string send, receive;
+ 
+       send += .encodeAttributeSetHeader( id, serviceName );
+       send += .encodeAttributeName( attr );
+       send += .encodeVariable( value );
+       send += .encodeAttributeFooter();
+       
+       .translation.send( send );       
+       return .waitForReply( id, serviceName );
+   }
+   
+   function executeMethodCall( string id, string serviceName, string name, array args )
+   {
+       string send = "", receive = "";
+       void argument;
+       
+       send = .encodeMethodCallHeader( id, serviceName );
+       send += .encodeMethodCallName( name );
+       
+       send += .encodeMethodCallArgumentsStart(Array.size(args));
+       Array.each( args ) using ( argument ) {
+           send += .encodeMethodCallArgument( argument );
+       };
+       send += .encodeMethodCallArgumentsEnd();
+
+       send += .encodeMethodCallFooter();
+       
+       .translation.send( send );
+       return .waitForReply( id, serviceName );
+   }
+   
+   function encodeAttributeGetName( string id, string serviceName, string name )
+   {
+       return "";
+   }
+
+   function encodeAttributeSetName( string id, string serviceName, string name )
+   {
+       return "";
+   }
+
+   function encodeAttributeFooter()
+   {
+       return "";
+   }
+   
+   function encodeMethodCallHeader( string id, string serviceName )
+   {
+       return "";
+   }
+   
+   function encodeMethodCallName( string name )
+   {
+       return "";
+   }
+   
+   function encodeMethodCallArgumentsStart( number size )
+   {
+       return "";
+   }
+
+   function encodeMethodCallArgument( void variable )
+   {
+       return "";
+   }
+   
+   function encodeMethodCallArgumentsEnd()
+   {
+       return "";
+   }
+   
+   function encodeMethodCallFooter()
+   {
+       return "";
+   }   
+
+   function encodeReturn( string id, string service, void value )
+   {
+       return "";
+   }
+   
+   function encodeError( string id, string service, string message, number value )
+   {
+       return "";
+   }
+   
+   function encodeVariable( void value )
+   {
+       return "";
+   }
+   
+   function decodeVariable( string value )
+   {
+       return "";
+   }
+   
+   function decodeMethodCall( string value )
+   {
+       return null;
+   }
+   
+   function decodeReturn( string value )
+   {
+       return "";
+   }
+   
+   function decodeError( string error )
+   {
+       return "";
+   }
+   
+   function waitForReply( string id, string service )
+   {
+       return "";
+   }
+}

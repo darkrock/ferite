@@ -1,0 +1,104 @@
+uses "console", "sys", "array", "string", "structs.fe";
+
+
+/**
+ * !class Sys.FileStream
+ * !modifies Sys.FileStream
+ * !declaration class modifies Sys.FileStream
+ * !brief An enhancement to the system's FileStream class
+ */
+class modifies Sys.FileStream
+{
+   /**
+    * !function toString
+    * !brief Read the entire file into a string
+    * !return string
+    */
+   function toString()
+   {
+       string str = .read( .stat().st_size );
+       return str;
+   }
+}
+/**
+ * !end
+ */
+
+/**
+ * !class Parser
+ * !brief Implements a parser to process comments in a ferite source file
+ */
+class Parser
+{
+   /**
+    * !variable file_list
+    * !brief The list of files the parser will process
+    * !type array
+    */
+   array  file_list;
+   object tree;
+
+   /**
+    * !function start
+    * !brief    Process the file list, and generate an object tree of the comments
+    * !return   object
+    * !declartion function start()
+    */
+   function start(){}
+
+   /**
+    * !function addFile
+    * !brief    Add a file to the list of files the parser will process
+    * !return   void
+    * !param    string filename The file to add to the list
+    * !declaration function addFile( string filename )
+    */
+   function addFile( string filename ){}
+
+   /**
+    * !function dump_array
+    * !brief Dump the key/value pairs in the array
+    * !declaration function dump_array( array v )
+    * !param array v The array to dump
+    */
+   function dump_array( array v ){}
+}
+/**
+ * !end 
+ */
+
+/**
+ * !namespace foo
+ * !brief foo
+ */
+namespace foo 
+{
+    
+    /**
+     * !namespace bar
+     * !brief bar
+     */
+    namespace bar
+    {
+        
+        
+    }
+    /**
+     * !end 
+     */
+    
+    /**
+     * !class test
+     * !brief test class
+     */
+    class test
+    {
+    
+    }  
+    /**
+     * !end 
+     */
+}
+/**
+ * !end 
+ */

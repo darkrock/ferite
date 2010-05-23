@@ -1,0 +1,17 @@
+uses "console";
+
+class Test {
+   
+   function foo( string hi )
+   {
+       Console.println( "foo: $hi" );
+   }
+   
+   [alias foo, bar];
+   
+}
+
+object o = new Test();
+
+o.foo( "Original Foo" );
+o.bar( "Using Bar" );

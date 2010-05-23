@@ -1,0 +1,11 @@
+uses "console";
+
+number foo = ( true ? 1 : 2 );
+Console.println( "foo: $foo [should be 1]" );
+
+foo = ( false ? 1 : 2 );
+Console.println( "foo: $foo [should be 2]" );
+
+Console.println( "Hello ${ (true ? "World" : "Chris") } [should be 'Hello World']" );
+Console.println( "Hello ${ (false ? "World" : "Chris") } [should be 'Hello Chris']" );
+

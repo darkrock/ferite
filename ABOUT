@@ -1,0 +1,4 @@
+ferite is a lightweight, portable, threadsafe, scripting engine with a language
+very similiar in style to Java, C, PHP, and Ruby. It is fast, threadsafe, has 
+a small footprint, and is object oriented. It is designed to be modular and 
+embedable in applications.

@@ -1,0 +1,615 @@
+uses "array", "reflection", "sys", "thread";
+
+/*
+ * RMI Foundation Classes
+ */
+uses "rmi/RMILocalVariable";
+uses "rmi/RMIRemoteObject";
+uses "rmi/RMIProtocolLayer";
+uses "rmi/RMITranslationLayer";
+uses "rmi/RMITransportLayer";
+
+/**
+ * @namespace RMI
+ * @brief The top-level namespace for the Remote Method Invocation framework
+ * @description Using this framework it is possible to connect and also export objects 
+ *              to be accessed across any protocol, translation or transport layer.
+ *              Object access is transparent to the programmer who can treat the services
+ *              like locally created objects.
+ *              <p>
+ *              The framework consists of a set of layers. The protocol layer, the translation 
+ *              layer and finally the transport layer. The protocol layer translates the 
+ *              attribute access and method calls into a form that can be passed onto the 
+ *              translation layer. The translation layer provides a slot between the transport 
+ *              layer and the protocol to do extra processing. By default this layer does not 
+ *              do anything. If can be used to add encryption or other data transforms. The 
+ *              transport layer provides the comunication layer between client and server.
+ * @example Server-side: <nl/><nl/><code>
+ <keyword>uses</keyword> "console", "rmi", "sys";<nl/>
+ <nl/>
+ <keyword>class</keyword> SomeService<nl/>
+ {<nl/>
+ <tab/><type>string</type> someValue;<nl/>
+ <tab/><nl/>
+ <tab/><keyword>function</keyword> SomeService( <type>string</type> value )<nl/>
+ <tab/><tab/>.someValue = value;<nl/>
+ <tab/><nl/>
+ <tab/><keyword>function</keyword> getValue()<nl/>
+ <tab/><tab/><keyword>return</keyword> .someValue;<nl/>
+ }<nl/>
+ <nl/>
+ <type>string</type> host = "localhost";<nl/>
+ <nl/>
+ <keyword>if</keyword>( Array.size(<keyword>argv</span>) &gt; 0 )<nl/>
+ <tab/>host = <keyword>argv</keyword>[0];<nl/>
+ <nl/>
+ RMI.createService( "SomeResource", <keyword>new</keyword> SomeService( "If you can see this \"RMI\" is working!" ) );<nl/>
+ RMI.addServiceListener( "::tcpip", "bind:$host:" );<nl/>
+ RMI.listen();</code>
+ <p>
+ Client-side:<nl/><code>
+ <keyword>uses</keyword> "console", "rmi", "<type>array</type>";<nl/>
+ <nl/>
+ <type>object</type> o = <type>null</span>, p;<nl/>
+ <type>string</type> host = "localhost";<nl/>
+ <nl/>
+ <keyword>if</keyword>( Array.size(<keyword>argv</span>) &amp;gt; 0 )<nl/>
+ <tab/>host = <keyword>argv</keyword>[0];<nl/>
+ <nl/>
+ o = RMI.connectToService( "::tcpip", "connect:$host:", "SomeResource" );<nl/>
+ <keyword>if</keyword>( o != <type>null</type> )<nl/>
+ {<nl/>
+ <tab/>Console.println( "Testing o" );<nl/>
+ <tab/>Console.println( "Return from o.getValue() == '${o.getValue()}'" );<nl/>
+ <tab/>Console.println( "o.someValue = '${o.someValue}'" );<nl/>
+ <tab/>o.attribute_set( "someValue", "Harrow Taxi Driver" );<nl/>
+ <tab/>Console.println( "o.someValue = '${o.someValue}'" );<tab/><nl/>
+ <tab/>o.someValue = "Toothy Hurty";<nl/>
+ <tab/>Console.println( "o.someValue = '${o.someValue}'" );<tab/><nl/>
+ <tab/>Console.println( "Return from o.getValue() == '${o.getValue()}'" );<nl/>
+ }<nl/>
+ </code><nl/>
+ 
+ 
+ */
+namespace RMI
+{
+    number debugOn = 0;
+    
+    /**
+     * @namespace Error
+     * @brief Error return values. When an error occurs the err.num will be equal to one of these
+     */
+    namespace Error
+    {
+	/**
+	 * @variable NOERROR
+	 * @type number
+	 * @brief If there is no error. This is what will be.
+	 */
+	final number NOERROR = 0;
+	/**
+	 * @variable NOSERVICE
+	 * @type number
+	 * @brief The requested service does not exist on the remote end.
+	 */
+	final number NOSERVICE = -1;
+	/**
+	 * @variable NOATTRIBUTE
+	 * @type number
+	 * @brief The requested attribute does not exist.
+	 */
+	final number NOATTRIBUTE = -2;
+	/**
+	 * @variable NOMETHOD
+	 * @type number
+	 * @brief The requested method does not exist.
+	 */
+	final number NOMETHOD = -3;
+	/**
+	 * @variable NOBADMETHOD
+	 * @type number
+	 * @brief The method call was malformed. Usually this is because of bad arguments, it can also be
+	 *        caused by an exception on the remote end.
+	 */
+	final number BADMETHOD = -4;
+    }
+    /**
+     * @end
+     */
+    
+    /*
+     * Wrapper class to hold named services
+     */
+    class Service 
+    {
+       string name;
+       object obj;
+       object wrapper;
+       
+       function constructor( string name, object obj )
+       {
+	   .name = name;
+	   .obj = obj;
+           .wrapper = new Object(.obj);
+       }
+       
+       function getWrapper() {
+           return .wrapper;
+       }
+    }
+    
+    /*
+     * Wrapper class to hold named layers
+     */
+    class Layer
+    {
+       string name;
+       string className;
+       
+       function constructor( string name, string className )
+       {
+		   .name = name;
+		   .className = className;
+       }
+       
+       function newObject( void param ) {
+           object o = Class.classWithName( .className );
+           object p = o.newObject( param );
+           return p;	   
+       }
+    }
+
+    /*
+     * Service Executor 
+     */
+    class ServiceExecutor extends Thread     
+    {
+       object proto;
+       
+       function constructor( object proto )
+       {
+		   super();
+		   .proto = proto;
+       }
+       
+       function start() {
+           RMI.debug("[SE Thread Start] ${.proto}");
+           super.start();
+       }
+       
+       function run()
+       {
+           RMI.debug( "[SE] Waiting for protocol reply" );
+           monitor {
+               .proto.waitForReply( "", "" );
+           } handle {
+               Console.println( "Error: ${err.str}" );
+           }
+       }       
+    }
+    
+    /*
+     * Service Listener
+     */
+    class ServiceListener extends Thread
+    {
+       string proto;
+       string translation;
+       object transport;
+
+       function constructor( string proto, string translation, object transport )
+       {
+		   super();
+		   .proto = proto;
+		   .translation = translation;
+		   .transport = transport;
+       }
+	   
+       function start() {
+           RMI.debug("[SL Thread Start] ${.proto}, ${.translation}");
+           super.start();
+       }
+       
+       function createLayers( object transport ) {
+		   object translation = null;
+		   object proto = null;
+		   
+		   if( transport != null )
+		   {
+			   /* Load the translation layer */
+			   if( Array.keyExists( RMI.loaded.translation, .translation ) )
+				   translation = RMI.loaded.translation[.translation].newObject( transport );
+			   else
+			   {
+				   Console.println( "RMI: Translation: unable to locate translation layer '${.translation}'" );
+				   return null;
+			   }
+			   
+			   if( translation != null )
+			   {
+				   /* Load the protcol layer */
+				   if( Array.keyExists( RMI.loaded.proto, .proto ) )
+					   proto = RMI.loaded.proto[.proto].newObject( translation );
+				   else
+				   {
+					   Console.println( "RMI: Protocol: unable to locate protocol layer '${.proto}'" );
+					   return null;
+				   }
+				   
+				   if( proto != null )
+					   return new RMI.ServiceExecutor( proto );
+			   }
+		   }
+		   return proto;
+       }
+       
+       function run() {
+		   object newclient = null, newtransport = null;
+		   
+		   RMI.debug( "ServiceListener Active" );
+		   while( RMI.serverRunning )
+		   {
+               RMI.debug( 'Waiting for client' );
+			   newtransport = .transport.waitForClient();
+			   if( newtransport != null )
+			   {
+				   RMI.debug( "Creating Layers" );
+				   newclient = .createLayers( newtransport );
+				   RMI.debug( "Starting Dedicated Client" );
+                   newclient.setPassExceptions(true);
+				   newclient.start();		   
+			   }
+		   }
+       }
+       
+       function isBlocking()
+           return .transport.isBlocking();
+    }
+	
+    /*
+     * A private namespace to hold the loaded layers
+     */
+    namespace loaded {
+		array proto;
+		array translation;
+		array transport;
+		array listener;
+    }
+    
+    function createServiceStub( string name, object service )
+		return new RMI.Service( name, service );
+	
+    namespace Private {
+		array services;
+		
+		function createService( string name, object service ) {
+			object node = RMI.createServiceStub( name, service );
+			RMI.Private.services[name] = node;	
+		}
+		
+		function serviceExists( string name ) {
+			if( RMI.debugOn ) {
+				Console.println( "RMI: ${RMI.Private.services}");
+			}
+			if( Array.keyExists( RMI.Private.services, name ) )
+				return true;
+			return false;
+		}
+    }
+    
+    namespace Public {
+		array services;
+		
+		function createService( string name, object service ) {
+			object node = RMI.createServiceStub( name, service );
+			RMI.Public.services[name] = node;	
+		}
+		
+		function serviceExists( string name )
+		{
+			if( Array.keyExists( RMI.Public.services, name ) )
+				return true;
+			return false;
+		}    
+    }
+    
+    /**
+     * @function createService
+     * @declaration function createService( string name, object service )
+     * @brief Create a service for an object with a specified name
+     * @param string name The name of the service to create
+     * @param object service The object to bind the service to.
+     * @description This is the corner stone of any nutritious  rmi session. 
+     *              Any service that is created can be viewed from any listening post.
+     * @example <code>RMI.createService("SomeResource",someObject);</code>
+     */
+    function createService( string name, object service )
+        RMI.Public.createService( name, service );
+    
+    /**
+     * @function connectToService
+     * @brief This function connects to RMI server and provides an object to interact with that service.
+     * @declaration function connectToService( string protocols, string url, string service )
+     * @param string protocols The protocols to use to connect to the remote service, e.g. ::tcpip
+     * @param string url The connection url to pass to the protocol stack specified in the previous parameter.
+     *                   Given the previous example, connect:host.
+     * @param string service The name of the service to connect to.
+     * @return An object connected to the service, null otherwise.
+     * @example <code>object o = RMI.connectToService( "::tcpip", "connect:localhost:", "SomeResource" );</code>
+     */
+     
+    array serviceHistory;
+    
+    function connectToService( string protocols, string url, string service ) {
+        if( Array.keyExists( .serviceHistory, "$protocols//$url" ) ) {
+			return new RMIRemoteObject( .serviceHistory["$protocols//$url"], service );
+		} else {
+            string protocolstr = "std";
+            string translationstr = "std";
+            string transportstr = "tcpip"; 
+            object proto, translation, transport, robject;
+            object match = Regexp.match( '([^:]*):([^:]*):([^:]*)', protocols );
+            
+            if( match.capture(0) != "" )
+                protocolstr = match.capture(0);
+            
+            if( match.capture(1) != "" )
+                translationstr = match.capture(1);
+            
+            if( match.capture(2) != "" )
+                transportstr = match.capture(2);
+            
+            // Load the transport layer
+            if( Array.keyExists( RMI.loaded.transport, transportstr ) ) {
+                transport = RMI.loaded.transport[transportstr].newObject( url );
+            }
+            else
+            {
+                Console.println( "RMI: Transport: unable to locate transport layer '$transportstr'" );
+                return null;
+            }
+            
+            if( transport != null )
+            {
+                // Load the translation layer
+                if( Array.keyExists( RMI.loaded.translation, translationstr ) )
+                    translation = RMI.loaded.translation[translationstr].newObject( transport );
+                else
+                {
+                    Console.println( "RMI: Translation: unable to locate translation layer '$translationstr'" );
+                    return null;
+                }
+                
+                if( translation != null )
+                {
+                    // Load the protcol layer
+                    if( Array.keyExists( RMI.loaded.proto, protocolstr ) )
+                        proto = RMI.loaded.proto[protocolstr].newObject( translation );
+                    else
+                    {
+                        Console.println( "RMI: Protocol: unable to locate translation layer '$protocolstr'" );
+                        return null;
+                    }
+                    
+                    if( proto != null ) {
+                        .serviceHistory["$protocols//$url"] = proto;
+                        return new RMIRemoteObject( proto, service );
+                    }
+                }
+            }
+        }
+		return null; 
+    }
+
+    /**
+     * @function getService
+     * @declaration function getService( string name )
+     * @brief Get a reference to an object for a given service name
+     * @param string name The name of the service to get a handle of
+     * @return The service object if it exists, null otherwise.
+     */
+    function getService( string name ) {
+		if( RMI.Public.serviceExists( name ) )
+			return RMI.Public.services[name];
+		
+		if( RMI.Private.serviceExists( name ) )
+			return RMI.Private.services[name];
+	    
+		return null;	
+    }
+    
+    /**
+     * @function registerProtocolLayer
+     * @declaration function registerProtocolLayer( string name, string klass )
+     * @brief Register a class as a protocol layer
+     * @description The aim of the protocol layer is to encode and decode the rmi aspects of the language.
+     *              For instance it takes a method call with a set of arguments gets encoded on the client
+     *              side, given to the translation layer who hands it to the transport and then hands it to
+     *              the server (who does the reverse). The protocol layer doesn't need to worry about translation
+     *              or transport.
+     * @param string name The name of the layer, e.g. std, xml
+     * @param string klass The name of the ferite class representing the protocol
+     */
+    function registerProtocolLayer( string name, string klass ) {
+		if( not Array.keyExists( RMI.loaded.proto, name ) )
+			RMI.loaded.proto[name] = new RMI.Layer( name, klass );
+		else
+			Console.println( "Error trying to re-register protocol layer \"$name\" - it already exists." );
+    }
+    
+    /**
+     * @function registerTranslationLayer
+     * @declaration function registerTranslationLayer( string name, string klass )
+     * @brief Register a class as a translation layer
+     * @description The translation layer is the middle man between the top level protocol layer and the transport
+     *              layer. For the most part the translation layer need not intervene in the rmi communication
+     *              stack unless specific encoding is required: for instance encrypted data.
+     * @param string name The name of the layer, e.g. std, ssl
+     * @param string klass The name of the ferite class representing the translation
+     */
+    function registerTranslationLayer( string name, string klass ) {
+		if( not Array.keyExists( RMI.loaded.translation, name ) )
+			RMI.loaded.translation[name] = new RMI.Layer( name, klass );
+		else
+			Console.println( "Error trying to re-register translation layer \"$name\" - it already exists." );
+    }
+    
+    /**
+     * @function registerTransportLayer
+     * @declaration function registerTransportLayer( string name, string klass )
+     * @brief Register a class as a transport layer
+     * @description The transport layer is the bottom man between the beneath the translation
+     *              layer. It is the job of the transport layer to communicate between the client and the
+     *              server. It should be noted that the default port for the tcpip layer is 2048.
+     * @param string name The name of the layer, e.g. tcpip
+     * @param string klass The name of the ferite class representing the transport
+     */
+    function registerTransportLayer( string name, string klass ) {
+		if( not Array.keyExists( RMI.loaded.transport, name ) )
+			RMI.loaded.transport[name] = new RMI.Layer( name, klass );
+		else
+			Console.println( "Error trying to re-register transport layer \"$name\" - it already exists." );
+    }
+    /**
+     * @function addServiceListener
+     * @declaration function addServiceListener( string protocols, string url )
+     * @brief This function creates a service listening given a protocol stack.
+     * @description The result of this function is the creation of a service listener that can provide access
+     *              to any of the previously created services.
+     * @param string protocols The protocols to use to listen for the remote service connection, e.g. ::tcpip
+     * @param string url The listen url to pass to the protocol stack specified in the previous parameter.
+     *                   Given the previous example, bind:locahost:.
+     * @example <code>RMI.addServiceListener( "::tcpip", "bind:locahost:" );</code>
+     */
+    function addServiceListener( string protocols, string url ) {
+		string protocolstr = "std";
+		string translationstr = "std";
+		string transportstr = "tcpip"; 
+		object proto, translation, transport, robject;
+		object match = Regexp.match( '([^:]*):([^:]*):([^:]*)', protocols );
+		
+		if( match.capture(0) != "" )
+            protocolstr = match.capture(0);
+		
+		if( match.capture(1) != "" )
+            translationstr = match.capture(1);
+		
+		if( match.capture(2) != "" )
+            transportstr = match.capture(2);
+        
+		/* Load the transport layer */
+		if( Array.keyExists( RMI.loaded.transport, transportstr ) )
+            transport = RMI.loaded.transport[transportstr].newObject( url );
+		else
+		{
+			Console.println( "RMI: Transport: unable to locate transport layer '$transportstr'" );
+			return null;
+		}
+		
+		if( transport != null )
+		{
+			robject = new RMI.ServiceListener( protocolstr, translationstr, transport );
+			RMI.loaded.listener[] = robject;
+		}
+    }
+    
+	/**
+     * @function iterate
+	 * @declaration function iterate()
+	 * @brief Go through each of the non-blocking connections and run them to check for connections
+	 */
+	function iterate() {
+		object sl;
+		RMI.debug( "Cycling non-blocking service listeners" );
+		for( number i = 0; i < Array.size( RMI.loaded.listener ); i++ ) {
+			sl = RMI.loaded.listener[i];
+			if( not sl.isBlocking() )
+				sl.run();
+		}
+	}
+	
+    /**
+     * @function listen
+     * @declaration function listen()
+     * @brief This is the main loop the RMI system travels in. Call this function to start the magic.
+     * @return This function never returns.
+     */
+	 function listen() {
+		 .listen( true );
+	 }
+	 
+    /**
+     * @function listen
+     * @declaration function listen( number block )
+     * @brief This is the main loop the RMI system travels in. Call this function to start the magic.
+	 * @param number block Pass true to have the function block and automatically iterate over the non blocking listeners. Pass
+	 *                     false to have the function setup the threads for the blocking listeners. You will have to manually 
+     *                     call RMI.iterate() to provide the non-blocking service.
+	 * @warning Every 30 seconds, the function will cause the GC to be executed. This is to stop object build up
+	            as a result of the threads within the system.
+     * @return This function never returns if block is true.
+     */
+	function listen( number block ) {
+		object sl = null;
+		number i = 0;
+		
+		RMI.debug( "Starting to listen" );
+		RMI.debug( "Starting blocking threads" );
+		for( i = 0; i < Array.size( RMI.loaded.listener ); i++ )
+		{
+			sl = RMI.loaded.listener[i];
+			if( sl.isBlocking() )
+				sl.start();
+		}
+		if( block ) {
+			number ticks = 0;
+			while( RMI.serverRunning )
+			{
+				.iterate();
+				
+				// This solves a tricky problem with threading that is very much corner case.
+				// When a thread exits, it places all its unfinished objects over to the main thread
+				// in the case of this function, it is usually us. We have to flush the gc to make
+				// sure important things like file descriptors and the like get cleaned up.
+				ticks++;
+				if( ticks > 30 ) {
+					Sys.gc();
+					ticks = 0;
+				}
+				Sys.sleep( 1 );
+			}
+		}
+		
+    }
+    
+    function debug( string str ) {
+		if( RMI.debugOn )
+			Console.println( str );
+    }
+    
+    atomic number serverRunning = 1;
+    function shutdown() {
+        Console.printlnErr("Shutting down");
+        RMI.serverRunning = false;
+    }
+}
+/**
+ * @end
+ */
+
+class RMIServiceController {
+    function shutdown() {
+        RMI.shutdown();
+    }
+}
+
+/*
+ * These are the transport layers. Might aswell load them! :)
+ */
+uses "rmi/protocol/std";
+uses "rmi/translation/std";
+uses "rmi/transport/tcpip";
+uses "rmi/transport/debug";
+
+RMI.createService( "RMIServerControl", new RMIServiceController() );

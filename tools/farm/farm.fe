@@ -1,0 +1,461 @@
+uses "array", "console", "filesystem", "posix", "regexp", "string", "xml";
+uses "GetOptLong";
+
+/*
+ * TODO:
+ -  Imediate: get this file split up [done]
+ *  Need to check for libraries and headers and functions <requires /><optional /> - could be interactive
+ *	farm needs to auto-detect libraries, pkg-config, then $(lib)-config, then linking against -l$(lib)
+ *  Need search paths for libraries and includes.
+ -  Need to have per-os includes for gcc etc [done -> rulesets/`uname`.fe]
+ *  Ability to register custom tags: 
+ -	custom actions [done -> Actions.fe]
+ -	file lists [done -> <list type="" />], need to add the ability to reference a file list
+ *	global and target specific tags [done-ish, currently got custom target types]
+ -  A 'clean' phase = need to implemente Directory.remove() [done]
+ *  Need to store all non-standard configuration items, such as prefix, in a policy document in FarmYard to allow
+    the policy to be tweaked and used on multiple platforms.
+ */
+namespace modifies Farm {
+	
+	// Platform
+	string platform;
+	// Stage dir
+	string toplevelDirectory;
+	// <property /> tags with an global id
+	array global_properties;
+	// Our targets/phases
+	array targets;
+	array phases;
+	// Phases that have been processed
+	array processed_phases;
+		
+	function generateDerivedSourcesTag( string sourcefile ) {
+		return Regexp.replaceAll( '[^A-Za-z]', sourcefile, '_' ) + "_ds";
+	}
+	function derivedSourcesDirForTarget( object target ) {
+		return Farm.toplevelDirectory + "/FarmYard/DerivedSources/${target.uid}";
+	}
+	function compiledObjectsDirForTarget( object target ) {
+		return Farm.toplevelDirectory + "/FarmYard/CompiledObjects/${target.uid}";
+	}
+	function productsDirForTarget( object target ) {
+		return Farm.toplevelDirectory + "/FarmYard/Products";
+	}
+	function yardDir() {
+		return Farm.toplevelDirectory + "/FarmYard";
+	}
+	
+	function expandStringProperties( string str ) {
+		object o = new Regexp( '\$\(([A-Za-z.-_]+)\)' );
+		object p = new Regexp( '([A-Za-z.-_]+)\.([A-Za-z.-_]+)' );
+		
+		string s = o.replaceAll( str ) using ( match ) {
+			string property = match.capture(0);
+			object m = null;
+			
+			// Look for global propeties
+			if( Array.keyExists(Farm.global_properties, property) ) {
+				return Farm.global_properties[property];
+				// We then look in the targets properties
+			} else if( (m = p.match(property)) != null and Array.keyExists(.targets,m.capture(0)) ) {
+				object target = .targets[m.capture(0)];
+				string v = target.getProperty(m.capture(1));
+				if( v != "" )
+					return v;
+			}
+			return '$(' + property + ')';
+		};
+		return s;
+	}
+
+	function destroyPath( string path ) {
+		number retval = false;
+		monitor { 
+			retval = Directory.remove( path, true );
+		} handle {
+			return false;
+		}
+		return retval;
+	}
+
+	function createPath( string path ) {
+		return .createPath( path, 0755 );
+	}
+
+	function createPath( string path, number perms ) {
+		if( path != "" ) {
+			string prefix = Farm.global_properties['destination'];
+			string fullPath = (prefix ? "$prefix" + (path[0] == '/' ? '' : "/") : "") + path;
+			Directory.build( fullPath, perms );
+		}
+		return true;
+	}
+	function copyFile( string source, string dest, number destp ) {
+		return .copyFile( source, dest, destp, true );
+	}
+	function copyFile( string source, string dest, number destp, boolean allowOverwrite ) {
+		object s = null, d = null, t = null, r = null;
+		string prefix = Farm.global_properties['destination'];
+		string fullPath = (prefix ? "$prefix" + (dest[0] == '/' ? '' : "/") : "") + dest;
+		
+		t = Posix.stat(fullPath);
+		if( t and allowOverwrite ) {
+			File.remove(fullPath);
+		} else if( t and (not allowOverwrite) ) {
+			Farm.displayAction('notice', "Target file $fullPath exists. Ignoring copy.");
+			return true;
+		}
+
+		Directory.build(Directory.name(fullPath), 0755);
+		
+		r = Posix.stat( source );
+		s = File.open( source );
+		if( !r || !s ) {
+			Farm.displayAction('error', "Couldn't open file: " + source );
+			return false;
+		}
+		d = File.create( fullPath, (destp ? destp : r.st_mode) );
+		if( !d ) {
+			Farm.displayAction('error', "Couldn't open file: " + fullPath );
+			return false;
+		}
+		Farm.displayAction('copy', Farm.basename(source) + ' -> ' + fullPath);
+		d.write( s.read( s.length() ) );
+		s.close();
+		d.close();
+		return true;
+	}
+	function filterCopyFile( string source, string dest, number destp ) {
+		return .filterCopyFile( source, dest, destp, true );
+	}
+	function filterCopyFile( string source, string dest, number destp, boolean allowOverwite ) {
+		object s = null, d = null, t = null, r = null;
+		string prefix = Farm.global_properties['destination'];
+		string fullPath = (prefix ? "$prefix" + (dest[0] == '/' ? '' : "/") : "") + dest;
+		
+		t = Posix.stat(fullPath);
+		if( t and allowOverwrite ) {
+			File.remove(fullPath);
+		} else if( t and (not allowOverwrite) ) {
+			Farm.displayAction('notice', "Target file $fullPath exists. Ignoring copy.");
+			return true;
+		}
+		
+		Directory.build(Directory.name(fullPath), 0755);
+		
+		r = Posix.stat( source );
+		s = File.open( source );
+		if( !r || !s ) {
+			Farm.displayAction('error', "Couldn't open file: " + source );
+			return false;
+		}
+		d = File.create( fullPath, (destp ? destp : r.st_mode) );
+		if( !d ) {
+			Farm.displayAction('error', "Couldn't open file: " + fullPath );
+			return false;
+		}
+		Farm.displayAction('filtercopy', Farm.basename(source) + ' -> ' + fullPath);
+		d.write( Farm.expandStringProperties(s.read( s.length() )) );
+		s.close();
+		d.close();
+		return true;
+	}
+
+	function invokeExternalProgram( string command ) {
+		Sys.system( "echo 'Running: $command' >>${Farm.yardDir()}/Build.log" );
+		if( Sys.system( command + " >>${Farm.yardDir()}/Build.log 2>>${Farm.yardDir()}/Build.log" ) == 0 )
+			return true;
+		
+		Console.println( "\nError Invoking '$command'\n" );
+		return false;
+	}
+	
+	function basename( string path ) {
+		array components = String.toArray( path, "/" );
+		return Array.last(components);
+	}
+	function dirname( string path ) {
+		array components = String.toArray( path, "/" );
+		if( Array.size(components) > 1 )
+			return Array.join(components[..-2], '/');
+		else
+			return ".";
+	}
+		
+	object fileTypeRegexp;	
+	function sourceFileType( string file ) {
+		object match = null;
+		if( .fileTypeRegexp == null )
+			.fileTypeRegexp = new Regexp('\.([A-Za-z0-9_+]+)$');
+		match = .fileTypeRegexp.match(file);
+		if( match != null )
+			return String.toLower(match.capture(0));
+		return "";
+	}
+		
+	function targetExists( string name ) {
+		if( Array.keyExists(.targets,name) )
+			return true;
+		return false;
+	}
+
+	function addTarget( string name, object t ) {
+		.targets[name] = t;
+	}
+	function getTarget( string name ) {
+		if( .targets.keyExists(name) ) {
+			return .targets[name];
+		}
+		return null;
+	}
+	
+	function invokeTargetAction( string target, string action ) {
+		if( Array.keyExists( .targets, target ) ) {
+			return .targets[target].invokeAction( action );
+		}
+		return false;
+	}
+	
+	array paths;
+	function addSearchPath( string path ) {
+		Array.unshift(.paths, path );
+	}
+	function searchPaths() {
+		return .paths;
+	}
+	
+	array locatedPrograms;
+	function locateBinary( string name, array paths ) {
+		string fullPath = "";
+		if( Array.keyExists(.locatedPrograms, name ) )
+			return .locatedPrograms[name];
+		else
+		{
+			Array.each( paths ) using ( path ) {
+				if( Posix.stat( path + '/' + name ) != null ) {
+					fullPath = "$path/$name";
+					.locatedPrograms[name] = fullPath;
+					return false;
+				}				
+			};
+		}
+		return fullPath;
+	}
+	
+	function programOutput( string prog, string args )
+	{
+		string program = Farm.locateBinary(prog,Farm.searchPaths());
+		if( program !=  "" )
+		{
+			string value;
+			object conf = Posix.openprocess( "$program $args", "r" );
+			
+			value = conf.readln( );
+			if( value != "" )
+				value = value[..-2]; // remove the carriage returns
+			
+			conf.close();
+			return value;
+		}
+		return "";
+	}
+	
+	function sourceDirectoryContents( string dir ) {
+		object o = new Regexp(Farm.RuleSet.sourceTypes());
+		array files;
+		Directory.open( dir ) using ( entry ) {
+			if( o.match( entry ) )
+				files[] = "$dir/$entry";
+		};
+		return files;
+	}
+	function displayAction( string action, string description ) {
+		string a = "[$action]";
+		Console.println( String.pad("", 14 - String.length(a), " ") + "$a $description" );
+	}
+	
+	function go() {
+		string action = "build";
+		
+		if( Array.size(argv) > 0 )
+			action = Array.last(argv);
+		
+		Console.println('');
+		if( Array.keyExists(.phases,action) ) {
+			object p = .phases[action];
+			if( p.invoke() ) {
+				Farm.displayAction('success',':)');
+				Console.println('');
+				return true;
+			} else {
+				Farm.displayAction('failed',':(');
+				Console.println('');
+				return true;
+			}
+		} 
+		Farm.displayAction('error','Unknown phase ' + action );
+		return false;
+	}
+
+	function installDefaultPhases() {
+		boolean havePackage = .phases.keyExists('package');
+		object topLevel = new Farm.Collection();
+		
+		topLevel.uid = 'farm-top-level';
+		topLevel.addFiles('package', [ 'farm.yard' ]);
+		Farm.addTarget( topLevel.uid, topLevel );
+		
+		Array.each( [ 'build', 'install', 'package' ] ) using ( phaseid ) {
+			if( not Array.keyExists(.phases,phaseid) ) {
+				object phase = new Farm.Phase(phaseid);
+				Array.each( .targets ) using ( target ) {
+					object action = new Farm.PerformAction( target.uid, phaseid );
+					phase.addAction( action );
+				};			
+				.phases[phaseid] = phase;
+			}
+		};
+		
+		if( not havePackage ) {
+			object tar = new Farm.ExecuteAction();
+			object rm = new Farm.ExecuteAction();
+			
+			tar.programs =  [ 'tar' ];
+			tar.args = 'zcvf $(name)-$(version).tar.gz $(name)-$(version)/';
+			
+			rm.programs = [ 'rm' ];
+			rm.args = '-rf $(name)-$(version)/';
+			
+			.phases['package'].actions.unshift( rm );
+			.phases['package'].addAction( tar );
+			.phases['package'].addAction( rm );
+		}
+		
+		.phases['clean'] = new Farm.CleanPhase();
+	}
+
+	function parseOptions() {
+		object getopt = new GetOptLong(argv);
+		array arg = [];
+		
+		getopt.set_options( [
+			[GetOptLong.REQUIRED_ARGUMENT, "--yard"],
+			[GetOptLong.REQUIRED_ARGUMENT, "--prefix"],
+			[GetOptLong.REQUIRED_ARGUMENT, "--set"],
+			[GetOptLong.NO_ARGUMENT, "--help"],
+			[GetOptLong.NO_ARGUMENT, "--version"]
+			] );
+		
+		while( arg = getopt.get() )
+		{
+			switch( arg[0] )
+			{
+				case "--yard":
+					Farm.global_properties['YardFile'] = arg[1];
+					break;
+				case "--prefix":
+					Farm.global_properties['prefix'] = arg[1];
+					break;
+				case "--set": {
+					object match = Regexp.match('^([^=]+)=(.*)$', arg[1]);
+					if( match ) {
+						Farm.global_properties[match.capture(0)] = match.capture(1).trim('"');
+					} else {
+						Console.println("Bad key/value: ${arg[1]}");
+					}
+					break;
+				}
+				case "--help":
+					.displayHelp();
+					Sys.exit(0);
+					break;
+				case "--version":
+					.displayVersion();
+					Sys.exit(0);
+					break;
+			}
+		}
+	}
+	function displayHelp()
+	{
+		.displayVersion();
+		Console.println( "" );
+		.displayUsage(false);
+		Console.println( "" );
+		
+		Console.println( " Option              Description" );
+		Console.println( "--------------------------------------------------------------" );
+		Console.println( " --yard value        Use 'value' as the file to parse for the yard (default: farm.yard)" );
+		Console.println( " --prefix value      Use 'value' as the prefix for installed items (default: /usr/local)" );
+		Console.println( "                        NB. The path *must* have a path separator at the end." );
+		Console.println( " --set key=value     Set key to be value in the global values.");
+		Console.println( " --version           Display the version number and exit" );
+		Console.println( " --help              This help display" );
+	}
+
+	function displayVersion()
+	{
+		Console.println( "farm v1.0" );
+	}
+	function displayUsage( number show_help )
+	{
+		Console.println( "Usage: farm [options] (build|install|clean|...)" );
+		if( show_help )
+			Console.println( "  Type 'farm --help' for options" );
+	}
+}
+
+// Load the support files
+uses "Yard.fe";
+uses "Targets.fe";
+uses "Actions.fe";
+uses "rulesets/RuleSets.fe";
+
+// This will load our yard file
+object yard = new Farm.Yard();
+object uname = new Posix.Uname();
+
+// Get the system paths
+array systemPaths = String.toArray( Sys.env.read('PATH'), ':' );
+
+Array.each( systemPaths[-1..0] ) using ( path ) {
+	Farm.addSearchPath( path );
+};
+
+Farm.toplevelDirectory = Directory.getCurrent();
+Farm.platform = uname.sysname;
+
+include( "rulesets/${Farm.platform}.fe" );
+Farm.displayAction('ruleset', uname.sysname);
+
+// Setup the FarmYard
+Directory.make( "FarmYard", 0755 );
+Directory.make( "FarmYard/DerivedSources", 0755 );
+Directory.make( "FarmYard/CompiledObjects", 0755 );
+Directory.make( "FarmYard/Products", 0755 );
+
+// Setup the defaults
+Farm.global_properties['DerivedSourcesDir'] = "${Farm.yardDir()}/DerivedSources";
+Farm.global_properties['CompiledObjectsDir'] = "${Farm.yardDir()}/CompiledObjects";
+Farm.global_properties['ProductDir'] = "${Farm.yardDir()}/Products";
+
+// Ferite defaults
+Farm.global_properties['FeriteLibraryDir'] = Farm.programOutput('ferite-config', '--library-path');
+Farm.global_properties['FeriteModuleSourceDir'] = Farm.programOutput('ferite-config', '--module-library-path');
+Farm.global_properties['FeriteModuleDescriptionDir'] = "${Farm.programOutput('ferite-config', '--library-path')}/module-descriptions";
+Farm.global_properties['FeriteModuleNativeDir'] = Farm.programOutput('ferite-config', '--native-library-path');
+
+Farm.global_properties['YardFile'] = 'farm.yard';
+Farm.global_properties['prefix'] = '/usr/local';
+Farm.global_properties['platform'] = Farm.platform;
+Farm.global_properties['destination'] = '';
+
+Farm.parseOptions();
+yard.loadYard(Farm.global_properties['YardFile']);
+Farm.installDefaultPhases();
+
+if( not Farm.go() )
+	return 1;
+
+return 0;

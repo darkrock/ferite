@@ -1,0 +1,48 @@
+uses "console","regexp";
+
+object o = new Regexp( "([0-9]+)" );
+object match = null;
+array a = [];
+string replace = "";
+
+Console.println( "MatchAll only (with yield)" );
+a = o.matchAll( "123 456 789 345" ) using (match) {
+	Console.println( "Got match: '${match.match()}' in range '${match.span()}'" );
+	Console.println( " captures: ${match.captures()}\n" );
+};
+Console.println( "  Result: $a (should be an array with 4 matches)\n" );
+
+Console.println( "No MatchAll" );
+a = o.matchAll( "abc def ghi" ) using (match) {
+	Console.println( "Got match: '${match.match()}' in range '${match.span()}'" );
+	Console.println( " captures: ${match.captures()}\n" );
+};
+Console.println( "  Result: $a (should be an empty array)\n" );
+
+Console.println( "Match only" );
+match = o.match( "123 456 789" );
+Console.println( "  Result   : $match (should be 123)\n" );
+
+Console.println( "No Match" );
+match = o.match( "abc def ghi" );
+Console.println( "  Result   : $match (should be null)\n" );
+
+Console.println( "Replace Str" );
+replace = o.replace( "123 is the greatest (number 1)", "ferite" );
+Console.println( "  Result   : '$replace' (should be 'ferite is the greatest (number 1)')\n" );
+
+Console.println( "Replace Str All" );
+replace = o.replaceAll( "1234 is the 123456", "ferite" );
+Console.println( "  Result   : '$replace' (should be 'ferite is the ferite')\n" );
+
+Console.println( "Replace Str All Recipient\n" );
+replace = o.replaceAll( "1234 is the 123456" ) using (match) {
+	return "${match.match()}.feriteRocks";
+};
+Console.println( "  Result   : '$replace' (should be '1234.feriteRocks is the 123456.feriteRocks')\n" );
+
+o = new Regexp( "([0-9])([0-9])([0-9])" );
+Console.println( "Replace Str All Backticks" );
+replace = o.replaceAll( "123 456 789", '\3\2\1\\1' );
+Console.println( "  Result   : '$replace' (should be '321 654 987')\n" );
+

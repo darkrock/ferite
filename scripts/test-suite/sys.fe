@@ -1,0 +1,133 @@
+#!/usr/bin/env ferite
+
+/*
+ *  Stephan Engstrom <sem@cention.se>
+ *  Chris Ross <chris@ferite.org>
+ */
+
+uses "array", "test","console","string","sys";
+
+class SysTest extends Test
+{
+    function stderr() { 
+        object o = Sys.stderr();
+        if( o == null )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function stdin() { 
+        object o = Sys.stdin();
+        if( o == null )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function stdout() { 
+        object o = Sys.stdout();
+        if( o == null )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function usleep() { 
+        number t = Sys.timestamp();
+        Sys.usleep(1000);
+        if(Sys.timestamp() <= t)
+	    return 1;
+        return Test.SUCCESS;
+    }
+    function sleep() { 
+        number t = Sys.timestamp();
+        Sys.sleep(1);
+        if(Sys.timestamp() <= t)
+	    return 1;
+        return Test.SUCCESS;
+    }
+    function getVersion() { 
+        string s = Sys.getVersion();
+        if( s == "" )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function getBuildDate() { 
+        string s = Sys.getBuildDate();
+        if( s == "" )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function scriptName() { 
+        string s = Sys.scriptName();
+        if( s == "" )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function error() { 
+        monitor {
+            Sys.error( "This should throw an exception", 0 );
+        } handle {
+            return Test.SUCCESS;    
+        } else {
+            return 1;
+        }
+    }
+    function warning() { 
+        return Test.IGNORE;    
+    }
+    function system() {
+        number pid = Sys.system("true");
+        if( pid != 0 )
+	    return 1;
+        return Test.SUCCESS;
+    }
+    function timestamp() { 
+        number t = Sys.timestamp();
+        if( t == 0 )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function strerror() {
+        if(!String.compareNoCase(Sys.strerror(0),"0: Success"))
+	    return 1;
+        return Test.SUCCESS;
+    }
+    function gc() { 
+        monitor {
+            Sys.gc();
+        }
+        handle {
+            return 1;
+        }
+        return Test.SUCCESS;
+    }
+    function exit() { 
+        return Test.IGNORE;
+    }    
+}
+
+class SysEnvTest extends Test
+{
+    function toArray() {
+        array a = Sys.env.toArray();
+        if( Array.keyExists(a,'FERITE_TEST') )
+            return 1;
+        Sys.env.write('FERITE_TEST','Adding a value');
+        a = Sys.env.toArray();
+        if( not Array.keyExists(a,'FERITE_TEST') )
+            return 2;
+        if( a['FERITE_TEST'] != Sys.env.read('FERITE_TEST') )
+            return 3;
+        Sys.env.del('FERITE_TEST');
+        a = Sys.env.toArray();
+        if( Array.keyExists(a,'FERITE_TEST') )
+            return 4;
+        if( Sys.env.read('FERITE_TEST') != "" )
+            return 5;
+        return Test.SUCCESS;
+    }
+    function write() { return .toArray(); }    
+    function del() { return .toArray(); }
+    function read() { return .toArray(); }
+}
+
+object s = new SysTest();
+object e = new SysEnvTest();
+return s.run("Sys") + e.run("Sys.env");
+

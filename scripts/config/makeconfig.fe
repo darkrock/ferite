@@ -1,0 +1,103 @@
+uses "console", "string", "regexp", "sys", "filesystem";
+
+object output = File.create( "config.feh", 0644 );
+object configstatus_object = File.open( "../../config.status" );
+
+array  fast = [ 'prefix' => true, 'ferite_install_name' => true, 'INSTALL' => true, 'EXEEXT' => true ];
+string v_fast = "";
+string v_others = "";
+
+object match_transform = new Regexp( '^s[%,]@program_transform_name@[%,]s,(.*)' );
+object match_value = new Regexp( '^s[%,]@(\w+)@[%,](.*)[%,]' );
+
+string install_name = "", so_name = "", srcdir = "";
+string contents = configstatus_object.toString();
+array lines = String.lines(contents);
+
+number has_version = false;
+
+
+Array.each(lines) using ( line ) {    
+    object match = null;
+    
+    if( Regexp.match( '^#', line ) ) return;
+    
+    if( (match = match_transform.match(line)) != null )
+    {
+        array ptn;
+        if( install_name != "" ) return;
+        ptn = Regexp.split( ',', Regexp.replaceAll( '\$\$', match.capture(0), '$' ) );
+        v_fast += "CONFIG[\"ferite_install_name\"] = \""+Regexp.replace(ptn[0],"ferite",ptn[1])+"\";\n";
+    }
+    else if( (match = match_value.match(line)) != null )
+    {
+        string name = match.capture(0);
+        string value = Regexp.replaceAll( '[\\]', match.capture(1), "\\\\" ), v;
+        object r = new Regexp( '\$(?:\$|\{?(\w+)\}?)' );
+        
+        if( Regexp.match( '^(INSTALL|DEFS|configure_input|srcdir|top_srcdir)$', name ) ) return;
+        if( install_name != "" and Regexp.match( '^FERITE_INSTALL_NAME$', name )) return;
+        if( so_name != "" and Regexp.match( '^FERITE_SO_NAME$', name )) return;
+        
+        v = "CONFIG[\"$name\"] = \"" +
+            r.replaceAll( value ) using (match) {
+                if( Array.size(match.captures()) > 0 )
+                    return "$(${match.capture(0)})";
+                else 
+                    return match.match();
+            } + 
+            "\";\n";
+        
+        if( fast[name] )
+            v_fast += v;
+        else
+            v_others += v;
+        
+        if( name == "MAJOR" )
+            has_version = true;
+    }  
+    else if( (match = Regexp.match( '^(?:ac_given_)?srcdir=(.*)', line )) != null )
+        srcdir = String.trim( match.capture(0), " " );
+    else if( (match = Regexp.match( '^ac_given_INSTALL=(.*)', line )) != null )
+        v_fast += "CONFIG[\"INSTALL\"] = " + match.capture(0) + "\n";
+};
+
+v_fast += "CONFIG[\"srcdir\"] = \"" + srcdir + "\";\n";
+
+output.writeln( '
+// This file was created by makeconfig.fe when ferite was built.  Any
+// changes made to this file will be lost the next time ferite is built.
+                
+uses "console", "array", "regexp", "sys";
+                
+global {
+    array CONFIG;
+}' );
+output.writeln('
+function config_expand( string value ) {
+    object r = new Regexp( \'\$\$|\$\(([^()]+)\)|\$\{([^{}]+)\}\' );
+    string newval = r.replaceAll( value ) using ( match ) {
+        string val = match.capture(0);
+        if( Array.keyExists(CONFIG,val) )
+            val = config_expand(CONFIG[val]);
+        else
+            val = match.match();
+        return val;
+    };    
+    return newval;
+}' );
+
+output.writeln( '
+if( Sys.getVersion() != "' + Sys.getVersion() + '" ) {
+    Sys.error( 1000, "The current version of ferite is different from the version stated with config.feh\n" );
+} ');
+
+output.writeln( v_fast );
+output.writeln( v_others );
+
+output.writeln('
+Array.map( CONFIG ) using ( key, value ) {
+    CONFIG[key] = config_expand(value);
+}; ' );
+
+output.close();

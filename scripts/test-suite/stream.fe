@@ -1,0 +1,287 @@
+#!/usr/bin/env ferite
+
+/*
+ *  Chris Ross <chris@ferite.org>
+ */
+
+uses "stream","test","console","string","sys","array";
+
+global {
+    string contents = "ferite\nis\na\nprogramming\nlanguage";
+}
+class ExampleStream extends Stream.Stream {
+    string last;
+    
+    function __read__( number count ) {
+        return contents;
+    }
+    function __write__( string s ) {
+        .last = s;
+    }
+    function __close__() {    
+        .last = "Closed";
+    }
+}
+
+class StreamTest extends Test
+{
+    function writeln() {
+        object o = new ExampleStream();
+        o.writeln("Hi");
+        if( o.last != "Hi\n" )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function println() { return .writeln(); }
+    function flush() {
+        object o = new ExampleStream();
+        
+        o.write("Hi");
+        if( o.last == "Hi" )
+            return 1;
+        o.write("There");
+        if( o.last == "HiThere" )
+            return 2;
+        o.flush();
+        if( o.last != "HiThere" )
+            return 3;
+        
+        return Test.SUCCESS;
+    }
+    function setEndOfLine() {
+        object o = new ExampleStream();
+        o.writeln("Hi");
+        if( o.last != "Hi\n" )
+            return 1;
+        o.setEndOfLine("FERITE\n");
+        o.writeln("Hi");
+        if( o.last != "HiFERITE\n" )
+            return 2;
+        return Test.SUCCESS;        
+    }
+    function read() {
+        object o = new ExampleStream();
+        string s = o.read(2);
+        if( s != "fe" )
+            return 1;
+        s = o.read(3);
+        if( s != "rit" )
+            return 2;
+        return Test.SUCCESS;    
+    }
+    function setAggressive() {
+        object o = new ExampleStream();
+        
+        o.write("Hi");
+        if( o.last == "Hi" )
+            return 1;
+        o.last = "";
+        
+        o.setAggressive(true);
+        o.write("Hi");
+        if( o.last != "HiHi" )
+            return 2;
+        o.last = "";
+        
+        o.setAggressive(false);
+        o.write("Hi");
+        if( o.last == "Hi" )
+            return 3;
+        
+        return Test.SUCCESS;
+    }
+    function getc() {
+        object o = new ExampleStream();
+        string s = o.getc();
+        string t = o.getc();
+        
+        if( s != "f" )
+            return 1;
+        if( t != "e" )
+            return 2;
+        
+        if( not o.ungetc(t) )
+            return 3;
+        if( not o.ungetc(s) )
+            return 4;
+        
+        s = o.getc();
+        t = o.getc();
+        
+        if( s != "f" )
+            return 5;
+        if( t != "e" )
+            return 6;
+        
+        return Test.SUCCESS;
+    }
+    function ungetc() { return .getc(); }
+    
+    function close() {
+        object o = new ExampleStream();
+        o.close();
+        if( o.last != "Closed" )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function readln() {
+        object o = new ExampleStream();
+        string s = o.readln();
+        if( s != "ferite\n" )
+            return 1;
+        s = o.readln();
+        s = o.readln();
+        if( s != "a\n" )
+            return 2;
+        
+        return Test.SUCCESS;        
+    }
+    function eos() {
+        object o = new ExampleStream();
+        string s = o.read(String.length(contents));
+        if( s != contents )
+            return 1;
+        if( not o.eos() )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function printf() {
+        object o = new ExampleStream();
+        o.printf("fnar:%s:%d\n","Yes",32);
+        if( o.last != "fnar:Yes:32\n" )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    
+    function write() {
+        object o = new ExampleStream();
+        o.write("Hi\n");
+        if( o.last != "Hi\n" )
+            return 1;
+        o.setAggressive( true );
+        o.write("Hi");
+        if( o.last != "Hi" )
+            return 2;
+        return Test.SUCCESS;            
+    }    
+    function print() { return .write(); }
+    function putc() { return .write(); }
+
+    function getError() {
+        object o = new ExampleStream();
+        if( o.getError() != "" )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    function __write__() { return Test.IGNORE; }
+    function __read__() { return Test.IGNORE; }
+    function __close__() { return Test.IGNORE; }
+}
+class StdioStreamTest extends Test
+{
+    function getDescriptor() {
+        object o = Sys.stdin();
+        object p = Sys.stdout();
+        object q = Sys.stderr();
+        
+        if( o.getDescriptor() != 0 )
+            return 1;
+        if( p.getDescriptor() != 1 )
+            return 2;
+        if( q.getDescriptor() != 2 )
+            return 3;
+        
+        return Test.SUCCESS;
+    }
+    function eos() {
+        object o = Sys.stdin();
+        if( o.eos() )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function __read__() { return Test.IGNORE; }
+    function __close__() { return Test.IGNORE; }
+    function __write__() { return Test.IGNORE; }    
+}
+global {
+    string stream_contents = "ferite\nis\na\nprogramming\nlanguage\n";
+}
+function MakeStringStream() {
+    return new Stream.StringStream(stream_contents);
+}
+class StringStreamTest extends Test
+{
+    function pos() {
+        object o = MakeStringStream();
+        string s = "";
+        
+        if( o.pos() != 0 )
+            return 1;
+        
+        s = o.readln();
+        if( s != "ferite\n" )
+            return 2;
+    
+        if( o.pos() == 0 )
+            return 3;
+        
+        return Test.SUCCESS;
+    }
+    function length() {
+        object o = MakeStringStream();
+        if( o.length() != String.length(stream_contents) )
+            return 1;
+        return Test.SUCCESS;    
+    }
+    function truncate() {
+        object o = MakeStringStream();
+        number l = o.length();
+        if( not o.truncate(7) )
+            return 1;
+        if( o.length() != 7 )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function seek() {
+        string s = "";
+        object o = MakeStringStream();
+        
+        if( not o.seek(7,Stream.SEEK_SET) )
+            return 1;
+        s = o.read(2);
+        if( s != "is" )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function eos() {
+        object o = MakeStringStream();
+        number count = 0;
+        while( not o.eos() ) {
+            string s = o.readln();
+            count++;
+        }
+        if( count != 5 )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function toString() {
+        object o = MakeStringStream();
+        if( o.toString() != stream_contents )
+            return 1;
+        if( not o.truncate(7) )
+            return 2;
+        if( o.toString() != "ferite\n" )
+            return 3;
+        return Test.SUCCESS;
+    }
+    
+    function __write__() { return Test.IGNORE; }    
+    function __close__() { return Test.IGNORE; }
+    function __read__() { return Test.IGNORE; }
+}
+
+object f = new StreamTest();
+object g = new StdioStreamTest();
+object h = new StringStreamTest();
+
+return f.run("Stream.Stream") + g.run("Stream.StdioStream") + h.run("Stream.StringStream");

@@ -1,0 +1,29 @@
+
+uses "apache";
+
+global {
+    array nav;
+}
+
+function setupNavigation( array someVar ){
+    nav = someVar;
+}
+
+function manualHeader( string page, string filename ){  
+    Request.current().print( '<div align=center><table width=95% cellspacing=0 cellpadding=3 border=0 ><tr>');
+    Request.current().print( "<td width=\"25%\" align=left class=title><font size=1>[<b>previous</b>] <a class=light href=\"" + nav["prev"][0] + "\">" + nav["prev"][1] + "</a></font></td>"); 
+    Request.current().print( "<td width=\"25%\" align=center class=title><font size=1><a class=light href=\"" + nav["up"][0] + "\">[<b>up</b>]</a></font></td>"); 
+    Request.current().print( "<td width=\"25%\" align=center class=title><font size=1><a class=light href=\"" + nav["toc"][0][0] + "\">[<b>toc</b>]</a></font></td>"); 
+    Request.current().print( "<td width=\"25%\" align=right class=title><font size=1><a class=light href=\"" + nav["next"][0] + "\">" + nav["next"][1] + "</a> [<b>next</b>]</font></td>"); 
+    Request.current().print( '</tr></table></div><br><br>');
+}
+
+function manualFooter( string page, string filename )
+{  
+    Request.current().print( '<br><br><div align=center><table width=95% cellspacing=0 cellpadding=3 border=0 ><tr>');
+    Request.current().print( "<td width=\"25%\" align=left class=title><font size=1>[<b>previous</b>] <a class=light href=\"" + nav["prev"][0] + "\">" + nav["prev"][1] + "</a></font></td>"); 
+    Request.current().print( "<td width=\"25%\" align=center class=title><font size=1><a class=light href=\"" + nav["up"][0] + "\">[<b>up</b>]</a></font></td>"); 
+    Request.current().print( "<td width=\"25%\" align=center class=title><font size=1><a class=light href=\"" + nav["toc"][0][0] + "\">[<b>toc</b>]</a></font></td>"); 
+    Request.current().print( "<td width=\"25%\" align=right class=title><font size=1><a class=light href=\"" + nav["next"][0] + "\">" + nav["next"][1] + "</a> [<b>next</b>]</font></td>"); 
+    Request.current().print( '</tr></table></div>'); 
+}

@@ -1,0 +1,361 @@
+/*
+ * Copyright (c) 2002-2007 Stephan Engstrom
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials promoteovided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "serialize.lib";
+
+module-header
+{
+    #include <stdio.h>
+    #include <string.h>
+    #include "utility.h"
+
+    #define SERIALIZER_VERSION 3
+    #define SE_DEBUG( STR ) // printf( "%sAt: %s: %d: %s", ferite_stroflen(' ', (level*2)), __FILE__, __LINE__, STR )
+}
+
+/**
+ * @namespace Serialize
+ * @brief Provies a set of functions to serialize and deserialize objects
+ */
+
+namespace Serialize
+{
+    /**
+     * @function toNative
+     * @declaration function toNative( void o )
+     * @brief Serializes an object to a string
+     * @param void o The variable to serialize
+     * @return A string containing the serialized object
+     * @description This function serializes the contents of the variables in
+     *              the specified object to a string using a Ferite specific
+     *              format. The class definition, functions, and static
+     *              variables aren't included. Object references are recursively
+     *              serialized and included in the output, up to a limit. 
+     *              When objects are serialized the member function serializeSleep() 
+     *              is called before serialization so that cleanups can be made.
+     */
+    native function toNative( void o ) : string
+    {
+		SerializeContex *ctx = Serialize_walk_init( script );
+		FeriteVariable *var = params[0];
+		char len[12];
+		
+		ferite_buffer_alloc( script, ctx->buf, 11 );
+		
+		if( Serialize_walk_native( script, ctx, var, 0 ) != 0 )
+		{
+			ferite_error( script, 0, "Could not create serialized output, weird stuff in object" );
+            Serialize_walk_deinit( script, ctx );
+			FE_RETURN_NULL_OBJECT;
+		}
+		var = ferite_buffer_to_var( script, ctx->buf );
+		snprintf( len, 12, "%d%.*d\n", SERIALIZER_VERSION, 9, FE_STRLEN(var) );
+		strncpy( FE_STR2PTR( var ), len, 11 );
+		Serialize_walk_deinit( script, ctx );
+		FE_RETURN_VAR( var );
+    }
+    /**
+     * @function toXML
+     * @declaration function toXML( void o )
+     * @brief Serializes an object to a XML string
+     * @param void o The variable to serialize
+     * @return A string containing the serialized object
+     * @description This function serializes the contents of the variables in
+     *              the specified object to a XML string.
+     *              The class definition, functions, and static
+     *              variables aren't included. Object references are recursively
+     *              serialized and included in the output, up to a limit. 
+     *              When objects are serialized the member function serializeSleep() 
+     *              is called before serialization so that cleanups can be made.
+     */
+
+    native function toXML( void o ) : string
+    {
+		SerializeContex *ctx = Serialize_walk_init( script );
+		FeriteVariable *var = params[0];
+		char len[12];
+		
+        ferite_buffer_add_str(script, ctx->buf,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		if( Serialize_walk_XML( script, ctx, NULL, var, 0 ) != 0 )
+		{
+			ferite_error( script, 0, "Could not create serialized output, weird stuff in object" );
+            Serialize_walk_deinit( script, ctx );
+			FE_RETURN_NULL_OBJECT;
+		}
+		var = ferite_buffer_to_var( script, ctx->buf );
+		Serialize_walk_deinit( script, ctx );
+		FE_RETURN_VAR( var );
+    }
+
+    /**
+     * @function fromNative
+     * @declaration function fromNative( string data )
+     * @brief Deserializes an object
+     * @param string data The serialized object data
+     * @return The deserialized object
+     * @description This function takes a string which was previously created
+     *              by Serialize.toNative() and creates an object from it with
+     *              the variables filled in. If the data is corrupted, the
+     *              class definition is different to what it was when the
+     *              object was serialized, or if the class doesn't exist at
+     *              all, the results are undefined (Ferite may even crash).
+     *              After objects are unserialized the member function serializeWakeup() 
+     *              is called so that objects can restore state.
+     */
+    native function fromNative( string data ) : void
+    {
+        FeriteString *serializedData = ferite_str_dup( script, data );
+        FeriteFunction *func = NULL;
+		FeriteObject *obj = NULL;
+		FeriteVariable *ptr = NULL, *var = NULL, *v = NULL, *st[100];
+		FeriteNamespaceBucket *nsb = NULL;
+		FeriteObject *current = NULL;
+		FeriteStack *objects = ferite_create_stack( script, 100 );
+		char *p, *str = serializedData->data, *tbuf = NULL;
+		char name[200], ns[200];
+		int version = 0, length = serializedData->length;
+		int level = 0, type = 0, len = 0;
+		
+		// printf("Data:\n%s\n", data->data);
+		
+        SE_DEBUG( "Entering From Native\n" );
+        SE_DEBUG( "Checking Minimal Length\n" );        
+		if( length < 12 )
+		{
+			ferite_error( script, 0, "Data too small to fit serialized header.\n" );
+            ferite_str_destroy( script, serializedData );
+			FE_RETURN_NULL_OBJECT;
+		}
+        SE_DEBUG( "Checking Version\n" );
+		version = *str++ - '0';
+		if( version != SERIALIZER_VERSION )
+		{
+			if( version < SERIALIZER_VERSION )
+				ferite_error( script, 0, "Serialized variable uses old scheme.\n" );
+			else
+				ferite_error( script, 0, "Serialized variable uses newer scheme.\n" );
+            ferite_str_destroy( script, serializedData );
+			FE_RETURN_NULL_OBJECT;
+		}
+        SE_DEBUG( "Checking Correct Data Length\n" );
+		if( length != atoi( str ) )
+		{
+			if( length < atoi( str ) )
+				ferite_error( script, 0, "Serialized variable is not complete.\n" );
+			else
+				ferite_error( script, 0, "Serialized variable contains additional data.\n" );
+            ferite_str_destroy( script, serializedData );
+			FE_RETURN_NULL_OBJECT;
+		}
+        SE_DEBUG( "Going for decode\n" );
+		str += 10;
+		for( level = 0; *str;)
+		{
+			if( Serialize_native_decode_first( script, &str, &type, &len, level ) )
+				break;
+			strncpy( name, str, len );
+			name[len] = '\0';
+			str += len + 1;
+			ptr = NULL;
+			switch( type )
+			{
+				case 0:
+					SE_DEBUG( "level--\n" );
+					str++;
+					level--;
+					break;
+				case F_VAR_BOOL:
+					SE_DEBUG("boolean\n");
+					ptr = ferite_create_boolean_variable( script, name, (strtol( str, &p, 0 ) ? FE_TRUE : FE_FALSE), FE_ALLOC );
+					str = p + 1;
+					break;
+				case F_VAR_LONG:
+					SE_DEBUG( "long\n" );
+					ptr = ferite_create_number_long_variable( script, name, strtol( str, &p, 0 ), FE_ALLOC );
+					str = p + 1;
+					break;
+				case F_VAR_DOUBLE:
+					SE_DEBUG( "double\n" );
+					ptr = ferite_create_number_double_variable( script, name, strtod( str, &p ), FE_ALLOC );
+					str = p + 1;
+					break;
+				case F_VAR_STR:	           
+					SE_DEBUG( "string\n" );
+					len = strtol( str, &p, 0 );
+					str = p + 1;
+					tbuf = fcalloc( len + 1, sizeof(char) );
+					strncpy( tbuf, str, len );
+					ptr = ferite_create_string_variable_from_ptr( script, name, tbuf, len, FE_CHARSET_DEFAULT, FE_ALLOC );
+					ffree( tbuf );
+					str += len + 1;
+					break;
+				case F_VAR_OBJ:
+					SE_DEBUG( "object\n" );
+					len = strtol( str, &p, 0 );
+					str = p + 1;
+					strncpy( ns, str, len );
+					ns[len] = '\0';
+					if( ns ) {
+						char buf[1024];
+						sprintf(buf, "-> name: %s\n", ns);
+						SE_DEBUG(buf);
+					}
+					
+					if( len == 0 ) {
+						// Handle null objects
+						ptr = ferite_create_object_variable(script, name, FE_ALLOC);
+					} else {
+						if( (nsb = ferite_find_namespace( script, script->mainns, ns, 0 )) == NULL ) {
+	                        ferite_error( script, 0, "Unable to locate class '%s' making it impossible rebuild serialized data.\n", ns);
+							FE_RETURN_VOID;
+						} else {
+							ptr = ferite_build_object( script, (FeriteClass *)nsb->data );
+							ffree( VAO(ptr)->name );    /* We need to change the name from 'new_object' */
+							VAO(ptr)->name = fstrdup( ns );
+							ferite_set_variable_name( script, ptr, name );
+						
+							ferite_stack_push( script, objects, VAO(ptr) );
+						}
+					}
+					str += len + 1;
+					break;
+				case -1: /* Object reference */
+					SE_DEBUG( "reference\n" );
+					len = strtol( str, &p, 0 );
+					str = p + 1;
+					ptr = ferite_create_object_variable( script, name, FE_ALLOC );
+					if( objects->stack_ptr >= len )
+					{
+						VAO(ptr) = objects->stack[len];
+						FINCREF(VAO(ptr));
+					}
+					break;
+				case F_VAR_UARRAY:
+					SE_DEBUG( "array\n" );
+					ptr = ferite_create_uarray_variable( script, name, FE_ARRAY_DEFAULT_SIZE, FE_ALLOC );
+					break;
+				case F_VAR_VOID:
+					SE_DEBUG( "void\n" );
+					ptr = ferite_create_void_variable( script, name, FE_ALLOC );
+					break;
+				case F_VAR_CLASS:
+				{
+					SE_DEBUG( "class\n" );
+					len = strtol( str, &p, 0 );
+					str = p + 1;
+					strncpy( ns, str, len );
+					ns[len] = '\0';
+                    
+					if( (nsb = ferite_find_namespace( script, script->mainns, ns, 0 )) == NULL )
+                        ptr = ferite_create_class_variable( script, name, NULL, FE_ALLOC );
+					else
+						ptr = ferite_create_class_variable( script, name, (FeriteClass *)nsb->data, FE_ALLOC );
+					
+					break;
+				}
+				case F_VAR_NS:
+				{
+					SE_DEBUG( "namespace\n" );
+					len = strtol( str, &p, 0 );
+					str = p + 1;
+					strncpy( ns, str, len );
+					ns[len] = '\0';
+                    
+					if( (nsb = ferite_find_namespace( script, script->mainns, ns, 0 )) == NULL )
+                        ptr = ferite_create_namespace_variable( script, name, NULL, FE_ALLOC );
+					else
+						ptr = ferite_create_namespace_variable( script, name, (FeriteNamespace *)nsb->data, FE_ALLOC );
+
+					break;
+				}
+				default:
+					SE_DEBUG( "erk\n" );
+					ferite_error(script, 0, "Can not create variable from unknown type\n");
+			}
+			if( ptr )
+			{
+				/* If it't the first variable, place it on the stack */	
+				if( level == 0 ) {
+					st[level++] = ptr;
+				}
+				else {
+					if( F_VAR_TYPE(st[level-1]) == F_VAR_OBJ)
+					{
+						if( VAO(st[level-1]) ) {
+							/* Add variable to object */
+							// printf("[object.set] setting name: %s\n", ptr->vname);
+							ferite_object_set_var( script, VAO(st[level-1]), ptr->vname, ptr );
+						}
+					}
+					else if( F_VAR_TYPE(st[level-1]) == F_VAR_UARRAY )
+					{
+						char *n = NULL;
+						/* if variable is nameless, do not add it to the hash index */
+						n = ( strcmp( ptr->vname, "-1" ) == 0 || ptr->vname[0] == '\0' ) ? NULL : ptr->vname;
+						if( n ) {
+							char buf[1024];
+							sprintf(buf, "-> name: %s\n", n);
+							SE_DEBUG(buf);
+						}
+						/* Add variable to array */
+						// printf("[array.set] setting name: %s\n", ptr->vname);
+						ferite_uarray_add( script, VAUA(st[level-1]), ptr, n , FE_ARRAY_ADD_AT_END );
+					}
+					if( (F_VAR_TYPE(ptr) == F_VAR_OBJ && VAO(ptr) != NULL && type != -1) || F_VAR_TYPE(ptr) == F_VAR_UARRAY )
+					{   
+						/* Add to level stack */
+						// printf("[stacking] object type, %p, type: %d\n", VAO(ptr), type);
+						st[level++] = ptr;
+					} else if( F_VAR_TYPE(ptr) == F_VAR_OBJ ) {
+						// printf("[not stacking] object type, %p, type: %d\n", VAO(ptr), type);
+					}
+				}
+			}
+		}
+		
+		func = NULL;
+		obj = NULL;
+		while( ( obj = ferite_stack_pop( script, objects ) ) != NULL ) 
+		{
+			func = ferite_object_get_function_for_params( script, obj, "serializeWakeup", NULL );
+			if( func != NULL ) 
+			{
+				ferite_variable_destroy( script, ferite_call_function( script, obj, NULL, func, NULL) );
+			}
+		}
+		
+		ferite_delete_stack( script, objects );
+		
+        ferite_str_destroy( script, serializedData );
+		FE_RETURN_VAR( st[0] );
+    }
+}
+/**
+ * @end
+ */

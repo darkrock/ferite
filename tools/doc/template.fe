@@ -1,0 +1,66 @@
+class Template
+{
+    string name;
+    string args;
+    array  argvector;
+    array  name_stack;
+    
+    function constructor( string name, string args )
+    {
+        .name = name;
+        .args = args;
+        if( .args != "" ) {
+            Array.each( String.toArray(args,',') ) using ( item ) {
+                array a = String.toArray(item,'=');
+                .argvector[a[0]] = a[1];
+            };
+        }
+        .name_stack = [];
+    }
+    
+    function process( void tree )
+    {
+        number i = 0;
+        
+        if( tree isa object && tree != null )
+        {
+            if( !(tree instanceof DocScript ) )
+                Array.push(.name_stack, tree.name );
+            
+            if( tree instanceof DocClass )
+                .processClass( tree );
+            else if( tree instanceof DocNamespace )
+                .processNamespace( tree );
+            else if( tree instanceof DocFunction )
+                .processFunction( tree );
+            else if( tree instanceof DocVariable )
+                .processVariable( tree );
+            else if( tree instanceof DocGroup )
+                .processGroup( tree );
+            else if( tree instanceof DocProtocol )
+                .processProtocol( tree );
+            else
+            {
+                for( i = 0; i < Array.size( tree.items ); i++ )
+                    .process( tree.items[i] );
+            }
+            
+            if( !(tree instanceof DocScript ) )
+                Array.pop(.name_stack);
+        }
+    }
+    
+    function postprocess(){}
+    
+    function print( void s )
+    {
+        Console.println( "${.name}: $s" );
+    }
+    
+    function processClass( object klass ){}
+    function processNamespace( object space ){}
+    function processFunction( object func ){}
+    function processVariable( object var ){}
+    function processGroup( object group ){}
+    function processProtocol( object proto ){}
+}

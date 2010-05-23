@@ -1,0 +1,24 @@
+#!/usr/bin/env ferite
+
+uses "console", "network", "sys", "regexp";
+
+object t;
+string str, excuse;
+
+if(!t = Network.tcp_connect( 'www.alexholden.net', 6666, Network.AF_AUTO )) {
+	Console.printlnErr("Couldn't connect to excuse server: " + err.str);
+	Sys.exit(1);
+}
+
+while( str = t.readln() )
+{
+	object o = new Regexp( ": (.+)\n" );
+    if( o.match(str) )
+	{
+		excuse = o.lastMatch().capture(0);
+        break;
+    }
+}
+					
+Console.println( "Bastard Excuse == $excuse" );
+					

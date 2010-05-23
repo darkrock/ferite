@@ -1,0 +1,10 @@
+#!/usr/bin/env ferite
+
+function t( string f ){
+  return f;
+}
+
+number i = 0;
+
+for( i = 0; i < 100000; i++ )
+   t( "Hello World" );

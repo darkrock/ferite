@@ -1,0 +1,55 @@
+uses "array";
+
+class RMIRemoteObject 
+{
+   // Static Members
+   static number unique_id = 0;
+   
+   static function getObjectID()
+   {
+       return ++RMIRemoteObject.unique_id;
+   }
+   
+   // Instance Members
+   object proto;     /* proto object, this is how we comunicate */
+   string serviceName;
+   string id;
+   
+   function constructor( object proto, string serviceName )
+   {
+       .proto = proto;
+       .serviceName = serviceName;
+       .id = "${self.hash()}-${RMIRemoteObject.getObjectID()}";
+   }
+
+   function attribute_set( string name, void value )
+   {
+       return .proto.setAttribute( .id, .serviceName, name, value );
+   }
+   
+   function attribute_missing( string name )
+   {
+       void var = .proto.obtainAttribute( .id, .serviceName, name );
+       object o = new RMILocalVariable( var );
+       
+       o.setRMIObject( self, name );
+       return var;
+   }
+   
+   function method_missing( ... )
+   {
+       array method_args = arguments();
+       number end = Array.size(method_args) - 1;
+       array real_args = [];
+       string method_name = method_args[-1];
+       
+       if( end > 0 )
+		 real_args = method_args[..-2];
+
+       RMI.debug( "Trying to invoke ${method_name}" );
+       return .proto.executeMethodCall( .id, .serviceName, method_name, real_args );
+   }
+	function toString() {
+		return "RMI Remote Object: ${.serviceName} :: ${.id}";
+	}
+}

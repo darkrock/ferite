@@ -1,0 +1,949 @@
+uses "date";
+
+class ListItem
+{
+	number is_class;
+	string filename;
+	string title;
+	object container;
+	
+	static function compare( object a, object b )
+		return String.compare( a.title, b.title );
+}
+
+class SearchIndexItem 
+{
+	string title;
+	string uri;
+	string description;
+	array  keywords;
+}
+
+/**
+ * !class HtmlTemplate
+ * !declaration class HtmlTemplate extends Template
+ * !brief Provides html output for feritedoc
+ * !extends Template
+ */
+class HtmlTemplate extends Template
+{
+	array file_list;
+	array searchindex;
+	string package = "ferite";
+	
+	/**
+	* !function TextTemplate
+	* !brief The constructor
+	* !declaration function TextTemplate( string args )
+	* !param string args The arguements to be passed to the template
+	*/
+	function constructor( string args )
+	{
+		super( "Html", args );
+		if( Array.keyExists(.argvector, 'package') ){
+			.package = .argvector['package'];
+		}
+	}
+
+	function getName() {
+		return Regexp.replaceAll( '[ \t\r\n]', .name_stack.join('.'), '' );
+	}
+
+	function writeHeader( object o, string title )
+	{
+		.writeHeader( o, title, false );
+	}
+	function writeHeader( object o, string title, boolean wantsearchbox )
+	{
+		o.writeln( "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">" );
+		o.writeln( "<html><head>" );
+		o.writeln( "  <title>$title</title>" );
+		o.writeln( "  <link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">" );
+		if( wantsearchbox )
+			o.writeln( '  <script language="JavaScript1.3" type="text/javascript" src="jse_form.js"></script>' );
+		o.writeln( "</head>" );
+		o.writeln( "<body>" );
+	}
+
+	function writeFooter( object o )
+	{
+		o.writeln( "<font face=arial size=2>Automatically generated at <i>${.getTimestamp()}</i> by <i>feritedoc</i>.</font>" );
+		o.writeln( "</body></html>" );
+	}
+
+	function writeBigTitle( object o, string header )
+	{
+		o.writeln( "<h2>$header</h2>" );
+	}
+
+	function writeLittleTitle( object o, string header )
+	{
+		o.writeln( "<h4>$header</h4>" );
+	}
+	function writeLittleWarningTitle( object o, string header )
+	{
+		o.writeln( "<h4 class=warningtitle>$header</h4>" );
+	}
+
+	function writeParagraph( object o, string data )
+	{
+		o.writeln( "<p>$data</p>" );
+	}
+
+	function writeTableHeader( object o, string title )
+	{
+		o.writeln( "<table border=0 cellpadding=1 cellspacing=0 width=\"100%\" class=border><tr><td class=title>" );
+		if( title != "" )
+		{
+			o.writeln( "  <table width=\"100%\" border=0 cellspacing=0 cellpadding=3 class=title>" );
+			o.writeln( "	<tr><td class=title>$title</td></tr>" );
+			o.writeln( "  </table>" );
+		}
+		o.writeln( "  <table width=\"100%\" border=0 cellspacing=1 cellpadding=3 class=contents>" );
+	}
+
+	function writeTableStaticHeader( object o, string title )
+	{
+		o.writeln( "<table border=0 cellpadding=1 cellspacing=0 width=\"100%\" class=border><tr><td class=statictitle>" );
+		if( title != "" )
+		{
+			o.writeln( "  <table width=\"100%\" border=0 cellspacing=0 cellpadding=3 class=statictitle>" );
+			o.writeln( "	<tr><td class=statictitle>$title</td></tr>" );
+			o.writeln( "  </table>" );
+		}
+		o.writeln( "  <table width=\"100%\" border=0 cellspacing=0 cellpadding=3 class=contents>" );
+	}
+
+	function writeTableEmptyHeader( object o )
+	{
+		o.writeln( "<table border=0 cellpadding=1 cellspacing=0 width=\"100%\" class=border><tr><td class=border>" );
+		o.writeln( "  <table width=\"100%\" border=0 cellspacing=0 cellpadding=3 class=contents>" );
+	}
+
+	function writeTableMainRow( object o, string data )
+	{
+		o.writeln( "<tr><td width=\"100%\" valign=middle class=mainrow>$data</td></tr>" );
+	}
+	function writeTableMainWarningRow( object o, string data )
+	{
+		o.writeln( "<tr><td width=\"100%\" valign=middle class=warningrow>$data</td></tr>" );
+	}
+
+	function writeTableSecondRow( object o, string data )
+	{
+		o.writeln( "<tr><td width=\"100%\" valign=middle class=secondrow>$data</td></tr>" );
+	}
+	
+	function writeTableExampleRow( object o, string data )
+	{
+		o.writeln( "<tr><td width=\"100%\" valign=middle class=examplerow>$data</td></tr>" );
+	}
+	
+	function writeTableStaticRow( object o, string data )
+	{
+		o.writeln( "<tr><td width=\"100%\" valign=middle class=staticrow>$data</td></tr>" );
+	}
+
+	function writeTableFooter( object o )
+	{
+		o.writeln( "</table></td></tr></table><br>" );
+	}
+
+	function writeAnchor( object o, string name )
+	{
+		o.writeln( "<a name=\"$name\">" );
+	}
+
+	function writeSearchIndexItem( object o, number index, object searchindexitem )
+	{
+		o.write( "s[$index] = \"" );
+		o.write( searchindexitem.title + "^" );
+		o.write( searchindexitem.uri + "^" );
+		o.write( searchindexitem.description + "^" );
+		o.writeln( Array.join( searchindexitem.keywords, "," ) + "\";" );
+	}
+	
+	function back_arrow()
+	{
+		return "<a href=\"#container_elements\"><img src=\"back.png\" alt=\"Click to go up to the list\" border=0></a>";
+	}
+	
+	function getTimestamp()
+	{
+		return Date.localDate(Date.now()).format( "%l:%M%p, %A %d %B %Y" );
+	}
+
+	function copyFile( string src, string dest )
+	{
+		object s,d;
+		s = File.open( src, 0 );
+		d = File.create( dest, 0644 );
+		if( !d )
+		{
+			Sys.error("Couldn't open file: $dest\n", 0 );
+			Sys.exit();
+		}
+		if( !s )
+		{
+			Sys.error("Couldn't open file: $src\n", 0 );
+			Sys.exit();
+		}
+		d.write( s.read( s.length() ) );
+	}
+
+	function createFile( string file, number is_class, string title, object container )
+	{
+		object l = new ListItem();
+		object o = null;
+
+		l.filename = file;
+		l.is_class = is_class;
+		l.title = title;
+		l.container = container;
+		o = File.create( "${prefix}${l.filename}", 0644 );
+		
+		if( o != null )
+		{
+			.print( "Generating ${l.filename}" );
+			.file_list[] = l;
+		}
+		else
+			Sys.error( "Unable to openfile ${prefix}${l.filename}\n", 0 );
+		return o;
+	}
+
+	function getModuleDescription( object container )
+	{
+		return (container.module == "" ? "" : " <span class=\"smalltext\">[${container.module}]</span>");
+	}
+	function getDescription( object container )
+	{
+		string description = (container.brief == "" ? container.description : container.brief);
+		object match = Regexp.match( '([^.]+)', description );
+		if( match != null )
+			return match.capture(0) + .getModuleDescription( container );
+		return "";
+	}
+	function generateTypeList( array list )
+	{
+		string r = "";
+		for( number i = 0; i < Array.size(list); i++ )
+		{
+			object match = Regexp.match( '^[ \t]*([A-Za-z.]+)', list[i] );
+			if( match != null )
+				r += match.capture(0);
+			else
+				Console.println( "Unable to get type from '${list[i]}'" );
+			if( (i+1) < Array.size(list) )
+				r += ",";
+		}
+		return "<b>($r)</b>";
+	}
+	function generateSearchIndexItem( object info, string uri )
+	{
+		object o = new SearchIndexItem();
+		
+		o.title = info.name;
+		switch( info.doctype ) {
+			case DocGeneral.GRP: o.title = "<img src=\\\"group.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Group]</span>"; break;
+			case DocGeneral.NS: o.title = "<img src=\\\"namespace.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Namespace]</span>"; break;
+			case DocGeneral.CLS: o.title = "<img src=\\\"class.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Class]</span>"; break;
+			case DocGeneral.FNC: o.title = "<img src=\\\"function.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Function]</span>"; break;
+			case DocGeneral.VAR: o.title = "<img src=\\\"var.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Variable]</span>"; break;
+			case DocGeneral.PRT: o.title = "<img src=\\\"protocol.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Protocol]</span>"; break;
+		}
+		o.description = String.trim(.getDescription(info)," \t\n") - "\"";
+		o.uri = uri;
+		o.keywords[] = info.name;
+		if( info.module != "" )
+			o.keywords[] = info.module;
+		.searchindex[] = o;
+		return o;
+	}	
+	function postprocess()
+	{
+		number i = 0;
+		object o = null, o2= null;
+		string name = "", icon = "", des = "", module = "";
+
+		/* Generate index list */
+		.print( "Generating list and main page" );
+		o = File.create( "${prefix}main.html", 0644 );
+		o2 = File.create( "${prefix}list.html", 0644 );
+
+		.writeHeader( o, "${(String.toUpper(.package[0]) + .package[1..])} Documentation", false );
+		.writeHeader( o2, "${(String.toUpper(.package[0]) + .package[1..])} Documentation", true );
+
+		.writeBigTitle( o, "${(String.toUpper(.package[0]) + .package[1..])} Documentation" );
+		
+		.writeBigTitle( o2, "Search" );
+		o2.writeln( '<form name="jse_Form" onsubmit="search_form(jse_Form);return false">
+						<input type="text" name="d">
+						<input type="button" value="Go" onclick="search_form(jse_Form)">
+					</form>' );
+					
+		.writeBigTitle( o2, "Contents" );
+
+	if( Array.size(modulelist) == 0 )
+				.writeParagraph( o, "This documentation has been automatically generated from the ${.package} source code." );
+	else
+		.writeParagraph( o, "This documentation has been automatically generated from the ${.package} modules: " + Array.join( Array.sort(modulelist), ", ") + ".");
+		.writeTableHeader( o, "Files Generated" );
+		.writeTableEmptyHeader( o2 );
+
+		.writeTableSecondRow( o2, "<img src=\"empty.png\" width=\"17\" height=\"17\" style=\"vertical-align: middle;\"> <a href=\"main.html\" target=main>Main</a>" );
+
+		.file_list = Array.sort( .file_list );
+		for( i = 0; i < Array.size(.file_list); i++ )
+		{
+			icon = "namespace.png";
+			if( .file_list[i].is_class == 1 )
+				icon = "class.png";
+			else if( .file_list[i].is_class == 2 )
+				icon = "group.png";
+			else if( .file_list[i].is_class == 3 )
+				icon = "protocol.png";
+			
+			des = "";
+			des = .getDescription( .file_list[i].container );
+			module = .getModuleDescription(.file_list[i].container);
+			if( des != "" ) des = " - $des";
+			.writeTableSecondRow( o, "<img src=\"$icon\" style=\"vertical-align: middle;\"> <a href=\"${.file_list[i].filename}\" target=main>${.file_list[i].title}</a>$des" );
+			.writeTableSecondRow( o2, "<img src=\"$icon\" style=\"vertical-align: middle;\"> <a href=\"${.file_list[i].filename}\" target=main>${.file_list[i].title}</a>$module" );
+		}
+
+		.writeTableFooter(o);
+		.writeTableFooter(o2);
+
+		.writeFooter( o );
+		.writeFooter( o2 );
+
+		o.close();
+		o2.close();
+
+		/* Generate index file */
+		.print( "Generating index.html" );
+		o = File.create( "${prefix}index.html", 0644 );
+		o.writeln( "<html><head><title>${(String.toUpper(.package[0]) + .package[1..])} Documentation</title></head>" );
+		o.writeln( "<frameset COLS=\"24%,*\">" );
+		o.writeln( "  <frame SRC=\"list.html\" NAME=\"list\">" );
+		o.writeln( "  <frame SRC=\"main.html\" NAME=\"main\">" );
+		o.writeln( "</frameset></html>" );
+		o.close();
+		
+		/* Generate search index file */
+		.print( "Generating jse_sites.js" );
+		i = 0;
+		o = File.create( "${prefix}jse_sites.js", 0644 );
+		o.writeln( "var s = new Array();" );
+		Array.each( .searchindex ) using ( searchindexitem ) {
+			.writeSearchIndexItem( o, i++, searchindexitem );
+		};
+		o.close();
+		
+		.print( "Copying over images" );
+		.copyFile( "$installpath/template/html/empty.png", "${prefix}empty.png" );
+		.copyFile( "$installpath/template/html/class.png", "${prefix}class.png" );
+		.copyFile( "$installpath/template/html/namespace.png", "${prefix}namespace.png" );
+		.copyFile( "$installpath/template/html/protocol.png", "${prefix}protocol.png" );
+		.copyFile( "$installpath/template/html/group.png", "${prefix}group.png" );
+		.copyFile( "$installpath/template/html/back.png", "${prefix}back.png" );
+		.copyFile( "$installpath/template/html/var.png", "${prefix}var.png" );
+		.copyFile( "$installpath/template/html/function.png", "${prefix}function.png" );
+		.copyFile( "$installpath/template/html/warning.png", "${prefix}warning.png" );
+		.copyFile( "$installpath/template/html/style.css", "${prefix}style.css" );
+		.copyFile( "$installpath/template/html/jse_form.js", "${prefix}jse_form.js" );
+		.copyFile( "$installpath/template/html/jse_search.js", "${prefix}jse_search.js" );
+		.copyFile( "$installpath/template/html/results.html", "${prefix}results.html" );
+	}
+
+	function processClass( object klass )
+	{
+		number i = 0;
+ 		boolean done_functions = false, done_variables = false;
+		string name = .getName(), brackets = "", icon = "", classprefix = "", objectprefix = "", postfix = "";
+		number lasttype = -1;
+		object o = .createFile( "$name.html", 1, name, klass );
+
+		lastparserfile = name;
+		.generateSearchIndexItem( klass, "$name.html" );
+
+		.writeHeader( o, "class $name" );
+
+		if( klass.mods == "" )
+		{
+			.writeBigTitle( o, "class ${klass.name}" );
+			if( klass.exts != "" )
+			{
+				klass.exts = String.trim( klass.exts, " \r\n\r" );
+				.writeLittleTitle( o, "extends <a href=\"${klass.exts}.html\">${klass.exts}</a>" );
+			}
+			if( Array.size(klass.implements_list) > 0 ) {
+				string list = "";
+				Array.each( klass.implements_list ) using ( proto ) {
+					string p = Regexp.replaceAll( ' ', proto, '' );
+					list += "<a href=\"$p.html\">$p</a>, ";
+				};				
+				list = Regexp.replace( ', $', list, '' );
+				.writeLittleTitle( o, "implements $list" );
+			}
+		}
+		else
+		 .writeBigTitle( o, "class modifies ${klass.mods}" );
+
+		.writeParagraph( o, "<b>Provided By</b>: <a href=\"file:${klass.providedBy}\">${File.name(klass.providedBy)}</a>" );
+		.processAll( o, klass, false );
+		
+		if( klass.example != "" )
+		{
+			.writeLittleTitle( o, "Example" );
+			o.writeln( .processString(klass.example) );
+		}		
+
+		klass.items = Array.sort(klass.items) using (a,b) {
+			if( a.doctype == b.doctype )
+				return String.compare( a.name, b.name );
+			else if( a.doctype < b.doctype )
+				return -1;
+			else if( a.doctype > b.doctype )
+				return 1;
+		};
+		
+		.writeAnchor( o, "container_elements" );
+		.writeTableHeader( o, "<b>class contents</b> [<i>NB. Highlighted attributes are static members</i>]" );
+		for( i = 0; i < Array.size(klass.items); i++ )
+		{
+			icon = "var.png\" alt=\"variable\"";
+			brackets = objectprefix = classprefix = postfix = "";			
+			if( klass.items[i] instanceof DocFunction )
+			{
+				number count = Array.size(klass.items[i].parameters);
+				brackets = "${.generateTypeList(klass.items[i].parameters)}";
+				icon = "function.png\" alt=\"function\"";
+				classprefix = "class.";
+				objectprefix = "object.";
+				postfix = "." + Array.size(klass.items[i].parameters);
+				
+				if( lasttype != klass.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Functions" );
+					lasttype = klass.items[i].doctype;
+				}							  
+			}
+			else
+			{
+				if( lasttype != klass.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Variables" );
+					lasttype = klass.items[i].doctype;
+				}											 
+			}
+			
+			if( klass.items[i] != null )
+			{
+				if( klass.items[i].is_static )
+					.writeTableStaticRow( o, "<img src=\"$icon style=\"vertical-align: middle;\"> <a href=\"#$classprefix${klass.items[i].name}$postfix\">${klass.items[i].name}</a>$brackets - ${klass.items[i].brief}" );
+				else
+					.writeTableSecondRow( o, "<img src=\"$icon style=\"vertical-align: middle;\"> <a href=\"#$objectprefix${klass.items[i].name}$postfix\">${klass.items[i].name}</a>$brackets - ${klass.items[i].brief}" );				
+			}
+		}
+		.writeTableFooter( o );
+
+		for( i = 0; i < Array.size(klass.items); i++ )
+		{
+			if( klass.items[i] instanceof DocFunction )
+			{
+				if( !done_functions )
+				{
+					.writeLittleTitle( o, "Functions" );
+					done_functions = true;
+				}
+				.processFunction( o, klass.items[i], true );
+			}
+		}
+		lastparserfile = name;
+
+		for( i = 0; i < Array.size(klass.items); i++ )
+		{
+			if( klass.items[i] instanceof DocVariable )
+			{
+				if( !done_variables )
+				{
+					.writeLittleTitle( o, "Variables" );
+					done_variables = true;
+				}
+				.processVariable( o, klass.items[i] );
+			}
+		}
+		lastparserfile = name;
+		.writeFooter(o);
+		o.close();
+	}
+
+	function processNamespace( object space )
+	{
+		number i = 0, lasttype = -1;
+ 		boolean done_functions = false, done_variables = false;
+		string name = .getName();
+		object o = .createFile( "$name.html", 0, name, space );
+
+		lastparserfile = name;
+		.generateSearchIndexItem( space, "$name.html" );
+
+		.writeHeader( o, "namespace $name" );
+
+		if( space.mods == "" )
+		 .writeBigTitle( o, "namespace ${space.name}" );
+		else
+		 .writeBigTitle( o, "namespace modifies ${space.mods}" );
+
+		.writeParagraph( o, "<b>Provided By</b>: <a href=\"file:${space.providedBy}\">${File.name(space.providedBy)}</a>" );
+		.processAll( o, space, false );
+
+		if( space.example != "" )
+		{
+			.writeLittleTitle( o, "Example" );
+			o.writeln( .processString(space.example) );
+		}	 
+		
+		space.items = Array.sort(space.items) using ( a, b ) {
+			if( a.doctype == b.doctype )
+				return String.compare( a.name, b.name );
+			else if( a.doctype < b.doctype )
+				return -1;
+			else if( a.doctype > b.doctype )
+				return 1;
+		};
+		
+		.writeAnchor( o, "container_elements" );
+		.writeTableHeader( o, "<b>namespace contents</b>" );
+		for( i = 0; i < Array.size(space.items); i++ )
+		{
+			if( space.items[i] instanceof DocFunction )
+			{
+				number count = Array.size(space.items[i].parameters);
+				if( lasttype != space.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Functions" );
+					lasttype = space.items[i].doctype;
+				}				
+				.writeTableSecondRow( o, "<img src=\"function.png\" alt=\"function\" style=\"vertical-align: middle;\"> <a href=\"#object.${space.items[i].name}.$count\">${space.items[i].name}</a>${.generateTypeList(space.items[i].parameters)} - ${space.items[i].brief}" );
+			}
+			else if( space.items[i] instanceof DocVariable )
+			{
+				if( lasttype != space.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Variables" );
+					lasttype = space.items[i].doctype;
+				}				
+				.writeTableSecondRow( o, "<img src=\"var.png\" alt=\"variable\" style=\"vertical-align: middle;\"> <a href=\"#${space.items[i].name}\">${space.items[i].name}</a> - ${space.items[i].brief}" );
+			}
+			else if( space.items[i] instanceof DocClass )
+			{
+				if( lasttype != space.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Classes" );
+					lasttype = space.items[i].doctype;
+				}				
+				.writeTableStaticRow( o, "<img src=\"class.png\" alt=\"class\" style=\"vertical-align: middle;\"> <a href=\"$name.${space.items[i].name}.html\">${space.items[i].name}</a> - ${space.items[i].brief}" );
+				Array.push(.name_stack, space.items[i].name );
+				.processClass( space.items[i] );
+				Array.pop(.name_stack);
+			}
+			else if( space.items[i] instanceof DocNamespace )
+			{
+				if( lasttype != space.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Namespaces" );
+					lasttype = space.items[i].doctype;
+				}							  
+				.writeTableStaticRow( o, "<img src=\"namespace.png\" alt=\"namespace\" style=\"vertical-align: middle;\"> <a href=\"$name.${space.items[i].name}.html\">${space.items[i].name}</a> - ${space.items[i].brief}" );
+				Array.push(.name_stack, space.items[i].name );
+				.processNamespace( space.items[i] );
+				Array.pop(.name_stack);
+			}
+			lastparserfile = name;
+		}
+		.writeTableFooter( o );
+
+		for( i = 0; i < Array.size(space.items); i++ )
+		{
+			if( space.items[i] instanceof DocFunction )
+			{
+				if( !done_functions )
+				{
+					.writeLittleTitle( o, "Functions" );
+					done_functions = true;
+				}
+				.processFunction( o, space.items[i], false );
+			}
+			lastparserfile = name;
+		}
+
+		for( i = 0; i < Array.size(space.items); i++ )
+		{
+			if( space.items[i] instanceof DocVariable )
+			{
+				if( !done_variables )
+				{
+					.writeLittleTitle( o, "Variables" );
+					done_variables = true;
+				}
+				.processVariable( o, space.items[i] );
+			}
+			lastparserfile = name;
+		}
+		.writeFooter(o);
+		o.close();
+	}
+	
+	function processGroup( object space )
+	{
+		number i = 0, lasttype = -1;
+ 		boolean done_functions = false, done_variables = false;
+		string name = .getName();
+		object o = .createFile( "$name.html", 2, space.name, space );
+
+		lastparserfile = name;
+		.generateSearchIndexItem( space, "$name.html" );
+
+		.writeHeader( o, "group $name" );
+
+		if( space.mods == "" )
+		 .writeBigTitle( o, "group ${space.name}" );
+		else
+		 .writeBigTitle( o, "group modifies ${space.mods}" );
+
+		.writeParagraph( o, "<b>Provided By</b>: <a href=\"file:${space.providedBy}\">${File.name(space.providedBy)}</a>" );
+		.processAll( o, space, false );
+
+		if( space.example != "" )
+		{
+			.writeLittleTitle( o, "Example" );
+			o.writeln( o, .processString(space.example) );
+		}	  
+		
+		space.items = Array.sort(space.items) using (a,b) {
+			if( a.doctype == b.doctype )
+				return String.compare( a.name, b.name );
+			else if( a.doctype < b.doctype )
+				return -1;
+			else if( a.doctype > b.doctype )
+				return 1;
+		};
+		
+		.writeAnchor( o, "container_elements" );
+		.writeTableHeader( o, "<b>group contents</b>" );
+		for( i = 0; i < Array.size(space.items); i++ )
+		{
+			if( space.items[i] instanceof DocFunction )
+			{			
+				number count = Array.size(space.items[i].parameters);
+				if( lasttype != space.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Functions" );
+					lasttype = space.items[i].doctype;
+				}				
+				.writeTableSecondRow( o, "<img src=\"function.png\" alt=\"function\" style=\"vertical-align: middle;\"> <a href=\"#object.${space.items[i].name}.$count\">${space.items[i].name}</a>${.generateTypeList(space.items[i].parameters)} - ${space.items[i].brief}" );
+			}
+			else if( space.items[i] instanceof DocVariable )
+			{
+				if( lasttype != space.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Variables" );
+					lasttype = space.items[i].doctype;
+				}						  
+				.writeTableSecondRow( o, "<img src=\"var.png\" alt=\"variable\" style=\"vertical-align: middle;\"> <a href=\"#${space.items[i].name}\">${space.items[i].name}</a> - ${space.items[i].brief}" );
+			}
+			else if( space.items[i] instanceof DocClass )
+			{
+				if( lasttype != klass.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Classes" );
+					lasttype = klass.items[i].doctype;
+				}						  
+				
+				.writeTableStaticRow( o, "<img src=\"class.png\" alt=\"class\" style=\"vertical-align: middle;\"> <a href=\"$name.${space.items[i].name}.html\">${space.items[i].name}</a> - ${space.items[i].brief}" );
+				Array.push(.name_stack, space.items[i].name );
+				.processClass( space.items[i] );
+				Array.pop(.name_stack);
+			}
+			else if( space.items[i] instanceof DocNamespace )
+			{
+				if( lasttype != klass.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Namespaces" );
+					lasttype = klass.items[i].doctype;
+				}						  
+				.writeTableStaticRow( o, "<img src=\"namespace.png\" alt=\"namespace\" style=\"vertical-align: middle;\"> <a href=\"$name.${space.items[i].name}.html\">${space.items[i].name}</a> - ${space.items[i].brief}" );
+				Array.push(.name_stack, space.items[i].name );
+				.processNamespace( space.items[i] );
+				Array.pop(.name_stack);
+			}
+			lastparserfile = name;
+		}
+		.writeTableFooter( o );
+
+		for( i = 0; i < Array.size(space.items); i++ )
+		{
+			if( space.items[i] instanceof DocFunction )
+			{
+				if( !done_functions )
+				{
+					.writeLittleTitle( o, "Functions" );
+					done_functions = true;
+				}
+				.processFunction( o, space.items[i], false );
+			}
+		}
+
+		for( i = 0; i < Array.size(space.items); i++ )
+		{
+			if( space.items[i] instanceof DocVariable )
+			{
+				if( !done_variables )
+				{
+					.writeLittleTitle( o, "Variables" );
+					done_variables = true;
+				}
+				.processVariable( o, space.items[i] );
+			}
+		}
+		.writeFooter(o);
+		o.close();
+	}
+
+	function processProtocol( object space )
+	{
+		number i = 0, lasttype = -1;
+ 		boolean done_functions = false, done_variables = false;
+		string name = .getName();
+		object o = .createFile( "$name.html", 3, space.name, space );
+		
+		lastparserfile = name;
+		.generateSearchIndexItem( space, "$name.html" );
+		
+		.writeHeader( o, "protocol $name" );
+		.writeBigTitle( o, "protocol ${space.name}" );
+		
+		.writeParagraph( o, "<b>Provided By</b>: <a href=\"file:${space.providedBy}\">${File.name(space.providedBy)}</a>" );
+		
+		.processAll( o, space, false );
+		
+		if( space.example != "" )
+		{
+			.writeLittleTitle( o, "Example" );
+			o.writeln( o, .processString(space.example) );
+		}	  
+		
+		space.items = Array.sort(space.items) using (a,b) {
+			if( a.doctype == b.doctype )
+				return String.compare( a.name, b.name );
+			else if( a.doctype < b.doctype )
+				return -1;
+			else if( a.doctype > b.doctype )
+				return 1;
+		};
+		
+		.writeAnchor( o, "container_elements" );
+		.writeTableHeader( o, "<b>group contents</b>" );
+		for( i = 0; i < Array.size(space.items); i++ )
+		{
+			if( space.items[i] instanceof DocFunction )
+			{			
+				number count = Array.size(space.items[i].parameters);
+				if( lasttype != space.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Functions" );
+					lasttype = space.items[i].doctype;
+				}				
+				.writeTableSecondRow( o, "<img src=\"function.png\" alt=\"function\" style=\"vertical-align: middle;\"> <a href=\"#object.${space.items[i].name}.$count\">${space.items[i].name}</a>${.generateTypeList(space.items[i].parameters)} - ${space.items[i].brief}" );
+			}
+			else if( space.items[i] instanceof DocVariable )
+			{
+				if( lasttype != space.items[i].doctype )
+				{
+					.writeTableMainRow( o, "Variables" );
+					lasttype = space.items[i].doctype;
+				}						  
+				.writeTableSecondRow( o, "<img src=\"var.png\" alt=\"variable\" style=\"vertical-align: middle;\"> <a href=\"#${space.items[i].name}\">${space.items[i].name}</a> - ${space.items[i].brief}" );
+			}
+			lastparserfile = name;
+		}
+		.writeTableFooter( o );
+		
+		for( i = 0; i < Array.size(space.items); i++ )
+		{
+			if( space.items[i] instanceof DocFunction )
+			{
+				if( !done_functions )
+				{
+					.writeLittleTitle( o, "Functions" );
+					done_functions = true;
+				}
+				.processFunction( o, space.items[i], false );
+			}
+		}
+		
+		for( i = 0; i < Array.size(space.items); i++ )
+		{
+			if( space.items[i] instanceof DocVariable )
+			{
+				if( !done_variables )
+				{
+					.writeLittleTitle( o, "Variables" );
+					done_variables = true;
+				}
+				.processVariable( o, space.items[i] );
+			}
+		}
+		.writeFooter(o);
+		o.close();
+	}
+	
+	function processFunction( object o, object func, boolean in_class )
+	{
+		number i = 0, count = Array.size(func.parameters);
+		string type, name, meaning;
+		
+		lastparserfile = .getName();
+		
+		if( func.is_static && in_class )
+		{
+			.generateSearchIndexItem( func, .getName()+".html#class.${func.name}.$count" );
+			.writeAnchor( o, "class.${func.name}.$count" );
+			.writeTableStaticHeader( o, "<img src=\"function.png\" style=\"vertical-align: middle;\"> static function <b>${func.name}</b> ${.back_arrow()}" );
+		}
+		else
+		{
+			.generateSearchIndexItem( func, .getName()+".html#object.${func.name}.$count" );
+			.writeAnchor( o, "object.${func.name}.$count" );
+			.writeTableHeader( o, "<img src=\"function.png\" style=\"vertical-align: middle;\"> function <b>${func.name}</b> ${.back_arrow()}" );
+		}
+		.processAll( o, func, true );
+
+		if( Array.size(func.parameters) > 0 )
+		{
+			object captureplist = new Regexp( '([^ ]+)[\n\t ]+([^ ]+)([\n\t ]+(.*))?' );
+			.writeTableMainRow( o, "<i>Parameters:</i>" );
+			for( i = 0; i < Array.size(func.parameters); i++ )
+			{
+				if( func.parameters[i] != "" )
+				{
+					object values = captureplist.match( func.parameters[i] );
+					type = values.capture(0);
+					name = values.capture(1);
+					meaning = values.capture(3);				
+					if( meaning != "" )
+						.writeTableSecondRow( o, "&nbsp;&nbsp;&nbsp;&nbsp;Parameter #${(i+1)}: $type <b>$name</b> - $meaning" );
+					else
+						.writeTableSecondRow( o, "&nbsp;&nbsp;&nbsp;&nbsp;Parameter #${(i+1)}: $type <b>$name</b>" );
+				}
+			}
+		}
+		if( func.return_type != "" )
+		{
+			.writeTableMainRow( o, "<i>Returns:</i>" );
+			.writeTableSecondRow( o, "&nbsp;&nbsp;&nbsp;&nbsp;${func.return_type}" );
+		}
+		if( func.example != "" )
+		{
+			.writeTableMainRow( o, "<i>Example:</i>" );
+			.writeTableSecondRow( o, .processString(func.example) );
+		}
+		.writeTableFooter(o);		
+	}
+
+
+	function processVariable( object o, object var )
+	{
+		lastparserfile = .getName();
+
+		.generateSearchIndexItem( var, .getName()+".html#${var.name}" );
+
+		.writeAnchor( o, var.name );
+		if( var.is_static )
+		 .writeTableStaticHeader( o, "<img src=\"var.png\" style=\"vertical-align: middle;\"> static ${var.type} <b>${var.name}</b> ${.back_arrow()}" );
+		else
+		 .writeTableHeader( o, "<img src=\"var.png\" style=\"vertical-align: middle;\"> ${var.type} <b>${var.name}</b> ${.back_arrow()}" );
+		.processAll( o, var, true );
+		.writeTableFooter( o );
+	}
+
+	function processAll( object o, object var, boolean use_table )
+	{
+		if( var.requires ) {
+			if( use_table ) {
+				.writeTableMainRow( o, "Requires" );
+				.writeTableSecondRow( o, .processString(var.requires.join(',')) );
+			} else {
+				.writeParagraph( o, "<b>Requires</b>: " + .processString(var.requires.join(',')) );
+			}
+		}
+		
+		if( var.brief != "" )
+		{
+			if( use_table )
+			 .writeTableSecondRow( o, .processString(var.brief) );
+			else
+			 .writeParagraph( o, .processString(var.brief) );
+		}
+		if( var.warning != "" )
+		{
+			if( use_table )
+			{
+				.writeTableMainWarningRow( o, "<img src=\"warning.png\" style=\"vertical-align: middle;\"> Warning!" );
+				.writeTableSecondRow( o, .processString(var.warning) );
+			}
+			else
+			{
+				.writeLittleWarningTitle( o, "<img src=\"warning.png\" style=\"vertical-align: middle;\"> Warning!" );
+				.writeParagraph( o, .processString(var.warning) );
+	 		}
+		}	
+		if( var.declaration != "" )
+		{
+			if( use_table )
+			{
+				.writeTableMainRow( o, "<i>Declaration:</i>" );
+				.writeTableSecondRow( o, "&nbsp;&nbsp;&nbsp;&nbsp;${.processString(var.declaration)}" );
+			}
+			else
+			{
+				.writeLittleTitle( o, "Declaration" );
+				.writeParagraph( o, .processString(var.declaration) );
+			}
+		}
+		if( var.description != "" )
+		{
+			if( use_table )
+			{
+				.writeTableMainRow( o, "<i>Description:</i>" );
+				.writeTableSecondRow( o, .processString(var.description) );
+			}
+			else
+			{
+				.writeLittleTitle( o, "Description" );
+				.writeParagraph( o, .processString(var.description) );
+			}
+		}
+	}
+
+	function processString( string str )
+	{
+		str = Regexp.replaceAll( '<nl/>', str, "<br />\n" );
+		str = Regexp.replaceAll( '<tab/>', str, '&nbsp;&nbsp;&nbsp;&nbsp;' );
+		str = Regexp.replaceAll( '<code>', str, '<div class="code">' );
+		str = Regexp.replaceAll( '</code>', str, '</div>' );
+		str = Regexp.replaceAll( '</type>', str, '</span>' );
+		str = Regexp.replaceAll( '</keyword>', str, '</span>' );
+		str = Regexp.replaceAll( '<type>', str, '<span class="type">' );
+		str = Regexp.replaceAll( '<keyword>', str, '<span class="keyw">' );
+		return str;
+	}
+}
+/**
+ * !end
+ */
+
+return new HtmlTemplate( template_args );

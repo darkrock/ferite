@@ -1,0 +1,19 @@
+uses "console";
+
+class RMIDebugTransport extends RMITransportLayer {
+	
+	function constructor( string url ) {
+		Console.println( "RMIDebugTransport: url: $url" );
+	}
+	
+	function send( string str ) {
+		Console.println( "RMIDebugTransport: send: '$str'" );
+	}
+	
+	function receive() {
+		Console.println( "RMIDebugTransport: receive" );
+		return "";
+	}
+}
+
+RMI.registerTransportLayer( "debug", "RMIDebugTransport" );

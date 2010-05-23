@@ -1,0 +1,23 @@
+uses "console";
+
+global {
+    void output;
+}
+
+function bar( void foo )
+{
+    new foo( "test" );
+}
+
+class Foo {
+   function constructor( string foo )
+     Console.println( "New Foo: $foo" );
+}
+
+void klass = Foo;
+object barobject = new klass( "test" );
+
+output = Console;
+output.println( "Hello World" );
+
+barobject( Foo );

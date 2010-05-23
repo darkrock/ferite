@@ -1,0 +1,41 @@
+uses "console";
+uses "rmi", "sys";
+uses "filesystem";
+
+class SomeService
+{
+	string someValue;
+
+	function constructor( string value ) {
+		.someValue = value;
+	}
+
+	function getValue() {
+		return .someValue; 
+	}
+	
+	function saveImage( string data ) {
+		File.create("server-binary.jpg") using ( o ) {
+			Console.println("File server-binary.jpg saved.");
+			o.write(data);
+		};		
+	}
+}
+
+string host = "localhost";
+
+if( Array.size(argv) > 0 )
+    host = argv[0];
+
+RMI.debugOn = false;
+
+RMI.createService( "SomeResource", new SomeService( "If you can see this \"RMI\" is working!" ) );
+RMI.createService( "AnotherResource", new SomeService( "This is the second rmi resource on the server" ) );
+
+Console.println( "Server: Adding TCP/IP service listener" );
+RMI.addServiceListener( "::tcpip", "bind:$host:" );
+
+Console.println( "Server: Listening from RMI connections" );
+RMI.listen();
+
+Console.println( "Server: Shutting Down RMI Server" );

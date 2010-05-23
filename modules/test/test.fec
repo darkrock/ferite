@@ -1,0 +1,266 @@
+/*
+ * Copyright (c) 2002-2003 Stephan Engstrom
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "test.lib";
+
+module-header
+{
+
+#include <stdio.h>
+#include "utility.h"
+
+}
+
+class Test
+{
+   number tot_impl, tot_fail, tot_success, tot_ignored;
+   number beQuiet;
+   
+   final static number SUCCESS = 0;
+   final static number IGNORE  = -2;
+   
+   native function run( string name ) : number
+   {
+       FeriteNamespaceBucket *nsb;
+       FeriteNamespace *ns;
+       FeriteHashBucket *buk,*res;
+       FeriteHash *hash;
+       FeriteIterator *iter;
+       FeriteClass *class;
+       FeriteFunction *fnc;
+       FeriteClass *cls;
+       FeriteVariable *tot_impl, *tot_fail, *tot_success, *tot_ignored, *var;
+       char *key;
+       int rate=0,count=0,ret,quiet=0;
+
+       tot_impl = ferite_object_get_var( script, self, "tot_impl");
+       tot_fail = ferite_object_get_var( script, self, "tot_fail");
+       tot_success = ferite_object_get_var( script, self, "tot_success");
+       tot_ignored = ferite_object_get_var( script, self, "tot_ignored" );
+       var = ferite_object_get_var( script, self, "beQuiet");
+       quiet = VAI(var);
+
+       if(!quiet)
+         printf("===================================\n");
+
+/*
+ *  This will call the __setup__ method, and if returning other than 0 bail out.
+ */
+
+       if((ret = Test_execute_function(script, super, self, "__setup__")))
+       {
+           if(!quiet)
+             printf("<FAILED>__setup__() returned %d, Aborting.\n",ret);
+           FE_RETURN_LONG(100);
+       }
+
+/*
+ *  Check if passed name is Namespace or Class, and walk all functions/methods.
+ */
+
+       iter = ferite_create_iterator(script);
+       if(( nsb = ferite_find_namespace(script,script->mainns, name->data, 0) ) == NULL)
+         printf("[PANIC] Unknown class or namespace: %s\n",name->data);
+       else if(nsb->type == FENS_CLS)
+       {
+           if(!quiet)
+             printf("Class: %s\n", name->data);
+           cls = (FeriteClass *)nsb->data;
+           /* while( cls != NULL ) */ /* no parent */
+           {
+               FeriteHash *check[] = { cls->object_methods, cls->class_methods };
+               int i = 0;
+               
+               for( i = 0; i < 2; i++ )
+               {
+                   memset( iter, 0, sizeof(FeriteIterator) );
+                   while( (buk = ferite_hash_walk(script,check[i],iter)) != NULL )
+                   {
+                       fnc = (FeriteFunction*)buk->data;
+                       if(strcmp("constructor",fnc->name) == 0 || strcmp("destructor",fnc->name) == 0 || fnc->state != FE_ITEM_IS_PUBLIC)
+                       {
+                           /* Constructor/Destructor */
+                       }
+                       else if((res = ferite_hash_get(script,self->functions,fnc->name)) == NULL)
+                       {
+                           if(!quiet)
+                               printf("<FAILED> %sfunction %s(), not implemented\n", (fnc->is_static ? "static " : ""), fnc->name);
+                           VAI(tot_impl)++;
+                       }
+                       else
+                       {
+                           if( (ret = Test_execute_function(script, super, self, fnc->name)) != 0 )
+                           {
+                               if(!quiet)
+                               {
+                                   if( ret > -2 )
+                                       printf("<FAILED> %sfunction %s() returned error: %d\n",(fnc->is_static ? "static " : ""),fnc->name, ret);
+                                   else
+                                       printf("{IGNORE} %sfunction %s() ignored\n",(fnc->is_static ? "static " : ""),fnc->name);                                       
+                                   
+                                   if( ret == -1 )
+                                   {
+                                       char *errmsg = ferite_get_error_log( script );
+                                       printf( "<ERRORLOG>\n%s", errmsg );
+                                       ffree( errmsg );
+                                   }
+                               }
+                               
+                               if( ret > -2 )
+                                   VAI(tot_fail)++;
+                               else
+                                   VAI(tot_ignored)++;
+                               
+                               ferite_reset_errors( script );
+                           }
+                           else
+                           {
+                               if(!quiet)
+                                   printf("[PASSED] %sfunction %s()\n",(fnc->is_static ? "static " : ""),fnc->name);
+                               VAI(tot_success)++;
+                           }
+                       }
+                   }
+               }
+               /* cls = cls->parent; */ /* no parent, we assume other test cases deal with them */
+           }
+       }
+       else if( nsb->type == FENS_NS )
+       {
+           if(!quiet)
+             printf("Namespace: %s\n",name->data);
+           hash = ((FeriteNamespace *)nsb->data)->code_fork;
+           while( (buk = ferite_hash_walk(script,hash,iter)) != NULL )
+           {
+               nsb = (FeriteNamespaceBucket*)buk->data;
+               /* Only test functions */
+               if(nsb->type != FENS_FNC)
+                 continue;
+               fnc = nsb->data;
+               if((res = ferite_hash_get(script,self->functions,fnc->name)) == NULL)
+               {
+                   if(!quiet)
+                     printf("<FAILED> function %s(), not implemented\n",fnc->name);
+                   VAI(tot_impl)++;
+               }
+               else
+               {
+                   if((ret = Test_execute_function(script, super, self, fnc->name)))
+                   {
+                       if(!quiet)
+                       {
+                           if( ret > -2 )
+                               printf("<FAILED> function %s() returned error: %d\n",fnc->name, ret);
+                           else
+                               printf("{IGNORE} function %s() is ignored\n",fnc->name, ret);
+                           
+                           if( ret == -1 )
+                           {
+                               char *errmsg = ferite_get_error_log( script );
+                               printf( "<ERRORLOG>\n%s", errmsg );
+                               ffree( errmsg );
+                           }
+                       }
+                       if( ret > -2 )
+                           VAI(tot_fail)++;
+                       else
+                           VAI(tot_ignored)++;
+                       ferite_reset_errors( script );
+                   }
+                   else
+                   {
+                       if(!quiet)
+                         printf("[PASSED] function %s()\n",fnc->name);
+                       VAI(tot_success)++;
+                   }
+               }
+           }
+       }
+       else
+       {
+           printf("[ABORT] This test only works with Classes or Namespaces\n");
+       }
+
+/*
+ *      Call the __misc__, __shakedown__ and __teardown methods,
+ *  and if returning other than 0, we fail the complete test.
+ */
+
+       if((ret = Test_execute_function(script, super, self, "__misc__")))
+       {
+           if(!quiet)
+             printf("<FAILED> function %s() returned error: %d\n","__misc__", ret);
+           VAI(tot_fail)++;
+       }
+       if((ret = Test_execute_function(script, super, self, "__shakedown__")))
+       {
+           if(!quiet)
+             printf("<FAILED> function %s() returned error: %d\n","__shakedown__", ret);
+           VAI(tot_fail)++;
+       }
+       if((ret = Test_execute_function(script, super, self, "__teardown__")))
+       {
+           if(!quiet)
+             printf("<FAILED> function %s() returned error: %d\n","__teardown__", ret);
+           VAI(tot_fail)++;
+       }
+/*
+ *  Tell how it went
+ */
+       count = VAI(tot_fail) + VAI(tot_impl) + VAI(tot_success) + VAI(tot_ignored);
+       if(count > 0)
+           rate = (double)((double)(VAI(tot_success)+VAI(tot_ignored))/ (double)count) * 100;
+       else
+           rate = 100;
+       if(!quiet)
+       {
+           printf("===================================\n");
+           printf("Success rate: %d%%%s\n",rate,(rate!=100)?", test did not pass.":"");
+       }
+       ffree(iter);
+       FE_RETURN_LONG( 100 - rate );
+   }
+
+   native function __setup__( ) : number
+   {
+       FE_RETURN_LONG( 0 );
+   }
+   native function __teardown__( ) : number
+   {
+       FE_RETURN_LONG( 0 );
+   }
+   native function __shakedown__( ) : number
+   {
+       FE_RETURN_LONG( 0 );
+   }
+   native function __misc__( ) : number
+   {
+       FE_RETURN_LONG( 0 );
+   }
+}

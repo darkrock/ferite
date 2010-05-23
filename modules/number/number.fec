@@ -1,0 +1,332 @@
+/*
+ * Copyright (C) 1999-2007 Chris Ross
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "number.lib";
+
+module-header
+{
+
+#include <math.h>
+#include <stdlib.h>
+}
+
+/**
+ * @namespace Number
+ * @brief Provides a set of numberical functions
+ */
+namespace Number
+{
+	/**
+	 * @function abs
+	 * @declaration function abs( number num )
+	 * @brief Calculates the absolute value of a number
+	 * @param number num The number to calculate the absolute value of
+	 * @return The absolute value of the number
+	 */
+	native function abs( number num ) : number
+	{
+		if( F_VAR_TYPE(params[0]) == F_VAR_DOUBLE )
+			FE_RETURN_DOUBLE( fabs( num ) );
+		FE_RETURN_LONG( labs( (long)num ) );
+	}
+
+	/**
+	 * @function acos
+	 * @declaration function acos( number degree )
+	 * @brief Calculates the arc cosine of a number
+	 * @param number degree The number to calculate the arc cosine of
+	 * @return The arc cosine of the specified value in radians
+	 * @description This function calculates the arc cosine of the specified
+	 *			  value and returns it in radians. Note: The input value
+	 *			  must be between -1 and 1.
+	 */
+	native function acos( number degree ) : float
+	{
+		if( degree < -1 || degree > 1 )
+		  ferite_error( script, 0, "Number.acos() can only take values between -1 and 1\n" );
+		else
+		{
+			FE_RETURN_DOUBLE( acos( degree ) );
+		}
+	}
+
+	/**
+	 * @function asin
+	 * @declaration function asin( number degree )
+	 * @brief Calculates the arc sine of a number
+	 * @param number degree The number to calculate the arc sine of
+	 * @return The arc sine of the specified value in radians
+	 * @description This function calculates the arc sine of the specified
+	 *			  value and returns it in radians. Note: The input value
+	 *			  must be between -1 and 1.
+	 */
+	native function asin( number degree ) : float
+	{
+		if( degree < -1 || degree > 1 )
+		  ferite_error( script, 0, "Number.asin() can only take values between -1 and 1\n" );
+		else
+		{
+			FE_RETURN_DOUBLE( asin( degree ) );
+		}
+	}
+
+	/**
+	 * @function atan
+	 * @declaration function atan( number degree )
+	 * @brief Calculates the arc tangent of a number
+	 * @param number degree The number to calculate the arc tangent of
+	 * @return The arc tangent of the specified value in radians
+	 */
+	native function atan( number degree ) : float
+	{
+		if( degree < -1 || degree > 1 )
+			ferite_error( script, 0, "Number.atan() can only take values between -1 and 1\n" );
+		else
+		{
+			FE_RETURN_DOUBLE( atan( degree ) );
+		}
+	}
+
+	/**
+	 * @function atan2
+	 * @declaration function atan2( number x, number y )
+	 * @brief Calculates the arc tangent of two numbers
+	 * @param number x The first number to use in the calculation
+	 * @param number y The second number to use in the calculation
+	 * @return The arc tangent of the two values in radians
+	 * @description This function calculates the arc tangent of the two
+	 *			  specified variables. It is like calculating the arc
+	 *			  tangent of x/y, but the signs of both arguments are used
+	 *			  when determining what quadrant the result is in.
+	 */
+	native function atan2( number x, number y ) : float
+	{
+		FE_RETURN_DOUBLE( atan2( x, y ) );
+	}
+
+	/**
+	 * @function ceil
+	 * @declaration function ceil( number num )
+	 * @brief Rounds a number up to the nearest integer value
+	 * @param number num The number
+	 * @return The smallest integer that is greater than or equal to the input
+	 */
+	native function ceil( number num ) : float
+	{
+		FE_RETURN_DOUBLE( ceil( num ) );
+	}
+
+	/**
+	 * @function cos
+	 * @declaration function cos( number degree )
+	 * @brief Calculates the cosine of a number
+	 * @param number degree The angle in radians to calculate the cosine of
+	 * @return The cosine of the specified angle as a number between -1 and 1
+	 */
+	native function cos( number degree ) : float
+	{
+		FE_RETURN_DOUBLE( cos( degree ) );
+	}
+
+	/**
+	 * @function exp
+	 * @declaration function exp( number power )
+	 * @brief Calculates the value of e raised to the specified power
+	 * @param number power The value to raise e to the power of
+	 * @return e (the base of natural logrithms) raised to the specified power
+	 */
+	native function exp( number power ) : float
+	{
+		FE_RETURN_DOUBLE( exp( power ) );
+	}
+	
+	/**
+	 * @function floor
+	 * @declaration function floor( number num )
+	 * @brief Rounds a number down to the nearest integer value
+	 * @param number num The number
+	 * @return The largest integer that is smaller than or equal to the input
+	 */
+	native function floor( number num ) : float 
+	{
+		FE_RETURN_DOUBLE( floor( num ) );
+	}
+
+	/**
+	 * @function log
+	 * @declaration function log( number num )
+	 * @brief Calculates the natural logarithm of a number
+	 * @param number num The number
+	 * @return The natural logarithm of the specified number
+	 */
+	native function log( number num ) : float
+	{
+		if( num <= 0 )
+			ferite_error( script, 0, "Number.log() can only take positive values\n" );
+		else
+		{
+			FE_RETURN_DOUBLE( log( num ) );
+		}
+	}
+
+	/**
+	 * @function log10
+	 * @declaration function log10( number num )
+	 * @brief Calculates the base 10 logarithm of a number
+	 * @param number num The number
+	 * @return The base 10 logarithm of the specified number
+	 */
+	native function log10( number num ) : float
+	{
+		if( num <= 0 )
+		  ferite_error( script, 0, "Number.log10() can only take positive values\n" );
+		else
+		{
+			FE_RETURN_DOUBLE( log10( num ) );
+		}
+	}
+
+	/**
+	 * @function pow
+	 * @declaration function pow( number base, number exp )
+	 * @brief Calculates the value of a number raised to a power
+	 * @param number base The number
+	 * @param number exp The power to raise the number to
+	 * @return The value of base raised to the power of exp
+	 */
+	native function pow( number base, number exp ) : float
+	{
+		FE_RETURN_DOUBLE( pow( base, exp ) );
+	}
+
+	/**
+	 * @function round
+	 * @declaration function round( number num )
+	 * @brief Rounds a number to the nearest integer
+	 * @param number num The number
+	 * @return The number rounded to the nearest integer
+	 * @description This function differs from Number.ceil() and Number.floor()
+	 *			  because it will round either up or down, depending on
+	 *			  whether the input is less than or greater than half way to
+	 *			  the next integer up. Note that the current implementation
+	 *			  will break if the input number is greater than that which
+	 *			  can be represented by a signed long (about 2 billion on a
+	 *			  32 bit processor).
+	 */
+	native function round( number num ) : float
+	{
+		int sign = (num < 0 ? -1 : 1 );
+		FE_RETURN_LONG( (long)(num+(0.5 * sign)) );
+	}
+
+	/**
+	 * @function sin
+	 * @declaration function sin( number degree )
+	 * @brief Calculates the sine of a number
+	 * @param number degree The angle in radians to calculate the sine of
+	 * @return The sine of the specified angle as a number between -1 and 1
+	 */
+	native function sin( number degree ) : float
+	{
+		FE_RETURN_DOUBLE( sin( degree ) );
+	}
+
+	/**
+	 * @function sqrt
+	 * @declaration function sqrt( number num )
+	 * @brief Calculates the square root of a number
+	 * @param number num The number (must not be negative)
+	 * @return The square root of the specified number
+	 */
+	native function sqrt( number num ) : float
+	{
+		if( num < 0 )
+		  ferite_error( script, 0, "Number.sqrt() can only take positive values\n" );
+		else
+		{
+			FE_RETURN_DOUBLE( sqrt( num ) );
+		}
+	}
+
+	/**
+	 * @function tan
+	 * @declaration function tan( number degree )
+	 * @brief Calculates the tangent of a number
+	 * @param number degree The angle in radians to calculate the tangent of
+	 * @return The tangent of the specified angle as a number between -1 and 1
+	 */
+	native function tan( number degree ) : float
+	{
+		FE_RETURN_DOUBLE( tan( degree ) );
+	}
+
+	/**
+	 * @function isDouble
+	 * @declaration function isDouble( number n )
+	 * @brief Checks if a number is represented internally as a double
+	 * @param number n The number
+	 * @return True if the number is stored as a double, false if it is not
+	 */
+	native function isDouble( number n ) : boolean
+	{
+		if( F_VAR_TYPE(params[0]) == F_VAR_DOUBLE )
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function isLong
+	 * @declaration function isLong( number n )
+	 * @brief Checks if a number is represented internally as a long
+	 * @param number n The number
+	 * @return True if the number is stored as a long, false if it is not
+	 */
+	native function isLong( number n ) : boolean
+	{
+		if( F_VAR_TYPE(params[0]) == F_VAR_LONG )
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function times
+	 * @declaration function times( number value )
+	 * @brief Itterate over a closure value times
+	 * @param number value The number of times to itterate
+	 */
+	function times( number value ) {
+		for( number i = 0; i < value; i++ ) {
+			deliver();
+		}
+	}
+}

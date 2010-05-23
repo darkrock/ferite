@@ -1,0 +1,16 @@
+class RMIStandardTranslation extends RMITranslationLayer {
+	
+	function send( string str ) {
+		.transport.send( str );
+	}
+	
+	function receive() {
+		return .transport.receive();
+	}
+	
+	function cleanup() {
+		.transport.cleanup();
+	}
+}
+
+RMI.registerTranslationLayer( "std", "RMIStandardTranslation" );

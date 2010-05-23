@@ -1,0 +1,32 @@
+#!/usr/bin/env ferite
+
+uses "console", "array", "sys", "network", "posix";
+
+array read;
+object ret, o;
+object usock = new Network.UDPSocket();
+object tsock = Network.tcp_bind("localhost", 6666);
+object nsock = Network.unix_bind("/tmp/bofhsrv");
+
+usock.bind(Network.ANY, 6666);
+
+read[] = Sys.stdin();
+if(tsock) read[] = tsock;
+if(usock) read[] = usock;
+if(nsock) read[] = nsock;
+
+ret = Posix.select(read, [], [], 10);
+if(!ret) Console.println("Select failed: " + err.str);
+else {
+	Console.println("Select returned:");
+	Array.each( ret.read ) using (o) {
+		Console.println("read descriptor " + o.getDescriptor());
+	};
+	Array.each( ret.write ) using (o) {
+		Console.println("write descriptor " + o.getDescriptor());
+	};
+	Array.each( ret.except ) using (o) {
+		Console.println("except descriptor " + o.getDescriptor());
+	};
+	Console.println("Timeout = " + ret.timeout);
+}

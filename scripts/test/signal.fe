@@ -1,0 +1,21 @@
+uses "console", "posix";
+
+function sighandler_int( number sig )
+{
+   Console.println( "SIGINT Called" );  
+   Sys.exit(0);
+}
+
+function sighandler_kill( number sig )
+{
+   Console.println( "SIGKILL Called" );
+   Sys.exit(0);
+}
+
+Posix.registerSigHandler( Posix.SIGTERM, "sighandler_kill", null );
+Posix.registerSigHandler( Posix.SIGABRT, "sighandler_int", null );
+Posix.registerSigHandler( Posix.SIGKILL, "sighandler_kill", null );
+Posix.registerSigHandler( Posix.SIGINT, "sighandler_int", null );
+
+Console.println( "Press ctrl+c to stop this program" );
+while( true ) {};

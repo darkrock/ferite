@@ -1,0 +1,167 @@
+uses "array", "filesystem", "posix", "console", "test", "sys";
+
+class PosixTest extends Test {
+    function getgid() { return Test.IGNORE; }
+    function getppid() { return Test.IGNORE; }
+    function getegid() {return Test.IGNORE;  }
+    function getpid() { return Test.IGNORE; }
+    function getuid() { return Test.IGNORE; }
+    function geteuid() { return Test.IGNORE; }
+    
+    function access() { 
+        if( not Posix.access("posix.fe", "r") )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function chown() {  }
+    function chroot() { 
+        if( not Posix.chroot(Directory.getCurrent()) and Posix.getuid() == 0 )
+            return 1;
+        
+        if( Posix.chroot(Directory.getCurrent()) and Posix.getuid() > 0 )
+            return 2;
+        
+        return Test.SUCCESS;
+    }
+    function chmod() {  }
+    function exec() {  }
+    function fork() {  }
+    function getPriority() { 
+        number p = Posix.getPriority( Posix.PRIO_PROCESS, Posix.getpid() );
+        number np = p + 10;
+        
+        Posix.setPriority( Posix.PRIO_PROCESS, Posix.getpid(), np );
+        
+        if( Posix.getPriority( Posix.PRIO_PROCESS, Posix.getpid() ) != np ) {
+            return 1;
+        }
+        
+        Posix.setPriority( Posix.PRIO_PROCESS, Posix.getpid(), p );
+        
+        return Test.SUCCESS;    
+    }
+    function setPriority() { return .getPriority(); }
+    function hardlink() {  }
+    function ignoreSignal() {  }
+    function lstat() {  }
+    function kill() {  }    
+    function mkfifo() {  }
+    function openprocess() {  }
+    function registerSigHandler() {  }
+    function resetSigAction() {  }
+    function setgid() {  }
+    function softlink() {  }
+    function select() {  }
+    function setsid() {  }
+    function setuid() {  }
+    function stat() {  }
+    function userInfo() {  }
+    function umask() {  }
+    function utime() {  }
+    function waitpid() {  }
+}
+
+class PosixPipe extends Test {
+    
+}
+class PosixProcessStream extends Test {
+    function __read__()  { return Test.IGNORE; }
+    function __close__() { return Test.IGNORE; }
+    function __write__() { return Test.IGNORE; }    
+}
+class PosixRlimit extends Test {
+    function set() { 
+        object r = new Posix.Rlimit( Posix.RLIMIT_FSIZE );
+        object s;
+        
+        if( r.current != -1 or r.current == 0 )
+            return 1;
+        if( r.max != -1 or r.max == 0 )
+            return 2;
+        r.current -= 10;
+        r.set();
+        
+        s = new Posix.Rlimit( Posix.RLIMIT_FSIZE );
+        if( s.current != r.current )
+            return 3;
+        
+        return Test.SUCCESS;        
+    }
+}
+class PosixRusage extends Test {
+    
+}
+class PosixSelectResult extends Test {
+    
+}
+class PosixStat extends Test {
+    function isSticky() { }
+    function isDirectory() { }
+    function getGroupID() { }
+    function isLink() { }
+    function getInode() { }
+    function isFifo() { }
+    function isCharDevice() { }
+    function getAccessTime() { }
+    function getSize() { }
+    function isSuid() { }
+    function getBlockCount() { }
+    function getBlockSize() { }
+    function getOwnerID() { }
+    function isSgid() { }
+    function isBlockDevice() { }
+    function getChangedTime() { }
+    function getModifiedTime() { }
+    function isSocket() { }
+    function isRegularFile() { }
+    function getLinkCount() { }    
+}
+class PosixUname extends Test {
+    
+}
+class PosixUser extends Test {
+    function shell() { 
+        object u = Posix.userInfo(0);
+        if( u.shell() == "" )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function uid() { 
+        object u = Posix.userInfo(0);
+        if( u.uid() != 0 )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function gid() { 
+        object u = Posix.userInfo(0);
+        if( u.gid() != 0 )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function realname() { return Test.IGNORE; }
+    function password() { return Test.IGNORE; }
+    function name() { return Test.IGNORE; }
+    function home() { return Test.IGNORE; }    
+}
+
+if( Array.size(argv) == 0 ) {
+    object o = new PosixTest();
+    object q = new PosixPipe();
+    object r = new PosixProcessStream();
+    object s = new PosixRlimit();
+    object t = new PosixRusage();
+    object u = new PosixSelectResult();
+    object v = new PosixStat();
+    object x = new PosixUname();
+    object y = new PosixUser();
+
+    return q.run('Posix.Pipe') +
+           s.run('Posix.Rlimit') +
+           t.run('Posix.Rusage') +
+           u.run('Posix.SelectResult') +
+           x.run('Posix.Uname') +
+           y.run('Posix.User') +
+           r.run('Posix.ProcessStream') +
+           v.run('Posix.Stat') +
+           o.run('Posix');
+}

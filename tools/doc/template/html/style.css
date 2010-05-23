@@ -1,0 +1,149 @@
+BODY {
+   background: #FFFFFF;
+   color: #000000;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;
+   font-size: 10pt;
+}
+
+TD {
+   background: #FFFFFF;
+   color: #000000;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+TD.title {
+   background: #114f9b;
+   color: #FFFFFF;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+TABLE.title {
+   background: #114f9b;
+   color: #FFFFFF;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+TD.statictitle {
+   background: #418e48;
+   color: #FFFFFF;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+TABLE.statictitle {
+   background: #418e48;
+   color: #FFFFFF;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+TABLE.border {
+   background: #000000;
+   color: #FFFFFF;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+TABLE.contents {
+   background: #000000;
+   color: #FFFFFF;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+TD.mainrow {
+   background: #419eea;
+   color: #FFFFFF;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+TD.warningrow {
+   color: #000000;
+   background-color: #FEEA99;	
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+TD.secondrow {
+   background: #d1e4fc;
+   color: #000000;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+TD.example {
+   background: #EFEFEF;
+   color: #000000;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+TD.staticrow {
+   background: #94ce9b;
+   color: #000000;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+H2 {
+   color: #000000;
+	background-color: #DDF;
+   font-size: 14pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;
+}
+
+H4 {
+   color: #000000;	
+   font-size: 11pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;	  
+}
+H4.warningtitle {
+   color: #000000;
+   background-color: #FEEA99;	
+   padding: 4px;
+   font-size: 11pt;
+   border: #B9A143 1px solid;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;	  
+}
+P {
+   color: #000000;
+   font-size: 10pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;
+}
+
+A {
+  color: #093182;
+  font-size: 10pt;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+A.light {
+  color: #FFFFFF;
+  font-size: 10pt;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.code {
+  border-left: 2px solid #000000;
+  background-color: #EEEEFF;
+  margin-left: 15px;  
+  padding-left: 5px;       
+  padding-top: 2px; padding-bottom: 2px;
+  font-family: Courier;
+}
+
+SPAN.smalltext {
+   font-size: 8pt;
+   font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, sans-serif;   
+}
+
+.keyw {
+    color: #933434;
+}
+.type {
+    color: #3b9334;
+}

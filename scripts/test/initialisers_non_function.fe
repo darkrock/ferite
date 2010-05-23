@@ -1,0 +1,14 @@
+#!/usr/bin/env ferite
+
+uses "console";
+
+global {   
+   string foob = "cool";
+}
+
+namespace foo {
+   number i = 42;
+   number j = 2.3;
+}
+
+Console.println( "${foo.i},${foo.j}, foo=$foob");

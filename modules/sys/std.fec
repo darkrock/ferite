@@ -1,0 +1,325 @@
+/*
+ * Copyright (C) 2001-2007 Chris Ross, Stephan Engstrom, Alex Holden et al
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "stream";
+uses "sys.lib";
+
+module-header
+{
+#include "../../config.h"
+#include "../../libs/aphex/include/aphex.h"
+#include "../stream/util_stream.h"
+    
+#ifndef VCWIN32
+# include <sys/time.h>    
+#ifndef WIN32
+# include <sys/wait.h>
+#endif
+#if defined(USING_DARWIN) || defined(USE_SNOWLEOPARD)
+#   include <crt_externs.h>
+# else
+    extern char **environ;
+# endif
+#endif
+
+#include <locale.h>
+
+}
+
+module-init
+{
+	FeriteNamespace *ns = ferite_register_namespace( script, "Sys", script->mainns );
+	FeriteVariable *var;
+	
+	var = ferite_create_number_long_variable( script, "LC_ALL", LC_ALL, FE_STATIC );
+	MARK_VARIABLE_AS_FINALSET(var);
+	ferite_register_ns_variable( script, ns, "LC_ALL", var );
+	
+	var = ferite_create_number_long_variable( script, "LC_MESSAGES", LC_MESSAGES, FE_STATIC );
+	MARK_VARIABLE_AS_FINALSET(var);
+	ferite_register_ns_variable( script, ns, "LC_MESSAGES", var );
+
+	var = ferite_create_number_long_variable( script, "LC_NUMERIC", LC_NUMERIC, FE_STATIC );
+	MARK_VARIABLE_AS_FINALSET(var);
+	ferite_register_ns_variable( script, ns, "LC_NUMERIC", var );
+
+	var = ferite_create_number_long_variable( script, "LC_TIME", LC_TIME, FE_STATIC );
+	MARK_VARIABLE_AS_FINALSET(var);
+	ferite_register_ns_variable( script, ns, "LC_TIME", var );
+}
+
+/*
+   Here are function that are:
+   - internal to ferite engine
+   - defined by ANSI C
+   - generally available on all sane plattforms
+
+   Do not put non portable stuff in here
+*/
+
+/**
+ * @namespace Sys
+ * @modifies Sys
+ */
+namespace modifies Sys
+{
+	/**
+	 * @variable LC_ALL
+	 * @type number
+	 * @brief For all of the locale
+	 */
+
+	/**
+	 * @variable LC_MESSAGES
+	 * @type number
+	 * @brief For localizable natural-language messages
+	 */
+	
+	/**
+	 * @variable LC_NUMERIC
+	 * @type number
+	 * @brief For number formatting (such as the decimal point and the thousands separator)
+	 */
+
+	/**
+	 * @variable LC_TIME
+	 * @type number
+	 * @brief For time and date formatting
+	 */
+	
+    /**
+     * @function gc
+     * @declaration function gc( )
+     * @brief Force the garbage collector to be invoked
+     */
+    native function gc( ) : undefined
+    {
+        ferite_check_gc( script );
+    }
+    /**
+     * @function warning
+     * @declaration function warning( string message )
+     * @brief Cause ferite to issue an non-fatal warning
+     * @param string message The warning to give
+     */
+    native function warning( string message ) : undefined
+    {
+        ferite_warning( script, "%.*s", message->length, message->data );
+    }
+    /**
+     * @function error
+     * @declaration function error( string message, number value )
+     * @brief Cause ferite to throw an exception
+     * @param string message The error message
+     * @param number value The error number
+     */
+    function error( string message, number value ) {
+		raise new Error( message, value );
+    }
+    /**
+     * @function strerror
+     * @declaration function strerror( number what )
+     * @brief Convert an error return into a string
+     * @param number what The error number to convert
+     * @return String containing the error
+     */
+    native function strerror( number what ) : string
+    {
+        char buf[1024];
+        FeriteVariable *var;
+        int Error = (int)what;
+
+        switch( Error )
+        {
+          case -1:     sprintf(buf,"%d: Generic Error", Error); break;
+          case  0:     sprintf(buf,"%d: Success", Error); break;
+          default:     sprintf(buf,"%d: %s", Error, strerror(Error) );
+            break;
+
+        }
+        var = fe_new_str_static( "System::strerror", buf, 0, FE_CHARSET_DEFAULT );
+        FE_RETURN_VAR( var );
+    }
+    /**
+     * @function exit
+     * @declaration function exit( number retval )
+     * @brief Cause the script to cease executing and set the return value
+     * @param number retval The value to return
+     */
+    native function exit( number retval ) : undefined
+    {
+        ferite_stop_execution( script, (int)retval );
+    }
+    /**
+     * @function scriptName
+     * @declaration function scriptName( )
+     * @brief Get the name of the executing script
+     * @return The name of the script
+     */
+    native function scriptName( ) : string
+    {
+        FeriteVariable *v;
+        v = fe_new_str_static( "scriptname", script->filename, 0, FE_CHARSET_DEFAULT);
+        FE_RETURN_VAR( v );
+    }
+    /**
+     * @function getVersion
+     * @declaration function getVersion( )
+     * @brief Get the version of the engine
+     * @return The version of the engine
+     */
+    native function getVersion( ) : string
+    {
+        FeriteVariable *v;
+        v = fe_new_str_static( "version", "ferite "VERSION, 0, FE_CHARSET_DEFAULT );
+        FE_RETURN_VAR( v );
+    }
+    /**
+     * @function getBuildDate
+     * @declaration function getBuildDate( )
+     * @brief Get the date the Engine was Built
+     * @return The date the Engine was Built
+     */
+    native function getBuildDate( ) : string
+    {
+        FeriteVariable *v;
+        v = fe_new_str_static( "builddate", __DATE__" "__TIME__, 0, FE_CHARSET_DEFAULT );
+        FE_RETURN_VAR( v );
+    }
+    /**
+     * @function system
+     * @declaration function system( string cms )
+     * @brief Execute a command and wait for it to return
+     * @param string cms The command to run
+     * @return The return value from the program, -1 on error
+     */
+    native function system( string cms ) : number
+    {
+        int ret;
+        ret = system( cms->data );
+        if( ret == -1 )
+          ferite_set_error( script, -1, "'system()' failed" );
+#ifdef WIN32
+	FE_RETURN_LONG( ret );
+#else
+        FE_RETURN_LONG( WEXITSTATUS(ret) );
+#endif
+    }
+
+    /**
+     * @function sleep
+     * @declaration function sleep(number secs)
+     * @brief Suspend execution for the specified number of seconds
+     * @param number secs The number of seconds to sleep for
+     * @returns 0 if the requested time elapsed, or the number of seconds left
+     * @description This function suspends execution for the specified number
+     *              of seconds or until a signal interrupts it. If it was
+     *              interrupted, the number of seconds remaining in the
+     *              requested interval is returned.
+     */
+    native function sleep(number secs) : number
+    {
+        FE_RETURN_LONG(sleep((unsigned int)secs));
+    }
+
+    /**
+     * @function usleep
+     * @declaration function usleep( number usecs )
+     * @brief Suspend execution for microsecond intervals
+     * @param number usecs number of microseconds to sleep
+     */
+    native function usleep( number usecs ) : number
+    {
+		usleep( (unsigned long)usecs );
+		FE_RETURN_LONG(usecs);
+    }
+
+    /**
+     * @function timestamp
+     * @declaration function timestamp()
+     * @brief Generate a double representing a timestamp including microseconds
+     * @return The timestamp
+     */
+    native function timestamp() : float
+    {
+        struct timeval the_time;
+        double t = 0;
+
+        gettimeofday(&the_time, NULL);
+        t = (double)the_time.tv_sec + (((double)the_time.tv_usec)/1000000);
+
+        FE_RETURN_DOUBLE( t );
+    }
+    
+    /**
+     * @function stdin
+     * @declaration function stdin( )
+     * @brief Get the stdin system stream for reading
+     * @return A Sys.StdioStream
+     */
+    function stdin( )
+    {
+        return new Stream.StdioStream(0);
+    }
+    /**
+     * @function stdout
+     * @declaration function stdout( )
+     * @brief Get the stdout system stream for writing
+     * @return A Sys.StdioStream
+     */
+    function stdout( )
+    {
+        return new Stream.StdioStream(1);
+    }
+    /**
+     * @function stderr
+     * @declaration function stderr( )
+     * @brief Get the stderr system stream for writing errors out to
+     * @return A Sys.StdioStream
+     */
+    function stderr( )
+    {
+        return new Stream.StdioStream(2);
+    }
+	
+	/**
+	 * @function setlocale
+	 * @declaration native function setlocale( number category, string locale )
+	 * @brief Used to set the program's current locale
+	 * @param number category can be any of Sys.LC_*
+	 * @param string locale the locale
+	 */
+	native function setlocale( number category, string locale ) : undefined
+	{
+		setlocale( (int)category, locale->data );
+	}
+}
+/**
+ * @end
+ */

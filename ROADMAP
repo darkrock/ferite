@@ -1,0 +1,88 @@
+This is the generalised roadmap for ferite versions.
+
+Key: 
+
+ - To Be Done
+ ? In the process of being done
+ * Done
+
+0.99.1:
+  * Static methods and variables on classes (boris)
+  * "namespace extends <foo>" syntax (boris)
+  * autoloading of functions (boris)
+  
+0.99.2:
+  * eval operator on regular expressions (Boris)
+  * Operators (boris)
+    * bit shifts ( "<<", ">>" )
+	* assignment ("<<=", ">>=", "&=", "|=" )
+	* bit filed ops ( "&" (and), "|"(inc or), "~"(ex or), "^" ) - for better
+	  native fudging - will also require adding 0x... to the compiler,
+	* negative - +
+
+0.99.3:
+  * new build system that is autotools pure (boris)
+  * Autoload method for classes (boris)
+  * Variable argument lists (boris)
+  * include() (boris)
+  
+0.99.4
+  * array initialisers (boris)
+  * switch statement (boris)
+  * Initialisers for variables within namespace and global scope (boris)
+     -> these will only be simple value assignment rather than 
+	    the more complex expression based initlisers on functions
+  * file, and line number for the current opcode. (boris)
+  
+0.99.5:
+  * array code re-write (boris)
+  * better regexp system (boris)
+  * new module system (boris)
+  * opcodes as numbers not pointers (Boris)
+  * reflection (ntropy)
+  * threading (boris)
+  
+0.99.6
+  * foreach (boris)
+  * method overloading (boris)
+  * complete development document
+  * optimsations (stephan)
+    * hash caching and optimsation
+    * disposable variable caching
+    * various structure caching
+  * per thread error handling (boris)
+
+0.99.7
+  * backtraces (boris)
+  * private, protected, and public class attributes/methods (boris)
+  * abstract and final classes (boris)
+  * sanity work on the oo system (boris)
+  * static constructor and desctructor on classes (boris)
+  * closures (closure, using, deliver) (boris)
+  * move regular expression code from core to module (boris)
+  * backtraces (boris)
+  * Update documents
+	
+1.0 pre-releases 
+  - windows port [vc] (boris - or anyone else who wants it :)
+  - Brush up documentation and clean up apis
+  - Bug fixing and testing
+
+1.0 release candidates
+  - Critical bug fixes
+
+At this point CVS will become 1.1.0.
+
+Bug fixes will be applied to both stable and unstable. Only unstable
+with gain new features.
+
+MAJOR.odd.x == unstable branch, released side-by-side with stable
+MAJOR.even.x == stable branch.
+
+post 1.0
+  - frame archive, server, module build and install mechanism
+  - re-entrant compiler
+  - boolean type ?
+  - basic types as objects or transparent namespace access (boris)
+  - saving of compiled scripts (boris)
+  - gui layer

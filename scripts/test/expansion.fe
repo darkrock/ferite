@@ -1,0 +1,46 @@
+uses "array", "console", "reflection", "array";
+
+class modifies Obj {
+
+	expansion [getset variable #name of #type] {
+		private #type #name;
+		function get#name {
+			return .#name;
+		}
+		function set#name( #type value ) {
+			.#name = value;
+			return .#name;
+		}
+	}
+	
+	expansion [test #name #op] {
+		function test#name() {
+			Console.println("#name (2 #op 2) = " + (2 #op 2));
+		}
+	}
+	
+	expansion [debug_inline #str] {
+		Console.println("This is a debug output: #str");
+	}
+	expansion [getvariable name #name] {
+		#name
+	}
+}
+
+
+class Bottom {
+
+	[getset variable chris of number]
+	[test add (+)]
+	[test sub (-)]
+}
+
+object o = new Bottom();
+
+o.setchris(10);
+Console.println(o.getchris());
+
+[debug_inline "Chris Rocks"];
+
+o.testadd();
+[getvariable name o].testsub();

@@ -1,0 +1,59 @@
+// Network items
+uses "network";
+// Twitter
+uses "xml";
+
+namespace modifies Network {
+
+	namespace Twitter {
+
+		number STATUS_LIMIT = 140;
+		string user = '';
+		string password = '';
+
+		function authenticate( string user, string password ) {
+			.user = user;
+			.password = password;
+		}
+		function tweet( string status ) {
+			return .tweet( .user, .password, status );
+		}
+		function tweet( string user, string password, string status ) {
+			if( user and password ) {
+				object http = Network.HTTP.post('http://twitter.com/statuses/update.xml');
+				object response;
+
+				http.authenticate( user, password );
+
+				if( status.utf8Length() > .STATUS_LIMIT ) {
+					status = status.utf8Slice(.STATUS_LIMIT);
+				}
+
+				http.payload([ 'status' => status ]);
+
+				response = http.run();
+				if( response.success() or response.redirect() ) {
+					if( response.body() ) {
+						monitor {
+							object node, tree = new XML.TreeParser();
+							tree.parseChunk(response.body());
+							node = tree.xpathNode('/status/id');
+							if( node ) {
+								return node.getElementData().toNumber();	
+							}
+							return 0;
+						} handle {
+							return 0;
+						}
+					} else {
+						raise new Error("Twitter is not responding correctly.");
+					}
+				} else {
+					raise new Error("Tweet failed for an unknown reason.");
+				}
+			} else {
+				raise new Error("Unable to tweet with empty username or password.");
+			}
+		}
+	}
+}

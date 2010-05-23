@@ -1,0 +1,23 @@
+// As of 11th June 2004 foreach has been deprecated; this script will no longer work
+
+uses "console";
+
+function test( array a, string breakpoint ) {
+	string value;
+	Console.println( "test start ---- " );
+	foreach( value, a ) {
+		Console.println( "value: $value" );
+		if( value == breakpoint )
+			break;
+	}
+	Console.println( "test middle ---- " );
+	foreach( value, a ) {
+		Console.println( "value: $value" );
+	}
+	Console.println( "test end ---- " );
+}
+
+array a = [ "One", "Two", "Three", "Four", "Five" ];
+
+test( a, "Three" );
+test( a, "" );

@@ -1,0 +1,91 @@
+#!/usr/bin/env ferite
+
+uses "console", "array";
+
+array test;
+array tmp;
+string blah = "test key";
+string i;
+number index;
+string b = "crap";
+number count;
+
+test[] = "blah";
+
+Console.println("test has size: "+Array.size(test));
+Console.println("test has: "+test[0]);
+Console.println("another test has: "+test[0]);
+
+test[] = "another one";
+
+Console.println("2nd one: "+test[1]);
+Console.println("test has size: "+Array.size(test));
+
+test[blah] = "yay";
+
+Console.println("NOW: "+test[blah]);
+
+Console.println("tesh hash as index of "+Array.getIndex(test,blah));
+
+Console.println("deleting '"+blah+"'...");
+
+Array.del(test,blah);
+Console.println("setting again...");
+
+test[blah] = "new yay";
+
+Console.println("and NOW: "+test[blah]);
+
+Console.println("--- now test array functions---");
+
+tmp = Array.keys(test);
+
+Console.println( "Got 'tests' keys" );
+Console.println("first key: "+tmp[0]);
+
+Console.println("there are " + Array.size(tmp) + " key(s)");
+
+test["stupid key"] = "val 2";
+
+tmp = Array.keys(test);
+Console.println("there are " + Array.size(tmp) + " key(s)");
+
+Console.println("size: "+Array.size(test));
+i = Array.shift(test);
+
+Console.println("first shift: "+i);
+
+Console.println("0th index: "+test[0]);
+Console.println("size: "+Array.size(test));
+
+i = Array.pop(test);
+Console.println("size: "+Array.size(test));
+
+Console.println("popped: "+i);
+
+Console.println("i-test: "+test[1]);
+
+Array.unshift(test,"unshifted value");
+Console.println("unshifted value...");
+Console.println("size: "+Array.size(test));
+Console.println("i-test: "+test[1]);
+
+Console.println("last val: "+test[0]);
+
+Console.println("push test. pushing.. 'pushed val'");
+
+Array.push(test,"pushed val");
+
+index = Array.size(test) - 1;
+
+Console.println("got from index "+index+": "+test[index]);
+
+Console.println("size: "+Array.size(test));
+
+for(count = 0; count < Array.size(test); count++)
+{
+    Console.println("\t"+count+"> "+test[count]);
+}
+/*
+
+*/

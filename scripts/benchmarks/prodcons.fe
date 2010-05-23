@@ -1,0 +1,75 @@
+#!/usr/bin/env ferite
+
+uses "thread", "string", "array", "console";
+
+global {
+    number data;
+    number consumed;
+    number produced;
+    number count;
+    object mutex;
+}
+
+class Consumer extends Thread
+{
+    number n;
+    function Consumer( number n ) {
+        super();
+        .n = n;
+    }
+    function run( ) {
+	number i;
+        while( 1 ) {
+	    mutex.lock();
+	    while( count == 0 )
+		mutex.wait();
+	    i = data;
+	    count--;
+	    mutex.signal();
+	    mutex.unlock();
+	    consumed++;
+	    if( i == .n )
+		break;
+	}
+    }
+}
+class Producer extends Thread
+{
+    number n;
+    function Producer( number n ) {
+        super();
+        .n = n;
+    }
+    function run( ) {
+	number i;
+	for ( i = 1; i <= .n; i++ ) {
+	    mutex.lock();
+	    while( count == 1 )
+		mutex.wait();
+	    data = i;
+	    count = 1;
+	    mutex.signal();
+	    mutex.unlock();
+	    produced++;
+	}
+    }
+}
+
+object t1,t2;
+number num;
+
+mutex = new Mutex();
+if( Array.size( argv ) > 0 )
+    num = String.toLong( argv[0] );
+else
+    num = 1;
+
+t1 = new Producer( num );
+t2 = new Consumer( num );
+t1.start(true);
+t2.start(true);
+
+Thread.join(t1);
+Thread.join(t2);
+
+Console.println("$produced $consumed");

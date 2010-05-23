@@ -1,0 +1,6 @@
+#!/bin/sh
+
+echo ">>>>>>>>>>>>>>>>>>>>> BUILDING FERITE SCANNER"
+flex -b -Cfr -Pfep -8 ferite_scanner.l 
+mv lex.fep.c ferite_scanner.c
+rm lex.backup

@@ -1,0 +1,1357 @@
+/*
+ * Copyright (C) 2001-2007 Evan Webb
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *	list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *	this list of conditions and the following disclaimer in the documentation
+ *	and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *	be used to endorse or promote products derived from this software without
+ *	specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "reflection.lib";
+
+module-header
+{
+
+#include <string.h>
+
+#define ClassObj	 ((FeriteClass*)(self->odata))
+#define ObjectObj	((ObjectHolder*)(self->odata))
+#define FunctionObj  ((FunctionHolder*)(self->odata))
+#define NSObj		((FeriteNamespace*)(self->odata))
+
+#define ChkSelf \
+	if(ClassObj == NULL) { \
+	  ferite_error(script, 0, "Undefined Class\n"); \
+	}
+
+	typedef struct __function_holder
+	{
+		FeriteFunction *func;
+		void *container;
+	}
+	FunctionHolder;
+
+	typedef struct __object_holder {
+		FeriteObject *object;
+		char		  weakReference;
+	} ObjectHolder;
+
+	void reflection_variable_get( FeriteScript *script, FeriteVariable *var );
+	void reflection_variable_set( FeriteScript *script, FeriteVariable *var, FeriteVariable *newvalue );
+	void reflection_variable_cleanup( FeriteScript *script, void *odata );
+	char *reflection_generate_class_fqn( FeriteScript *script, FeriteClass *klass );
+	FeriteVariable *reflection_ns_get_list( FeriteScript *script, FeriteNamespace *space, int type );
+}
+
+/**
+ * @class Namespace
+ * @brief This class wraps a ferite namespace and provides mechanisms to query it's contents.
+ */
+class Namespace 
+{
+	/**
+	 * @function constructor
+	 * @declaration function constructor( void ns )
+	 * @brief This function taks a namespace and constructs a wrapper
+	 * @description This function takes a namespace in the form of new Namespace(Sys)
+	 * @param void ns The namespace to wrap
+	 */
+	native function constructor( void ns )
+	{
+		if( F_VAR_TYPE(ns) != F_VAR_NS )
+		{
+			FE_RETURN_NULL_OBJECT;
+		}
+		self->odata = VAN(ns);
+	}
+
+	native function serializeSleep() : undefined {
+		ferite_error(script,0,"Can not serialize reflection Namespaces\n");
+	}
+	
+	/**
+	 * @function getVariables
+	 * @declaration function getVariables()
+	 * @brief Fetch an array containing names to types mapping of all the variables within the namespace
+	 * @description This function allows you to inspect the contents of the namespace. The returned array 
+		has the types as the elements with the names of the variables mapped ot the index. e.g. [ 'f' => 'string' ]
+	 * @return An associative array
+	 */
+	native function getVariables() : array
+	{
+		FeriteVariable *array = NULL, *var = NULL, *tmp = NULL;
+		FeriteHashBucket *buk = NULL;
+		FeriteIterator *iter = NULL;
+		
+		ChkSelf;
+		array = ferite_create_uarray_variable(script, "ns::getVars", NSObj->data_fork->size, FE_STATIC);
+		iter = ferite_create_iterator(script);
+		while((buk = (FeriteHashBucket*)ferite_hash_walk(script, NSObj->data_fork,iter)) != NULL)
+		{
+			FeriteNamespaceBucket *b = buk->data;
+			if( b->type == FENS_VAR )
+			{
+				tmp = b->data;
+				var = fe_new_str(buk->id,ferite_variable_id_to_str( script, F_VAR_TYPE(tmp) ), 0, FE_CHARSET_DEFAULT);
+				ferite_uarray_add(script,VAUA(array),var,buk->id, FE_ARRAY_ADD_AT_END );
+			}
+		}
+		ffree(iter);
+		FE_RETURN_VAR(array);		
+	}
+	/**
+	* @function getVariable
+	* @declaration function getVariable( string name )
+	* @brief Retrieves a variable from the namespace associated with this object
+	* @param string name The name of the variable to get
+	* @return The variable
+	* @description This function retrieves a variable from the namespace from the
+	*			  object associated with this "Namespace" object. If no variable
+	*			  exists in the object with the specified name, an exception
+	*			  is thrown.
+	*/
+	native function getVariable( string name ) : void
+	{
+		FeriteVariable *var = ferite_find_namespace_element_contents( script, NSObj, name->data, FENS_VAR );
+
+		if( var == NULL ) {
+			ferite_error( script, 0, "Namespace.getVariable(\"%s\") - No such variable in namespace\n", name->data );
+			FE_RETURN_VOID;
+		}
+		/* We dont do FE_RETURN_VAR because we dont want the variable to be disposed */
+		return var;
+	}
+	/**
+	* @function setVariable
+	* @declaration function setVariable( string name, void value )
+	* @brief Sets a variable in the namespace associated with this object
+	* @param string name The name of the variable to set the value of
+	* @param void value The value to set the variable to
+	* @return A copy of the variable which was just assigned
+	* @description This function can be used to set the value of a variable in
+	*			  a  namespace. If no variable of the specified name exists it
+					will be created. If
+	*			  it is of a different type to the specified value, an
+	*			  exception is thrown.
+	*/
+	native function setVariable( string name, void value ) : void
+	{
+		FeriteVariable *rval = NULL;
+		FeriteVariable *var = ferite_find_namespace_element_contents( script, NSObj, name->data, FENS_VAR );
+
+		if( var == NULL ) {
+			var = ferite_create_void_variable( script, name->data, FE_ALLOC );
+			ferite_register_ns_variable( script, NSObj, name->data, var );
+		}
+
+		if( !ferite_types_are_equal( script, F_VAR_TYPE(var), F_VAR_TYPE(value) ) ) {
+			ferite_error( script, 0, "Namespace.setVariable(\"%s\") - can't assign variable of type %s to type %s\n",
+						 name->data,
+						 ferite_variable_id_to_str( script, F_VAR_TYPE(value) ),
+						 ferite_variable_id_to_str( script, F_VAR_TYPE(var) ) );
+			FE_RETURN_VOID;
+		}
+
+		rval = ferite_op_assign( script, NULL, var, value );
+		FE_RETURN_VAR( rval );
+	}	/**
+	 * @function getFunctions
+	 * @declaration function getFunctions()
+	 * @brief Fetch an array containing names of all the functions within the namespace
+	 * @return An array
+	 */
+	native function getFunctions() : array
+	{
+		FeriteVariable *v = reflection_ns_get_list( script, NSObj, FENS_FNC );
+		FE_RETURN_VAR(v);		
+	}
+	/**
+	 * @function getClasses
+	 * @declaration function getClasses()
+	 * @brief Fetch an array containing names of all the classes within the namespace
+	 * @return An array
+	 */
+	native function getClasses() : array
+	{
+		FeriteVariable *v = reflection_ns_get_list( script, NSObj, FENS_CLS );
+		FE_RETURN_VAR(v);				
+	}
+	/**
+	 * @function getNamespaces
+	 * @declaration function getNamespaces()
+	 * @brief Fetch an array containing names of all the namespaces within the namespace
+	 * @return An array
+	 */
+	native function getNamespaces() : array
+	{
+		FeriteVariable *v = reflection_ns_get_list( script, NSObj, FENS_NS );
+		FE_RETURN_VAR(v);				
+	}
+	/**
+	 * @function getNamespace
+	 * @declaration function getNamespace()
+	 * @brief Fetch a variable containing the namespace that this object wraps.
+	 * @return A void variable that has been morphed into a namespace.
+	 */
+	native function getNamespace() : namespace
+	{
+		FeriteVariable *k = ferite_create_namespace_variable(script,"getNamespace()",NSObj,FE_STATIC);
+		FE_RETURN_VAR(k);
+	}
+	/**
+	 * @function getScriptNamespace
+	 * @static
+	 * @declaration function getScriptNamespace()
+	 * @brief Fetch a namespace object wrapping the main script namespace.
+	 * @return A namespace object on success, null otherwise.
+	 */
+	static native function getScriptNamespace() : namespace
+	{
+		FeriteVariable **params = fmalloc(sizeof(FeriteVariable*) * 2);
+		FeriteVariable  *ns = NULL;
+		
+		params[0] = ferite_create_namespace_variable(script, "NS", script->mainns, FE_STATIC);
+		MARK_VARIABLE_AS_DISPOSABLE(params[0]);
+		params[1] = NULL;
+
+		ns = ferite_new_object( script, self, params );
+		ferite_delete_parameter_list( script, params );
+		
+		if( ns != NULL )
+			FE_RETURN_VAR(ns);
+		FE_RETURN_NULL_OBJECT;
+	}
+	/**
+	* @function fullyQualifiedName
+	 * @declaration function fullyQualifiedName()
+	 * @brief Find the fully qualified name of the wrapped namespace. 
+	 * @return A string with the fully qualified name, such as "Stream.StdioStream".
+	 */
+	native function fullyQualifiedName() : string
+	{		
+		char *n = ferite_generate_namespace_fqn( script, NSObj );
+		FE_RETURN_CSTR( n, FE_TRUE );
+	}
+	/**
+	* @function getFunction
+	 * @declaration function getFunction( string name )
+	 * @brief Creates a new Function object from a function in this class
+	 * @param string name The name of the method
+	 * @return A new Function object, or null on failure
+	 * @description This function creates a new Function object which is
+	 *			  associated with the specified method of the class
+	 *			  associated with this "Class" object.
+	 * @example <nl/><code>
+	 <keyword>namespace</keyword> Test {<nl/>
+		 <tab/><type>number</type> id;<nl/>
+			 <tab/><keyword>static function</span> test( <type>number</type> n )<nl/>
+			 <tab/><tab/>.id = n;<nl/>
+	 }<nl/>
+	 <type>object</type> o = new Namespace(Test);<nl/>
+	 <type>object</type> f = o.getFunction('test');</code><nl/>
+	 */	
+	function getFunction( string name )
+	{
+		return new Function( self.getNamespace(), name );
+	}
+	
+	/**
+	* @function locate
+	 * @declaration static function locate( string name )
+	 * @brief Locate a namespace with a given name.
+	 * @description This is a particularily useful function for locating a named namespace, for example from a configuration
+	 file.
+	 * @param string name The path to the namespace.
+	 * @return The namespace
+	 * @static 
+	 * @example <nl/><code>
+	 <keyword>namespace</keyword> TestNamespace {<nl/>
+	 <tab/><type>number</type> id = 0;<nl/>
+	 <tab/><keyword>function</keyword> test</span>( <type>number</type> v )<nl/>
+	 <tab/><tab/>.id = v;<nl/>
+	 }<nl/>
+	 <type>void</type> ns = Namespace.locate("TestClass");<nl/>
+	 ns.test(10);</code><nl/>
+	 */
+	static native function locate( string name ) : void /* Strictly speaking returns namespace or null */
+	{
+		FeriteNamespaceBucket *nsb = ferite_find_namespace( script, script->mainns, name->data, FENS_NS );
+		if( nsb != NULL )
+		{
+			FeriteVariable *variable = ferite_create_namespace_variable( script, "classForString", nsb->data, FE_STATIC );
+			FE_RETURN_VAR( variable );			
+		}
+		FE_RETURN_NULL_OBJECT;
+	}
+}
+/**
+ * @end
+ */
+
+/**
+ * @class Class
+ * @brief Instances of this class are used to inspect Ferite classes
+ */
+class Class
+{
+	/**
+	* @function constructor
+	* @brief The constructor of the "Class" class
+	* @declaration function constructor( void klass )
+	* @param void klass The class which the object should be able to inspect
+	* @description Objects of the "Class" class are initialised by passing the
+	*			  class they should be associated with to the constructor. The
+	*			  class name should not be a string (ie. don't quote the class
+	*			  name). The instantiation will fail if the argument is not a
+	*			  class.
+	* @example <nl/><code>
+	<type>object</type> wrapper = <keyword>new</keyword> Class(Regexp);</code><nl/>
+	*/
+	native function constructor( void klass )
+	{
+		if( F_VAR_TYPE(klass) != F_VAR_CLASS )
+		{
+			FE_RETURN_NULL_OBJECT;
+		}
+		self->odata = VAC(klass);
+	}
+
+	/**
+	* @function getVariables
+	* @brief Generates an array containing the static variables in this class
+	* @declaration function getVariables( )
+	* @return An array of the static variables in this class
+	* @description This function returns an array of the static (class)
+	*			  variables which are contained in the class associated with
+	*			  this object. The array keys are the names of the variables,
+	*			  and the array values are the names of the types of the
+	*			  variables.
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><keyword>static</keyword> <type>number</type> id;<nl/>
+	<tab/><keyword>static</keyword> <type>string</type> name;<nl/>
+	<tab/><keyword>static</keyword> <type>array</type>  keywords;<nl/>
+	}<nl/>
+	<type>object</type> wrapper = <keyword>new</keyword> Class(TestClass);<nl/>
+	<type>array</type> variables = wrapper.getVariables(); &raquo [ 'id' => 'number', 'name' => 'string', 'keywords' => 'array' ]</code><nl/>	
+	*/
+	native function getVariables() : array
+	{
+		FeriteVariable *array = NULL, *var = NULL, *tmp = NULL;
+		FeriteHashBucket *buk = NULL;
+		FeriteIterator *iter = NULL;
+
+		ChkSelf;
+		array = ferite_create_uarray_variable(script, "Class::getVars", ClassObj->class_vars->size, FE_STATIC);
+		iter = ferite_create_iterator(script);
+		while((buk = (FeriteHashBucket*)ferite_hash_walk(script, ClassObj->class_vars,iter)) != NULL)
+		{
+			tmp = buk->data;
+			var = fe_new_str(buk->id,ferite_variable_id_to_str( script, F_VAR_TYPE(tmp) ), 0, FE_CHARSET_DEFAULT);
+			ferite_uarray_add(script,VAUA(array),var,buk->id, FE_ARRAY_ADD_AT_END );
+		}
+		ffree(iter);
+		FE_RETURN_VAR(array);
+	}
+
+	native function serializeSleep() : undefined {
+		ferite_error(script,0,"Can not serialize reflection Classes\n");
+	}
+	
+	/**
+	* @function getFunctions
+	* @declaration function getFunctions( )
+	* @brief Generates an array containing the static functions in this class
+	* @return An array of the static functions in this class
+	* @description This function returns an array of the static (class)
+	*			  functions which are contained in the class associated with
+	*			  this object. The array values are strings containing the
+	*			  names of the functions.
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><keyword>static</keyword> <keyword>function</span> f() {<nl/>
+	<tab/>}<nl/>
+	}<nl/>
+	<type>object</type> wrapper = <keyword>new</keyword> Class(TestClass);<nl/>
+	<type>array</type> func = wrapper.getFunctions(); &raquo; [ 'f' ]</code><nl/>
+	*/
+	native function getFunctions() : array
+	{
+		FeriteHashBucket *buk = NULL;
+		FeriteVariable *array = NULL, *var = NULL;
+		FeriteIterator *iter = NULL;
+		FeriteFunction *func = NULL;
+
+		ChkSelf;
+		array = ferite_create_uarray_variable( script, "Class:getFunctions", ClassObj->class_methods->size, FE_STATIC);
+		iter = ferite_create_iterator(script);
+		while((buk = (FeriteHashBucket*)ferite_hash_walk(script,ClassObj->class_methods,iter)) != NULL)
+		{
+			func = buk->data;
+			var = fe_new_str(buk->id,func->name, 0, FE_CHARSET_DEFAULT);
+			ferite_uarray_add(script,VAUA(array),var,NULL,FE_ARRAY_ADD_AT_END);
+		}
+		ffree(iter);
+		FE_RETURN_VAR(array);
+	}
+
+	/**
+	* @function classWithName
+	* @declaration static function classWithName( string name )
+	* @brief Creates a new Class object
+	* @param string name The name of the class the object should be able to inspect
+	* @return A "Class" object or null on failure
+	* @static
+	* @description This function is an alternate way to generate an object of
+	*			  the "Class" class. It differs from using "new" and passing
+	*			  the class to the constructor in that it takes the name of
+	*			  the class to associate with the object as a string instead
+	*			  of the class itself.
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass { }<nl/>
+	<type>object</type> wrapper = Class.classWithName("TestClass");</code><nl/>
+	*/
+	static native function classWithName( string name ) : Class
+	{
+		FeriteNamespaceBucket *nsb = ferite_find_namespace( script, script->mainns, name->data, FENS_CLS );
+		FeriteNamespaceBucket *classnsb = ferite_find_namespace( script, script->mainns, "Class", FENS_CLS );
+		if( nsb != NULL )
+		{
+			FeriteVariable **plist = ferite_create_parameter_list( script, 4 );
+			FeriteVariable *rval = NULL;
+
+			plist[0] = ferite_create_void_variable( script, "classWithName", FE_STATIC );
+			plist[0]->type = F_VAR_CLASS;
+			VAC(plist[0]) = nsb->data;
+			MARK_VARIABLE_AS_DISPOSABLE(plist[0]);
+
+			rval = ferite_new_object( script, classnsb->data, plist );
+			ferite_delete_parameter_list( script, plist );
+
+			if( rval != NULL )
+			{
+				FE_RETURN_VAR( rval );
+			}
+		}
+		FE_RETURN_NULL_OBJECT;
+	}
+
+	/**
+	* @function newObject
+	* @declaration static native function newObject( ... )
+	* @brief Creates a new instance of the class associated with this object
+	* @param ... The arguments to pass to the constructor of the class
+	* @return An instance of the class associated with this object or NULL on failure
+	* @description This function creates a new object, much like the "new"
+	*			  operator does, which is an instance of the class associated
+	*			  with this instance of the "Class" class.
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><type>number</type> id = 0;<nl/>
+	<tab/><keyword>function</keyword> construct<keyword>or</span>( <type>number</type> v )<nl/>
+	<tab/><tab/>.id = v;<nl/>
+	}<nl/>
+	<type>object</type> wrapper = Class.classWithName("TestClass");<nl/>
+	<type>object</type> obj = wrapper.newObject(10);</code><nl/>
+	*/
+	native function newObject( ... ) : object
+	{
+		FeriteVariable *var = NULL;
+		FeriteVariable **p = ferite_create_parameter_list( script, ferite_get_parameter_count( params ) + 1);
+		int i = 0;
+
+		for( i = 0; params[i] != NULL; i++ )
+		{
+			p[i] = ferite_duplicate_variable( script, params[i], NULL );
+			MARK_VARIABLE_AS_DISPOSABLE( p[i] );
+		}
+		var = ferite_new_object( script, ClassObj, p );
+		ferite_delete_parameter_list( script, p );
+		if( var ) {
+			FE_RETURN_VAR( var );
+		}
+		FE_RETURN_NULL_OBJECT;
+	}
+	
+	/**
+	 * @function locate
+	 * @declaration static function locate( string name )
+	 * @brief Locate a class with a given name.
+	 * @description This is a particularily useful function for locating a named class, for example from a configuration
+					file, so that it can later be instantiated.
+	 * @param string name The path to the class.
+	 * @return The class. This can be passed to the constructor of Class
+	 * @static 
+	 * @example <nl/><code>
+	 <keyword>class</keyword> TestClass {<nl/>
+	 <tab/><type>number</type> id = 0;<nl/>
+	 <tab/><keyword>function</keyword> construct<keyword>or</span>( <type>number</type> v )<nl/>
+	 <tab/><tab/>.id = v;<nl/>
+	 }<nl/>
+	 <type>void</type> klass = Class.locate("TestClass");<nl/>
+	 <type>object</type> obj = <keyword>new</keyword> klass(10);</code><nl/>
+	 */
+	static native function locate( string name ) : void
+	{
+		FeriteNamespaceBucket *nsb = ferite_find_namespace( script, script->mainns, name->data, FENS_CLS );
+		if( nsb != NULL )
+		{
+			FeriteVariable *variable = ferite_create_class_variable( script, "classForString", nsb->data, FE_STATIC );
+			FE_RETURN_VAR( variable );			
+		}
+		FE_RETURN_NULL_OBJECT;
+	}
+	
+	/**
+	 * @function name
+	 * @static
+	 * @declaration static function name( void k )
+	 * @brief Get the path for a given class
+	 * @param void k The class to obtain the name of.
+	 * @return A string containg the path to the class.
+	 * @example <nl/><code>
+	 <keyword>class</keyword> TestClass {<nl/>
+	 }<nl/>
+	 <type>void</type> klass = Class.locate("TestClass");<nl/>
+	 <type>string</type> name = Class.name(klass);</code><nl/>
+	 */	 
+	static native function name( void k ) : string
+	{
+		char *name = NULL;		
+		FeriteString *str = NULL;
+		
+		if( F_VAR_TYPE(k) != F_VAR_CLASS )
+			str = ferite_str_new( script, "", 0, FE_CHARSET_DEFAULT );
+		else
+		{
+			name = ferite_generate_class_fqn( script, VAC(k) );
+			str = ferite_str_new( script, name, 0, FE_CHARSET_DEFAULT );
+			ffree( name );
+		}
+		FE_RETURN_STR( str, FE_TRUE );		
+	}
+	/**
+	 * @function getClass
+	 * @declaration function getClass()
+	 * @brief Get the class that the Class object wraps
+	 * @return The class.
+	 */
+	native function getClass() : class
+	{
+		FeriteVariable *k = ferite_create_class_variable(script,"getClass()",ClassObj,FE_STATIC);
+		FE_RETURN_VAR(k);
+	}
+	/**
+	 * @function fullyQualifiedName
+	 * @declaration function fullyQualifiedName()
+	 * @brief Find the fully qualified name of the wrapped class. 
+	 * @return A string with the fully qualified name, such as "Stream.StdioStream".
+	 */
+	native function fullyQualifiedName() : string
+	{
+		char *n = ferite_generate_class_fqn( script, ClassObj );
+		FE_RETURN_CSTR( n, FE_TRUE );
+	}
+	
+	/**
+	* @function getFunction
+	 * @declaration function getFunction( string name )
+	 * @brief Creates a new Function object from a function in this class
+	 * @param string name The name of the method
+	 * @return A new Function object, or null on failure
+	 * @description This function creates a new Function object which is
+	 *			  associated with the specified method of the class
+	 *			  associated with this "Class" object.
+	 * @example <nl/><code>
+	 <keyword>class</keyword> TestClass {<nl/>
+		 <tab/><type>number</type> id;<nl/>
+			 <tab/><keyword>static function</span> test( <type>number</type> n )<nl/>
+			 <tab/><tab/>.id = n;<nl/>
+	 }<nl/>
+	 <type>object</type> o = Class.classWithName("TestClass");<nl/>
+	 <type>object</type> f = o.getFunction('test');</code><nl/>
+	 */
+	function getFunction( string name ) {
+		return new Function(self.getClass(),name);
+	}
+}
+/**
+ * @end
+ */
+
+/**
+ * @class Object
+ * @brief Instances of this class are used to inspect Ferite objects
+ */
+class Object
+{
+
+	native constructor() {
+		ferite_error(script,0,"Reflection Object class requires an object provide with the constructor.\n");
+		FE_RETURN_NULL_OBJECT;
+	}
+	
+	/**
+	* @function constructor
+	* @declaration function constructor( object obj )
+	* @brief The constructor of the "Object" class
+	* @param object obj The object which the new object should be able to inspect
+	* @description Objects of the "Object" class are initialised by passing the
+	*			  object which should be associated with it to the constructor.
+	*			  The instantiation will fail if the argument is not an object,
+	*			  or is the null object.
+	* @example <nl/><code>
+	<type>object</type> f = Sys.openfile( "test.txt", Sys.O_RDONLY );<nl/>
+	<type>object</type> o = <keyword>new</keyword> Object(f);</code><nl/>
+	*/
+	native function constructor(object obj)
+	{
+		if(obj != NULL)
+		{
+			ObjectHolder *holder = fmalloc( sizeof(ObjectHolder) );
+			holder->object = obj;
+			holder->weakReference = FE_FALSE;
+			FINCREF(holder->object);
+			self->odata = holder;
+		}
+		else
+		{
+			ferite_error(script,0,"Invalid object (a null object?)\n");
+			FE_RETURN_NULL_OBJECT;
+		}
+	}
+
+	native function destructor()
+	{
+		if( ObjectObj ) {
+			if( ! ObjectObj->weakReference ) {
+				FDECREF(ObjectObj->object);
+			}
+			ffree( self->odata );
+		} else {
+			ferite_error(script,0,"Why do we have a reflection object with no object ?\n");
+		}
+	}
+	
+	native function serializeSleep() : undefined {
+		ferite_error(script,0,"Can not serialize reflection Objects\n");
+	}
+
+	/**
+	* @function className
+	* @declaration function className( )
+	* @brief Finds the name of the class of the object associated with this object
+	* @return The name of the class as a string
+	* @example <nl/><code>
+	<type>object</type> f = Sys.openfile( "test.txt", Sys.O_RDONLY );<nl/>
+	<type>object</type> o = <keyword>new</keyword> Object(f);<nl/>
+	<type>string</type> n = o.<keyword>class</keyword>Name(); &raquo; "Sys.FileStream"</code><nl/>
+	*/
+	native function className() : string
+	{
+		FeriteVariable *v = fe_new_str_static("className",ObjectObj->object->name, 0, FE_CHARSET_DEFAULT);
+		FE_RETURN_VAR(v);
+	}
+
+	/**
+	* @function fromData
+	* @declaration static native function fromData( string klass, array data )
+	* @brief Creates an object
+	* @param string class The name of the class of the object to create
+	* @param array data The values to set the variables in the object to
+	* @description This function provides another way to create a new object.
+	*			  The array is used to set the values of the variables in the
+	*			  object. The key strings in the array give the names of the
+	*			  variables to set the values of. Note that this function does
+	*			  NOT call the object constructor after creating it, so you
+	*			  will usually need to do it yourself after calling
+	*			  Object.fromData().
+	* @static
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><type>number</type> id;<nl/>
+	<tab/><keyword>function</keyword> construct<keyword>or</span>( <type>number</type> n )<nl/>
+	<tab/><tab/>.id = n;<nl/>
+	}<nl/>
+	<type>object</type> o = Object.fromData("TestClass",[ 10 ]);</code><nl/>
+	*/
+	static native function fromData( string klass, array data ) : object
+	{
+		FeriteVariable *obj = NULL;
+		FeriteHashBucket *buk = NULL;
+		FeriteIterator *iter = NULL;
+		FeriteVariable *foo = NULL;
+		FeriteClass *cls = ferite_find_class(script,script->mainns,klass->data);
+
+		obj = ferite_build_object(script,cls);
+		iter = ferite_create_iterator(script);
+		while((buk = (FeriteHashBucket*)ferite_hash_walk(script,data->hash,iter)) != NULL)
+		{
+			if(ferite_object_has_var(script,VAO(obj),buk->id))
+			{
+				foo = fe_new_void_static( "no-var" );
+				ferite_variable_destroy( script, ferite_op_assign( script, NULL, foo, (FeriteVariable*)buk->data ) );
+				ferite_object_set_var(script, VAO(obj), buk->id, foo);
+			}
+		}
+		ffree(iter);
+		FE_RETURN_VAR( obj );
+	}
+
+	/**
+	* @function getVariable
+	* @declaration function getVariable( string name )
+	* @brief Retrieves a variable from the object associated with this object
+	* @param string name The name of the variable to get
+	* @return The variable
+	* @description This function retrieves a variable from the object from the
+	*			  object associated with this "Object" object. If no variable
+	*			  exists in the object with the specified name, an exception
+	*			  is thrown.
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><type>number</type> id;<nl/>
+	<tab/><keyword>function</keyword> construct<keyword>or</span>( <type>number</type> n )<nl/>
+	<tab/><tab/>.id = n;<nl/>
+	}<nl/>
+	<type>object</type> o = Object.fromData(Test<keyword>class</keyword>,[ 10 ]);<nl/>
+	<type>number</type> value = o.getVariable('id'); &raquo; value = 10</code><nl/>
+	*/
+	native function getVariable( string name ) : void
+	{
+		FeriteVariable *var = ferite_object_get_var( script, ObjectObj->object, name->data );
+
+		if( var == NULL )
+		{
+			ferite_error( script, 0, "Object.getVariable(\"%s\") - No such variable in object\n", name->data );
+			FE_RETURN_VOID;
+		}
+
+		/* We dont do FE_RETURN_VAR because we dont want the variable to be disposed */
+		return var;
+	}
+		/**
+		* @function hasVariable
+		* @declaration function hasVariable( string member )
+		* @brief Determines if an object has a particular variable
+		* @param string member The name of the variable to look for
+		* @return True if a variable exists with that name, otherwise false
+		*/
+	
+	native function hasVariable( string name ) : boolean
+	{
+		FeriteVariable *var = ferite_object_get_var( script, ObjectObj->object, name->data );
+		
+		if( var == NULL )
+		{
+			FE_RETURN_FALSE;
+		}
+		FE_RETURN_TRUE;
+	}
+		/**
+	* @function hasFunction
+		* @declaration function hasFunction( string member )
+		* @brief Determines if an object has a particular function
+		* @param string member The name of the function to look for
+		* @return True if a function exists with that name, otherwise false
+		*/
+	native function hasFunction( string name ) : boolean
+	{
+		FeriteFunction *var = ferite_object_get_function( script, ObjectObj->object, name->data );
+		
+		if( var == NULL )
+		{
+			FE_RETURN_FALSE;
+		}
+		FE_RETURN_TRUE;
+	}
+	
+	/**
+	* @function setVariable
+	* @declaration function setVariable( string name, void value )
+	* @brief Sets a variable in the object associated with this object
+	* @param string name The name of the variable to set the value of
+	* @param void value The value to set the variable to
+	* @return A copy of the variable which was just assigned
+	* @description This function can be used to set the value of a variable in
+	*			  an object. If no variable of the specified name exists, it will create the variable. If
+	*			  it is of a different type to the specified value, an
+	*			  exception is thrown.
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><type>number</type> id;<nl/>
+	<tab/><keyword>function</keyword> construct<keyword>or</span>( <type>number</type> n )<nl/>
+	<tab/><tab/>.id = n;<nl/>
+	}<nl/>
+	<type>object</type> o = Object.fromData(Test<keyword>class</keyword>,[ 10 ]);<nl/>
+	o.setVariable('id',100);</code><nl/>
+	*/
+	native function setVariable( string name, void value ) : void
+	{
+		FeriteVariable *var = ferite_object_get_var( script, ObjectObj->object, name->data );
+		FeriteVariable *rval = NULL;
+
+		if( var == NULL ) {
+			var = ferite_duplicate_variable( script, value, NULL );
+			ferite_object_set_var( script, ObjectObj->object, name->data, var );
+			return var;
+		} else {
+			if( !ferite_types_are_equal( script, F_VAR_TYPE(var), F_VAR_TYPE(value) ) ) {
+				ferite_error( script, 0, "Object.setVariable(\"%s\") - can't assign variable of type %s to type %s\n",
+							 name->data,
+							 ferite_variable_id_to_str( script, F_VAR_TYPE(value) ),
+							 ferite_variable_id_to_str( script, F_VAR_TYPE(var) ) );
+				FE_RETURN_VOID;
+			}
+			rval = ferite_op_assign( script, NULL, var, value );
+			}
+		FE_RETURN_VAR( rval );
+	}
+
+	/**
+	* @function getObject
+	* @declaration function getObject( )
+	* @brief Retrieves a reference to the object that is associated with this object
+	* @return A reference to the object
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><type>number</type> id;<nl/>
+	<tab/><keyword>function</keyword> construct<keyword>or</span>( <type>number</type> n )<nl/>
+	<tab/><tab/>.id = n;<nl/>
+	}<nl/>
+	<type>object</type> o = Object.fromData(Test<keyword>class</keyword>,[ 10 ]);<nl/>
+	<type>object</type> p = o.getObject();<nl/>
+	p.id = 100;</code><nl/>
+	*/
+	native function getObject() : object
+	{
+		FE_RETURN_OBJECT( ObjectObj->object );
+	}
+
+	/**
+	* @function getFunction
+	* @declaration function getFunction( string name )
+	* @brief Creates a new Function object from a method in this object
+	* @param string name The name of the method
+	* @return A new Function object, or null on failure
+	* @description This function creates a new Function object which is
+	*			  associated with the specified method of the object
+	*			  associated with this "Object" object.
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><type>number</type> id;<nl/>
+	<tab/><keyword>function</keyword> test( <type>number</type> n )<nl/>
+	<tab/><tab/>.id = n;<nl/>
+	}<nl/>
+	<type>object</type> o = Object.fromData(Test<keyword>class</keyword>,[ 10 ]);<nl/>
+	<type>object</type> f = o.getFunction('test');</code><nl/>
+	*/
+	function getFunction( string name )
+	{
+		return new Function( self.getObject(), name );
+	}
+
+	/**
+	* @function getVariables
+	* @brief Generates an array of the variables in the object associated with this object
+	* @declaration function getVariables( )
+	* @return An array of the variables in this object
+	* @description This function creates an array of the instance (non-static)
+	*			  variables which are contained in the object associated with
+	*			  this "Object" object. The key strings of the array items
+	*			  are the names of the variables. Note that the items in the
+	*			  returned array are copies of the object variables, not
+	*			  references to them (unless they are objects).
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><type>number</type> id;<nl/>
+	}<nl/>
+	<type>object</type> o = Object.fromData(Test<keyword>class</keyword>,[ 10 ]);<nl/>
+	<type>array</type> vars = o.getVariables(); &raquo; [ 'id' => 10 ]</code><nl/>
+	*/
+	native function getVariables() : array
+	{
+		FeriteHashBucket *buk = NULL;
+		FeriteVariable *array = NULL, *var = NULL;
+		FeriteIterator *iter = NULL;
+		FeriteObjectVariable *variables = NULL;
+		char *buf = NULL;
+
+		buf = FE_CLEAN_STRING(1024);
+		array = ferite_create_uarray_variable(script, "Object::getVars", 32, FE_STATIC);
+		iter = ferite_create_iterator(script);
+		
+		for( variables = ObjectObj->object->variables; variables != NULL; variables = variables->parent )
+		{
+			memset( iter, 0, sizeof(FeriteIterator) );
+			while((buk = (FeriteHashBucket*)ferite_hash_walk(script,variables->variables,iter)) != NULL)
+			{
+				var = buk->data;
+				
+				if( !FE_VAR_IS_STATIC(var) && var->state == FE_ITEM_IS_PUBLIC && ferite_uarray_get_from_string(script,VAUA(array),var->vname) == NULL )
+				{
+					ferite_uarray_add(script,VAUA(array),
+									 ferite_duplicate_variable(script,var, NULL),
+									 buk->id, FE_ARRAY_ADD_AT_END);
+				}
+			}
+		}
+		ffree( buf );
+		ffree( iter );
+		FE_RETURN_VAR(array);
+	}
+
+	/**
+	* @function setVariables
+	* @brief Set the variables in the object associated with this object
+	* @declaration function setVars( array vars )
+	* @param array vars The array of variables to set within the object
+	* @description This function sets the variables within the object
+	*			  with this "Object" object to the values in the specified
+	*			  array. The key strings of the items in the array are used
+	*			  the match the array items to the object variables. Note that
+	*			  the type of the object variable and the array item must
+	*			  match.
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><type>number</type> id;<nl/>
+	}<nl/>
+	<type>object</type> o = Object.fromData(Test<keyword>class</keyword>,[ 10 ]);<nl/>
+	o.setVariables([ 'id' => 100 ]);</code><nl/>	
+	*/
+	native function setVariables(array vars) : undefined
+	{
+		FeriteHashBucket *buk;
+		FeriteIterator *iter;
+		FeriteVariable *var;
+
+		iter = ferite_create_iterator(script);
+		while((buk = (FeriteHashBucket*)ferite_hash_walk(script,vars->hash,iter)) != NULL)
+		{
+			if(ferite_object_has_var(script,ObjectObj->object,buk->id))
+			{
+				var = ferite_duplicate_variable( script, buk->data, NULL );
+				ferite_object_set_var(script,ObjectObj->object,buk->id,var);
+			}
+		}
+		ffree(iter);
+	}
+
+	/**
+	* @function hasMember
+	* @declaration static native function hasMember( object o, string member )
+	* @brief Determines if an object has a particular member
+	* @param object o The object
+	* @param string member The name of the member to look for
+	* @return True if a member exists with that name, otherwise false
+	* @description This function checks whether there is a variable or function
+	*			  with the specified name within the specified object. Note
+	*			  that it does not provide any way to tell whether the member
+	*			  is a function or a variable.
+	* @static
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><type>number</type> id;<nl/>
+	}<nl/>
+	<type>object</type> o = <keyword>new</keyword> TestClass();<nl/>
+	Object.hasMember(o, 'id'); &raquo; <type>true</type></code><nl/>
+	*/
+	static native function hasMember( object o, string member ) : boolean
+	{
+		if( o != NULL )
+		{
+			if( ferite_object_get_var( script, o, member->data ) != NULL )
+			{
+				FE_RETURN_TRUE;
+			}
+			if( ferite_object_get_function( script, o, member->data ) != NULL )
+			{
+				FE_RETURN_TRUE;
+			}
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function setWeakReference
+	 * @declaration native function setWeakReference( boolean value )
+	 * @brief This function will tell the object wrapper to use a weak reference. This is used when the object being refererred to stores the wrapper.
+	 * @param boolean value True if you want a weak reference.
+	 */
+	native function setWeakReference( boolean value ) : undefined {
+		if( value != ObjectObj->weakReference ) {
+			if( value ) {
+				ObjectObj->weakReference = FE_TRUE;
+				FDECREF(ObjectObj->object);
+			} else {
+				ObjectObj->weakReference = FE_FALSE;
+				FINCREF(ObjectObj->object);
+			}
+		}
+	}
+}
+/**
+ * @end
+ */
+
+/**
+ * @class Function
+ * @brief Instances of this class are used to inspect Ferite functions
+ */
+class Function
+{
+	/**
+	* @function constructor
+	* @brief The constructor of the "Function" class
+	* @declaration function constructor( void o, string f )
+	* @param void o The container the function is a member of (optional)
+	* @param string f The name of the function
+	* @description The constructor of the "Function" class can either be called
+	*			  with the absolute name of a function (eg. "Console.println")
+	*			  or with an object and the name of a method within the object
+	*			  (eg. Console.stdout, "printf"). The specified function will
+	*			  be associated with the newly created "Function" object.
+	* @example <nl/><code>
+	<keyword>class</keyword> TestClass {<nl/>
+	<tab/><keyword>function</keyword> g( <type>string</type> name ) {<nl/>
+	<tab/>}<nl/>
+	}<nl/>
+	<nl/>
+	<keyword>function</keyword> f( <type>string</type> name ) {<nl/>
+	}<nl/>
+	<nl/>
+	<type>object</type> t = <keyword>new</keyword> TestClass();<nl/>
+	<type>object</type> o = <keyword>new</keyword> Function('f');<nl/>
+	<type>object</type> p = <keyword>new</keyword> Function(t, 'g');</code><nl/>
+	*/
+	native function constructor( string f )
+	{
+		FeriteNamespaceBucket *nsb = NULL;
+
+		self->odata = fmalloc( sizeof( FunctionHolder ) );
+		FunctionObj->container = script->mainns;
+		
+		nsb = ferite_find_namespace(script,script->mainns,f->data,FENS_PARENT_NS);
+		if( nsb != NULL )
+			FunctionObj->container = nsb->data;
+
+		nsb = ferite_find_namespace(script,script->mainns,f->data,FENS_FNC);
+		if( nsb != NULL )
+			FunctionObj->func = nsb->data;
+		else
+		{
+			ffree( self->odata );
+			FE_RETURN_NULL_OBJECT;
+		}
+	}
+	native function constructor( void o, string f )
+	{
+		self->odata = fmalloc( sizeof( FunctionHolder ) );
+		FunctionObj->func = NULL;
+		switch( F_VAR_TYPE(o) )
+		{
+			case F_VAR_OBJ:
+				FunctionObj->func = ferite_object_get_function(script,VAO(o),f->data);
+				break;
+			case F_VAR_NS:
+			{
+				FeriteNamespaceBucket *nsb = ferite_find_namespace(script,VAN(o),f->data,FENS_FNC);
+				if( nsb != NULL )
+					FunctionObj->func = nsb->data;
+				break;
+			}
+			case F_VAR_CLASS:
+				FunctionObj->func = ferite_class_get_function(script,VAC(o),f->data);
+				break;				
+		}
+		FunctionObj->container = VAP(o);
+
+		if( FunctionObj->func == NULL )
+		{
+			ffree( self->odata );
+			FE_RETURN_NULL_OBJECT;
+		}
+	}
+
+	native function destructor()
+	{
+		if( FunctionObj != NULL )
+		 ffree( self->odata );
+	}
+
+	native function serializeSleep() : undefined {
+		ferite_error(script,0,"Can not serialize reflection Functions\n");
+	}
+	
+	/**
+	* @function exec
+	* @declaration function exec( ... )
+	* @brief Calls the function associated with this object
+	* @return The value which the called function returned
+	* @description This function calls the function associated with this
+	*			  "Function" object using the specified arguments. The value
+	*			  which the function returned is returned unchanged. If you
+	*			  want to pass the arguments as an array instead of as a
+	*			  variable argument list, see Function.execWithArray().
+	* @example <nl/><code>
+	<keyword>function</keyword> f( <type>string</type> name ) {<nl/>
+	}<nl/>
+	<type>object</type> o = <keyword>new</keyword> Function('f');<nl/>
+	o.exec( "Hi There" );</code><nl/>
+	*/
+	native function exec(...) : void
+	{
+		FeriteVariable *var, *dup;
+		FeriteVariable **np;
+		int i = 0;
+		int cp = ferite_get_parameter_count(params);
+		np = ferite_create_parameter_list(script,cp+3);
+
+		for(i = 0; i < cp ; i++)
+		{
+			FUD(("number of real params: '%d'\n",cp));
+			var = params[i];
+			FUD(("param %d: '%s' type '%s'\n",i,var->vname, ferite_variable_id_to_str(F_VAR_TYPE(script,var))));
+			if(F_VAR_TYPE(var) == F_VAR_STR)
+			{
+				FUD(("\tvalue='%s'\n",VAS(var)));
+			}
+			np[i] = ferite_duplicate_variable( script, var, NULL);
+			MARK_VARIABLE_AS_DISPOSABLE(np[i]);
+		}
+
+		FUD(("arg count: '%d'\n",FunctionObj->func->arg_count));
+		FUD(("calling '%s'...\n",FunctionObj->func->name));
+
+		dup = ferite_call_function(script, FunctionObj->container, current_recipient, FunctionObj->func, np);
+		ferite_delete_parameter_list(script,np);
+		FUD(("finished\n"));
+
+		if( dup != NULL )
+		{
+			FE_RETURN_VAR(dup);
+		}
+	}
+
+	/**
+	* @function execWithArray
+	* @declaration function execWithArray( array params )
+	* @brief Calls the function associated with this object
+	* @param array params The arguments to pass to the function
+	* @return The value which the called function returned
+	* @description This function calls the function associated with this
+	*			  "Function" object using the values in the specified array
+	*			  as the function arguments. The value which the function
+	*			  returned is returned unchanged. If you want to pass the
+	*			  arguments directly instead of as an array, see
+	*			  Function.exec().
+	* @example <nl/><code>
+	<keyword>function</keyword> f( <type>string</type> name ) {<nl/>
+	}<nl/>
+	<type>object</type> o = <keyword>new</keyword> Function('f');<nl/>
+	o.execWithArray( [ "Hi There" ] );</code><nl/>
+	*/
+	native function execWithArray( array args ) : void
+	{
+		FeriteVariable **plist = ferite_create_parameter_list( script, args->size + 3 );
+		FeriteVariable *rval = NULL;
+		int i = 0;
+
+		for( i = 0; i < args->size; i++ ) {
+			plist[i] = ferite_duplicate_variable( script, args->array[i], NULL );
+			MARK_VARIABLE_AS_DISPOSABLE(plist[i]);
+		}
+		rval = ferite_call_function( script, FunctionObj->container, current_recipient, FunctionObj->func, plist );
+		ferite_delete_parameter_list( script, plist );
+		if( rval != NULL )
+		{
+			FE_RETURN_VAR( rval );
+		}
+	}
+
+	/**
+	* @function getParameterDetails
+	* @declaration function getParameterDetails( )
+	* @brief Generates an array of the parameters the function expects
+	* @return An array of the parameters required by the function
+	* @description This function generates an array of the parameters which the
+	*			  function associated with this Function object requires. The
+	*			  key strings are the names of the arguments and the values
+	*			  are the names of the arguments types as strings. Note that
+	*			  this function does not work well in conjunction with
+	*			  argument overloading. The returned argument array will
+	*			  describe the arguments of the first function the compiler
+	*			  encountered with a particular name, but there could be other
+	*			  functions with the same name but different arguments.
+	* @example <nl/><code>
+	<keyword>function</keyword> f( <type>string</type> name ) {<nl/>
+	}<nl/>
+	<type>object</type> o = <keyword>new</keyword> Function('f');<nl/>
+	<type>array</type> params = o.getParameterDetails*); &raquo; params = [ 'name' => '<type>string</type>' ]</code><nl/>
+	*/
+	native function getParameterDetails() : array
+	{
+		int i = 0, argcount = FunctionObj->func->arg_count;
+		FeriteVariable *retval = NULL, *newvar = NULL;
+
+		retval = ferite_create_uarray_variable( script, "Function.getParameterDetails", FunctionObj->func->arg_count, FE_STATIC );
+		for( i = 0; i < argcount; i++ )
+		{
+			if( strcmp( FunctionObj->func->signature[i]->variable->vname, "..." ) != 0 )
+			{
+				newvar = ferite_create_string_variable_from_ptr( script, "",
+																ferite_variable_id_to_str( script,
+																							FunctionObj->func->signature[i]->variable->type ),
+																0, FE_CHARSET_DEFAULT, FE_STATIC );
+			}
+			else
+			 newvar = ferite_create_string_variable_from_ptr( script, "", "...", 0, FE_CHARSET_DEFAULT, FE_STATIC );
+			ferite_uarray_add( script, VAUA(retval), newvar, FunctionObj->func->signature[i]->variable->vname, FE_ARRAY_ADD_AT_END );
+		}
+		FE_RETURN_VAR( retval );
+	}
+	
+	native function isNative : boolean {
+		if(FunctionObj->func->fncPtr != NULL) {
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+	
+	native function getReturnType : string {
+		FeriteVariable *v = NULL;
+		char *value = NULL;
+
+		if( FunctionObj->func->return_type > 0 ) 
+			value = ferite_variable_id_to_str( script, FunctionObj->func->return_type );
+
+		if( value != NULL )
+			v = fe_new_str_static( "Reflection.type.return", value, 0, FE_CHARSET_DEFAULT );
+		else
+			v = fe_new_str_static( "Reflection.type.return", "undefined", 0, FE_CHARSET_DEFAULT );
+
+		MARK_VARIABLE_AS_DISPOSABLE( v );
+		FE_RETURN_VAR( v );
+	}
+}
+/**
+ * @end
+ */
+
+/**
+ * @class Variable
+ * @brief This class allows you to wrap a variable and access the accessor mechanism provided by ferite.
+ * @example <code>
+ <keyword>uses</keyword> "console", "reflection";<nl/>
+ <nl/>
+ <keyword>class</keyword> VariableWatcher <keyword>extends</span> Variable {<nl/>
+	 <tab/><keyword>function</keyword> get() { <nl/>
+		 <tab/><tab/>Console.println( "get called" ); <nl/>
+			 <tab/><tab/><keyword>return</keyword> "har";<nl/>
+				 <tab/>}<nl/>
+	 <tab/><keyword>function</keyword> set( <type>void</type> value ) { <nl/>
+		 <tab/><tab/>Console.println( "set called: $value" ); <nl/>
+			 <tab/>}<nl/>
+	 <tab/><keyword>function</keyword> cleanup() { <nl/>
+		 <tab/><tab/><keyword>return</keyword> "cleanup called"; <nl/>
+			 <tab/>}<nl/>
+ }<nl/>
+ <nl/>
+ <type>string</type> v = "";<nl/>
+ <type>object</type> o = <keyword>new</keyword> VariableWatcher(v);<nl/>
+ v = "hi";<nl/>
+ Console.println( v );</code><nl/>
+ */
+abstract class Variable
+{
+	/**
+	 * @function constructor
+	 * @brief The constructor for a variable class.
+	 * @declaration function constructor( void var )
+	 * @param void var The variable to wrap.
+	 */
+	native function constructor( void var )
+	{
+		ferite_create_variable_accessors( script,
+										 var,
+										 reflection_variable_get,
+										 reflection_variable_set,
+										 reflection_variable_cleanup,
+										 self );
+		FINCREF(self);
+	}
+	
+	native function serializeSleep() : undefined {
+		ferite_error(script,0,"Can not serialize reflection Variables\n");
+	}
+	
+	function get()
+	{
+	}
+
+	function set( void value )
+	{
+	}
+
+	function cleanup()
+	{
+
+	}
+}
+/*
+ * @end
+ */
+
+/**
+ * @namespace Reflection
+ * @brief Provides a function for runtime inspection of variables
+ */
+namespace Reflection
+{
+	/**
+	 * @function type
+	 * @declaration function type( void var )
+	 * @brief Generates a string describing the type of a variable
+	 * @param void var The variable
+	 * @return The name of the type of the variable
+	 */
+	native function type(void var) : string
+	{
+		FeriteVariable *v = NULL;
+		char *value = NULL;
+
+		if( F_VAR_TYPE(var) > 0 ) 
+			value = ferite_variable_id_to_str( script, F_VAR_TYPE(var) );
+
+		if( value != NULL )
+		  v = fe_new_str_static( "Reflection.type.return", value, 0, FE_CHARSET_DEFAULT );
+		else
+		  v = fe_new_str_static( "Reflection.type.return", "", 0, FE_CHARSET_DEFAULT );
+
+		MARK_VARIABLE_AS_DISPOSABLE( v );
+		FE_RETURN_VAR( v );
+	}
+}
+/**
+ * @end
+ */

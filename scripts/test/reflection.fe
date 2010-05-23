@@ -1,0 +1,77 @@
+#!/usr/bin/env ferite
+
+uses "reflection";
+uses "console";
+uses "array";
+
+class Test
+{
+   static string staticVariable;
+   public string name;
+   public string whatrocks;
+
+   function constructor()
+   {
+   }
+
+   function kickAss()
+   {
+       Console.println("'"+self.name + "' knows what rocks, and that is '"+self.whatrocks+"'");
+   }
+
+   static function saveMe(string who)
+   {
+       Console.println("'"+who+"' will save me!");
+   }
+}
+
+function kickAss(string who)
+{
+    Console.println("who kicks ass? '"+who+"' kicks ass!");
+}
+
+number i, v;
+object t, obj;
+array keys;
+string blah;
+object cls = new Class(Test);
+array vars = cls.getVariables();
+array funs = cls.getFunctions();
+
+Console.println("Stats for class 'Test'....");
+Console.println(" num of variables: "+Array.size(vars));
+Console.println(" num of functions: "+Array.size(funs));
+
+t = new Test();
+t.name = "jackie chan";
+t.whatrocks = "reflection rocks!";
+cls = new Object(t);
+Console.println("> " + cls.className());
+vars = cls.getVariables();
+keys = Array.keys(vars);
+
+for(i = 0; i < Array.size(vars); i++)
+{
+    Console.println("[" + keys[i] + "] > " + vars[keys[i]]);
+}
+
+Console.println("\nTEST: checking setVars...");
+vars['name'] = "chris and evan";
+vars['whatrocks'] = "yes, reflection DOES rock";
+cls.setVariables(vars);
+
+Console.println("name is now '"+t.name+"'");
+Console.println("whatrocks is now '"+t.whatrocks+"'");
+
+Console.println("\nTEST: checking Function...");
+cls = new Function("kickAss");
+cls.exec("jackie chan");
+
+Console.println("\nTEST: checking access to an objects functions...");
+cls = new Function(t,"kickAss");
+cls.exec();
+
+Console.println("\nTEST: checking object creation from data...");
+obj = Object.fromData("Test",vars);
+Console.println("> name == " + obj.name);
+Console.println("> whatrocks == " + obj.whatrocks);

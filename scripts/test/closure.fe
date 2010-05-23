@@ -1,0 +1,21 @@
+uses "console";
+
+global {
+       number x = 1;
+}
+
+number y = 1;
+
+object o = closure { 
+	number z = y;
+	
+	y = 1000;
+	return x + z; 
+};
+
+y = 10;
+x = 10;
+
+Console.println( "If this works the next number should be 20: ${o.invoke()}" );
+Console.println( "And y should be 1000: $y" );
+

@@ -1,0 +1,23 @@
+class RMITranslationLayer
+{
+   object transport;
+   
+   function constructor( object transport )
+   {
+       .transport = transport;
+   }
+   
+   function send( string str )
+   {
+   }
+   
+   function receive()
+   {
+       return "";
+   }
+   
+   function cleanup()
+   {
+	   
+   }
+}

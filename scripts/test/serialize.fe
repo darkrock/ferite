@@ -1,0 +1,52 @@
+uses "console", "string", "serialize";
+
+class Test {
+	number value;
+	number value2;
+	object t2;
+	object t3;
+}
+
+object o = new Test(), dso;
+string serial = "", sa, sb;
+array a, b;
+
+o.value = 42;
+o.value2 = 1024;
+o.t2 = new Test();
+o.t2.value = 512;
+o.t2.value2 = 2096;
+o.t3 = o.t2;
+
+Console.println( "Serializing the object" );
+serial = Serialize.toNative( o );
+
+Console.println( "Serializing to stdout via xml" );
+Console.println( Serialize.toXML( o ) );
+
+Console.println( "De-serializing the object" );
+dso = Serialize.fromNative( serial );
+
+Console.println( "Should be 42: ${dso.value}" );
+Console.println( "Should be 1024: ${dso.value2}" );
+Console.println( "Should be 512: ${dso.t2.value}" );
+Console.println( "Should be 2096: ${dso.t2.value2}" );
+Console.println( "T2: ${dso.t2}" );
+Console.println( "T3: ${dso.t3}" );
+
+Console.println( "Testing array serialisation" );
+a = [ 1, 2, 4, 8, 16, "512" ];
+serial = Serialize.toNative( a );
+b = Serialize.fromNative( serial );
+
+Console.println( "A: $a" );
+Console.println( "B: $b" );
+
+if( serial != String.base64decode( String.base64encode( serial ) ) ) {
+    Console.println( "base64 doesn't work" );
+} else {
+    string s2 = String.base64decode( String.base64encode( serial ) );
+    Console.println( "b64: A: $a" );
+    b = Serialize.fromNative( s2 );
+    Console.println( "b64: B: $b" );
+}

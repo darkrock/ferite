@@ -1,0 +1,54 @@
+#!/usr/bin/env ferite
+
+uses "console";
+
+class Blah
+{
+   function constructor()
+   {
+       Console.println( "Blah Constructor" );
+   }
+
+   function test()
+   {
+       Console.println( "Blot" );
+   }
+
+   function Blot()
+   {
+       Console.println("Blah.Blot");
+   }
+}
+
+class Blim extends Blah
+{
+   function constructor()
+   {
+       super();
+       self( "Yep. It Works" );
+	   Console.println( "Blim Constructor" );
+   }
+
+   function constructor( string b2 )
+   {
+	   Console.println( "self works: $b2" );
+   }
+   
+   function Blot()
+   {
+       super.test();
+       monitor
+       {
+           parent.test();
+       }
+       handle
+       {
+           Console.println( "Ewps. An error occured, but we is goner continue" );
+       }
+       super.Blot();
+   }
+}
+
+object blop = new Blim();
+
+blop.Blot();

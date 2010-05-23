@@ -1,0 +1,188 @@
+/*
+ * Copyright (C) 1999-2007 Chris Ross
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "math.lib";
+
+module-header
+{
+
+#include <math.h>
+#include <stdlib.h>
+#ifndef M_PI
+# define M_PI 3.14159265358979323846
+#endif
+
+}
+
+uses "complex";
+
+/**
+ * @namespace Math
+ * @brief Provides a set of mathematical functions
+ */
+namespace modifies Math
+{
+	/**
+	 * @function getRandMax
+	 * @declaration function getRandMax( )
+	 * @brief Finds the maximum value that Math.rand() can return
+	 * @return The largest value that Math.rand() can return
+	 */
+	native function getRandMax() : number
+	{
+		FE_RETURN_LONG( RAND_MAX );
+	}
+
+	/**
+	 * @function max
+	 * @declaration function max( number num1, number num2 )
+	 * @brief Determines which of two numbers is the larger
+	 * @param number num1 The first number
+	 * @param number num2 The second number
+	 * @return The value of the larger of the two numbers
+	 */
+	native function max( number num1, number num2 ) : number
+	{
+		if( num1 < num2 )
+		{
+			FE_RETURN_DOUBLE( num2 );
+		}
+		else
+		{
+			FE_RETURN_DOUBLE( num1 );
+		}
+	}
+
+	/**
+	 * @function min
+	 * @declaration function min( number num1, number num2 )
+	 * @brief Determines which of two numbers is the smaller
+	 * @param number num1 The first number
+	 * @param number num2 The second number
+	 * @return The value of the smaller of the two numbers
+	 */
+	native function min( number num1, number num2 ) : number
+	{
+		if( num1 > num2 )
+		{
+			FE_RETURN_DOUBLE( num2 );
+		}
+		else
+		{
+			FE_RETURN_DOUBLE( num1 );
+		}
+	}
+
+	/**
+	 * @function pi
+	 * @declaration function pi()
+	 * @brief Returns the number Pi
+	 */
+	/* APH: Why is this a function instead of a constant? */
+	native function pi() : number
+	{
+		FE_RETURN_DOUBLE( M_PI );
+	}
+
+	/**
+	 * @function rand
+	 * @declaration function rand()
+	 * @brief Generates a pseudo-random number
+	 * @return a pseudo-random number
+	 * @description This function returns a pseudo-random number. Before using
+	 *			  it, you should call Math.srand() to seed the pseudo-random
+	 *			  number generator. The value returned will always be between
+	 *			  0 and the value returned by Math.getRandMax().
+	 */
+	native function rand() : number
+	{
+		FE_RETURN_LONG( rand() );
+	}
+
+	/**
+	 * @function srand
+	 * @declaration function srand( number seed )
+	 * @brief Seeds the pseudo-random number generator
+	 * @param number seed The number to seed the pseudo-random number generator with
+	 * @description This function should be called before using Math.rand() to
+	 *			  seed the pseudo-random number generator. It is common
+	 *			  practice to use the current time, as returned by the
+	 *			  function Sys.Time() as a seed for many tasks. Note that the
+	 *			  sequence of numbers from the random number generator is
+	 *			  determined by the seed, so if you reseed it with the a value
+	 *			  you used previously the same sequence of random numbers will
+	 *			  be generated. This is sometimes useful behaviour because it
+	 *			  allows you to reproduce a "random" sequence any time simply
+	 *			  by remembering what the seed value was.
+	 */
+	native function srand( number seed ) : undefined
+	{
+		srand( (long)seed );
+	}
+
+	function seed {
+		number timestamp = Sys.timestamp();
+		number seed = Number.round((timestamp - Number.floor(timestamp)) * 1000000000);
+		return seed;
+	}
+	
+	/**
+	 * @function randomNumber
+	 * @declaration function randomNumber( number min, number max )
+	 * @brief Generate a random number between two bounds
+	 * @param number min The lower bound
+	 * @param number max The upper bound
+	 * @return A random number x where min < x < max
+	 */
+	function randomNumber( number min, number max ) {
+		return Number.round(((max - min) * (Math.rand()/(0.0 + Math.getRandMax())))) + min;
+	}
+	/**
+	 * @function randomBitPattern
+	 * @declaration function randomBitPattern( number size )
+	 * @brief Generate a bit pattern of size bits into an array
+	 * @description This function is used to build an array of bits that are size/2 turned to one.
+	 * @param number size The number of bits to be used
+	 * @return An array of size length, with each indices having the value of 1 or 0
+	 */
+	function randomBitPattern( number size ) {
+		array pattern;
+		// Pre load the array with zeros
+		size.times() using { pattern[] = 0; };
+		// Go through and distribute half with ones
+		(size / 2).times() using {
+			number index = Math.randomNumber(0, size - 1);
+			while( pattern[index] ) {
+				index = Math.randomNumber(0, size - 1);
+			}
+			pattern[index] = 1;
+		};
+		return pattern;
+	}
+}

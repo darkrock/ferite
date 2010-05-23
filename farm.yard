@@ -1,0 +1,67 @@
+<?xml version="1.0" ?>
+<yard name="ferite">
+
+	<property id="version" value="1.1.0" />
+
+	<property id="pcre.c"><program-output program="pcre-config" arguments="--cflags" /></property>
+	<property id="pcre.ld"><program-output program="pcre-config" arguments="--libs" /></property>
+	<property id="xml.c"><program-output program="xml2-config" arguments="--cflags" /></property>
+	<property id="xml.ld"><program-output program="xml2-config" arguments="--libs" /></property>
+
+	<property id="defines" value="-DUSE_PTHREAD -DTRITON_AS_COMPONENT" />
+	<add-property id="defines" value="-DUSING_DARWIN" platform="Darwin" />
+	<add-property id="defines" value="-DUSING_LINUX" platform="Linux" />
+
+	<shared-library id="ferite-lib">
+		<property type="name" value="ferite" />
+		<list type="source">
+			<file name="config.h" />
+			<!-- aphex -->
+			<fileset dir="libs/aphex/include" match="\.h$" />
+			<fileset dir="libs/aphex/src" match="aphex_.*\.c$" />
+			<!-- triton -->
+			<fileset dir="libs/triton/include" match="\.h$" />
+			<fileset dir="libs/triton/src" match="triton.*\.c$" />
+			<!-- ferite -->
+			<file name="include/ferite.h" />
+			<fileset dir="include/ferite" match="\.h$" />
+			<fileset dir="src" match="\.c$" />
+		</list>
+		<add-property type="C" value="$(defines) $(pcre.c) $(xml.c)" />
+		<add-property type="LD" value="$(pcre.ld) $(xml.ld)" />
+		<property type="prefix" value="$(prefix)/lib" />
+	</shared-library>
+
+	<property id="tooldefines" value='-DPACKAGE="\"ferite\"" -DVERSION="\"$(version)\"" -DLIBRARY_DIR="\"$(prefix)/lib/ferite\"" -DXPLAT_LIBRARY_DIR="\"$(prefix)/lib/ferite/module-source\"" -DNATIVE_LIBRARY_DIR="\"$(prefix)/lib/ferite/native/$(platform)\"" -DPLATFORM="\"$(platform)\""' />
+	<executable id="ferite-exe">
+		<property type="name" value="ferite" />	
+		<list type="source">
+			<file name="libs/aphex/include/aphex.h" />
+			<file name="include/ferite.h" />
+			<file name="test/main.c" />
+			<fileset dir="test" match="dot\.[ch]$" />
+		</list>
+		<add-property type="C" value="$(defines) $(tooldefines)" />
+		<property type="LD" value="$(ProductDir)/libferite.dylib" />
+		<property type="prefix" value="$(prefix)/bin" />  
+	</executable>
+	
+	<executable id="builder-exe">
+		<property type="name" value="builder" />	
+		<list type="source">
+			<file name="libs/aphex/include/aphex.h" />
+			<file name="include/ferite.h" />
+			<fileset dir="builder" match="builder_.*?\.[ch]$" />
+		</list>
+		<add-property type="C" value="$(defines) $(tooldefines)" />
+		<property type="LD" value="$(ProductDir)/libferite.dylib" />
+		<property type="prefix" value="$(prefix)/bin" />  
+	</executable>
+
+	<phase id="install" depends="build">
+		<perform action="install" target="ferite-lib" />
+		<perform action="install" target="ferite-exe" />
+		<perform action="install" target="builder-exe" />
+	</phase>
+	
+</yard>

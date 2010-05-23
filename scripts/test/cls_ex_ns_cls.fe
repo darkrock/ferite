@@ -1,0 +1,37 @@
+uses "console";
+
+namespace out
+{
+
+    class test
+    {
+       function constructor()
+       {
+           Console.println( "test" );
+       }
+    }
+
+    class test2 extends test
+    {
+       function constructor()
+       {
+           super();
+           Console.println( "test2" );
+       }
+    }
+}
+
+class test3 extends out.test2
+{
+   function constructor()
+   {
+       super();
+       Console.println( "test3" );
+   }
+}
+
+object foo = new out.test2();
+object bar = new test3();
+
+Console.println( "Da main man." );
+

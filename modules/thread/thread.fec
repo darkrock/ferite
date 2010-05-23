@@ -1,0 +1,369 @@
+/*
+ * Copyright (C) 2001-2007 Chris Ross
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "thread.lib";
+
+module-header
+{
+
+#include "../../libs/aphex/include/aphex.h"
+
+#define SelfThread ((FeriteThread*)self->odata)
+#define SelfMutex  ((AphexMutex*)self->odata)
+#define SelfEvent  ((AphexEvent*)self->odata)
+
+    FeriteScript *ferite_thread_create_script( FeriteScript *script );
+    void ferite_thread_destroy_script( FeriteScript *script, FeriteThread *ctx, int fd );
+    void *ferite_thread_execute( void *ptr );
+    
+}
+
+/**
+ * @class Thread
+ * @brief A thread object allowing for multi-threaded scripts within the ferite environment
+ * @description This class provides the basic framework for threading. To create a thread you
+                have to inherit from this base class and create a run method. Once that is done
+ *              You create an instance of the object and call the .start() method NOT the .run()
+ *              method. This causes a thread to be spawned and the .run() method called. The
+ *              thread will exit when the .run() method has completed. If you implement your
+ *              own constructor is is VITAL that you call super() to make sure that the
+ *              native side of the thread is instantiated correctly.
+ * @example <code>
+ <keyword>class</keyword> MyThread <keyword>extends</span> Thread {<nl/>
+ <tab/><keyword>function</keyword> run() {<nl/>
+ <tab/><tab/><keyword>while</keyword>( <type>true</type> ) {<nl/>
+ <tab/><tab/><tab/>Thread.sleep( 1000 ); <nl/>
+ <tab/><tab/><tab/>Console.println( "A<keyword>not</keyword>her Second Gone" );<nl/>
+ <tab/><tab/>}<nl/>
+ <tab/>}<tab/><nl/>
+ }<nl/>
+ <nl/>
+ <type>object</type> thread = <keyword>new</keyword> MyThread();<nl/>
+ thread.start( <keyword>true</keyword> );</code><nl/>
+ */
+class Thread
+{
+   /**
+    * @function constructor
+    * @declaration function constructor()
+    * @brief The constructor
+    * @warning You must make sure this is called within sub-classes.
+    */
+   native constructor
+   {
+       /* create new script for this thread */
+       self->odata = fmalloc( sizeof(FeriteThread) );
+       SelfThread->ctxt = aphex_thread_create();
+       SelfThread->script = ferite_thread_create_script( script );
+       SelfThread->obj = self;
+       SelfThread->running = FE_FALSE;
+       SelfThread->pass_exceptions = FE_FALSE;
+	   
+	   /* printf( "Creating thread object: parent: %p script: %p ctx: %p\n", script, SelfThread->script, SelfThread ); */
+   }
+
+   native destructor
+   {
+       if( SelfThread != NULL )
+       {
+           if( !SelfThread->running )
+               ferite_thread_destroy_script( script, SelfThread, FE_TRUE );
+            self->odata = NULL;
+       }
+   }
+
+   /**
+    * @function start
+    * @declaration function start( number detach )
+    * @brief Start the thread of execution
+    * @param number detach 'true' or 'false', if 'true' the thread will detach upon running
+    * @description When this function is run, it will return straight away. Pass true if you want the
+    *              Thread to automatically clear itself up. Otherwise Thread.join() must be called on
+    *              it.
+    */
+   native function start( number detach ) : boolean
+   {
+       if( SelfThread != NULL )
+       {
+           if( aphex_thread_start( SelfThread->ctxt, ferite_thread_execute, SelfThread, (int)detach ) != 0 ) {
+       	       ferite_error( script, 0, "Unable to start thread! Not enough resources!\n" );
+				FE_RETURN_FALSE;
+			}
+			FE_RETURN_TRUE;
+       }
+       else {
+         ferite_error( script, 0, "Unable to start thread! (this usually happens when the Thread constructor has not been called from the subclass.)\n" );
+       }
+		FE_RETURN_FALSE;
+   }
+   
+    /**
+    * @function start
+     * @declaration function start()
+     * @brief Start the thread of execution
+     * @description When this function is run, it will return straight away. The thread will clean itself
+                    up when done.
+     */
+    function start()
+   {
+        return .start( true );
+   }
+
+   /**
+    * @function run
+    * @declaration function run()
+    * @brief The function that gets run. The stock run method exits immediatly. You need to implement your own function.
+    */
+	function run();
+
+   /**
+    * @function sleep
+    * @declaration function sleep( number msecs )
+    * @brief Causes the thread to sleep for an amount of time
+    * @param number msecs The amount of time to sleep in microseconds
+    */
+   native function sleep( number msecs ) : undefined
+   {
+       aphex_thread_sleep( SelfThread->ctxt, (long)msecs );
+   }
+
+   /**
+    * @function join
+    * @declaration static native function join( object thread )
+    * @brief Cause the calling thread to wait for the thread passed to the method to complete
+    * @param object thread The thread to wait for
+    * @static
+    * @example <nl/><code>
+	<keyword>class</keyword> MyThread <keyword>extends</span> Thread {<nl/>
+	<tab/><keyword>function</keyword> run() {<nl/>
+	<tab/><tab/><keyword>while</keyword>( <type>true</type> ) {<nl/>
+	<tab/><tab/><tab/>Thread.sleep( 1000 ); <nl/>
+	<tab/><tab/><tab/>Console.println( "A<keyword>not</keyword>her Second Gone" );<nl/>
+	<tab/><tab/>}<nl/>
+	<tab/>}<tab/><nl/>
+	}<nl/>
+	<nl/>
+	<type>object</type> thread = <keyword>new</keyword> MyThread();<nl/>
+	thread.start(<type>false</type>);<nl/>
+	Thread.join(thread); </code><nl/>
+    */
+   static native function join( object thread ) : boolean
+   {
+       if( thread != NULL && thread->odata != NULL )
+       {
+           aphex_thread_join( ((FeriteThread*)thread->odata)->ctxt );
+			FE_RETURN_TRUE;
+       }
+		FE_RETURN_FALSE;
+   }
+   
+   /**
+    * @function setPassExceptions
+    * @declaration function setPassExceptions( number value )
+    * @brief Set whether or not exceptions within a thread are passed onto the main process when the thread finishes executing.
+    * @param number value Either true or false
+    * @description If an exception is thrown within a thread, only that thread will suffer the exception. If you pass
+                   true to the function, when a thread has an exception it will pass it onto the main program thread.
+    */
+   native function setPassExceptions( number value ) : undefined
+   {
+       SelfThread->pass_exceptions = (long)value;
+   }
+   
+   /**
+    * @function isRunning 
+    * @declaration function isRunning()
+    * @brief Check to see if the thread is running
+    * @return true if it is running, false otherwise
+    */
+   native function isRunning() : boolean
+   {
+       if( SelfThread->running )
+       {
+	   FE_RETURN_TRUE;
+       }
+       FE_RETURN_FALSE;
+   }
+}
+/**
+ * @end
+ */
+
+/**
+ * @class Mutex
+ * @brief A mutex that can be used to lock sections of code
+ * @example <code>
+ <type>object</type> mutex = <keyword>new</keyword> Mutex();<nl/>
+ mutex.lock();<nl/>
+ // Critical section<nl/>
+ mutex.unlock();</code><nl/>
+ */
+class Mutex
+{
+   native constructor
+   {
+       if( SelfMutex != NULL )
+         self->odata = aphex_mutex_create();
+   }
+
+   native destructor
+   {
+       if( SelfMutex != NULL )
+         aphex_mutex_destroy( SelfMutex );
+       self->odata = NULL;
+   }
+
+   /**
+    * @function lock
+    * @declaration function lock()
+    * @brief Cause the mutex to lock
+    * @description The mutex will lock. If it is already locked, the thread of execution will stop until
+    *              it becomes unlocked.
+    */
+   native function lock() : boolean
+   {
+		if( SelfMutex != NULL ) {
+			aphex_mutex_lock( SelfMutex );
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+   }
+
+   /**
+    * @function unlock
+    * @declaration function unlock()
+    * @brief Cause the mutex to unlock
+    */
+   native function unlock() : boolean
+   { 
+		if( SelfMutex != NULL ) {
+			aphex_mutex_unlock( SelfMutex );
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+   }
+}
+/**
+ * @end
+ */
+
+/**
+ * @class Event
+ * @brief A thread safe way of signalling events between threads
+ * @example <code>
+	<keyword>global</keyword> {<nl/>
+	<tab/><type>object</type> event;<nl/>
+	<tab/><type>number</type> value;<nl/>
+	}<nl/>
+	<nl/>
+	<keyword>class</keyword> Producer <keyword>extends</span> Thread {<nl/>
+	<tab/><keyword>function</keyword> run() {<nl/>
+	<tab/><tab/><keyword>while</keyword>( <type>true</type> ) {<tab/><tab/><tab/><nl/>
+	<tab/><tab/><tab/>value = 10;<nl/>
+	<tab/><tab/><tab/>event.signal();<nl/>
+	<tab/><tab/>}<nl/>
+	<tab/>}<nl/>
+	}<nl/>
+	<keyword>class</keyword> Consumer <keyword>extends</span> Thread {<nl/>
+	<tab/><keyword>function</keyword> run() {<nl/>
+	<tab/><tab/><keyword>while</keyword>( <type>true</type> ) {<nl/>
+	<tab/><tab/><tab/>event.wait();<nl/>
+	<tab/><tab/><tab/>Console.println( "value: $value" );<nl/>
+	<tab/><tab/>}<nl/>
+	<tab/>}<nl/>
+	}<nl/>
+	<nl/>
+	<type>object</type> producer = <keyword>new</keyword> Producer();<nl/>
+	<type>object</type> consumer = <keyword>new</keyword> Consumer();<nl/>
+	event = <keyword>new</keyword> Event();<nl/>
+	<nl/>
+	producer.start();<nl/>
+	consumer.start();</code><nl/>
+ */
+class Event
+{
+   native constructor()
+   {
+       self->odata = aphex_event_create();
+   }
+
+   native destructor()
+   {
+       if( SelfEvent != NULL )
+         aphex_event_destroy( SelfEvent );
+       self->odata = NULL;
+   }
+
+   /**
+    * @function signal
+    * @declaration function signal()
+    * @brief Cause an event to be broadcasted
+    * @description Signals any threads in wait or timedwait that it is okay to continue
+    *              
+    */
+   native function signal() : undefined
+   {
+       if( SelfEvent != NULL )
+         aphex_event_signal( SelfEvent );
+   }
+
+   /**
+    * @function wait
+    * @declaration function wait()
+    * @brief This thread will wait for a signal to be called
+    */
+   native function wait() : undefined
+   {
+       if( SelfEvent != NULL )
+         aphex_event_wait( SelfEvent );
+   }
+
+   /**
+    * @function timedWait
+    * @declaration function timedWait( number seconds)
+    * @brief This thread will wait for a signal to be called
+    * @param number seconds The amount of time to wait in seconds
+    * @return true if a signal was caught, false otherwise
+    */
+   native function timedWait( number seconds ) : boolean
+   {
+       if( SelfEvent != NULL )
+       {
+           if( aphex_event_timedwait( SelfEvent, (long)seconds) == 0)
+           {
+               FE_RETURN_TRUE;
+           }
+       }
+       FE_RETURN_FALSE;
+   }
+}
+/**
+ * @end
+ */
+

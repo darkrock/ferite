@@ -1,0 +1,22 @@
+// An example of foreach using closures
+
+uses "array", "console";
+
+class Test2 {
+    function print( string s ) {
+        Console.println( "self.print: $s" );
+    }
+    
+    function test() {		
+        array a = [];
+        a["Hello"] = 1;
+        a["There"] = 2;
+        
+        Array.map( a ) using ( key, value ) {
+            self.print( "Key: $key => '$value'" );
+        };
+    }
+}
+
+object o = new Test2();
+o.test();

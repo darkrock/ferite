@@ -1,0 +1,44 @@
+#!/usr/bin/env ferite
+
+uses "std", "sys", "console", "math", "complex";
+
+object a = new Math.Complex(1.0, 0.1);
+object b = new Math.Complex(2.2, 2.2);
+object c = new Math.Complex(0.0, 0.0);
+
+Console.println("Starting Complex number test\n" +
+		"----------------------------\n" +
+		"This is an example of the functionality in the Complex\n" +
+	       	"number class. The numbers used are simply examples, not\n" +
+	       	"a thorough test. If you find a specific case that does\n" +
+	       	"not give correct results, please report it.\n");
+
+c.add(a, b);
+Console.println("\t\t " + a);
+Console.println("\t\t+" + b);
+Console.println("\t\t------------------");
+Console.println("\t\t" + c + "\n");
+
+c.sub(b, a);
+Console.println("\t\t " + b);
+Console.println("\t\t-" + a);
+Console.println("\t\t------------------");
+Console.println("\t\t" + c + "\n");
+
+c.mult(b, a);
+Console.println("\t\t " + b);
+Console.println("\t\t*" + a);
+Console.println("\t\t------------------");
+Console.println("\t\t" + c + "\n");
+
+Console.println("\t\t " + c);
+Console.println("\t\t/" + a);
+c.div(c, a);
+Console.println("\t\t------------------");
+Console.println("\t\t" + c + "\n");
+
+Console.println("Modulus of " + c + " is " + c.modulus() + "\n");
+
+a.copy(c);
+c.sqrt(a);
+Console.println("Square root of " + a + " is " + c + "\n");

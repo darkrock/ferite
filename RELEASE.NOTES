@@ -1,0 +1,233 @@
+This highlights the features the following changes in the releases of ferite.
+
+1.0 final
+---------
+
+  - Fix for iferr{} blocks within a loop.
+  - Fix for class/namespace modifies on a class/namesapce that already exists
+   
+1.0rc2
+------
+
+  - Fixes to the thread and xml module to make them gcc 4.0 compatible.
+
+1.0rc1
+------
+
+  - Many bug fixes and performance enchancements.
+  - Rewritten manual, embedding guide, API and C API.
+  - Added feritedoc manual to aid its use.
+  - Creation of a 'date' module that contains time specific classes and functions.
+  - "" + void => "" rather than "(void)"
+  - Major structural changes to make method calls from native code easier.
+  - Static constructors and destructors on classes
+  - Constructors are now called 'constructor' not the name of the class
+  - Ability to specify a hash key for an object by overriding the hash() function
+  - Implementation of closures within ferite:
+  
+		number z = 10;
+		object o = closure( x, y ) {
+			Console.println( x );
+			Console.println( y );
+			Console.println( z );
+		};
+		o.invoke( 8, 9 );
+		
+	The above code captures the 'z' variable, and uses the passed in variables.
+	Please see the manual.
+	
+  - Implemented passed in blocks to functions allowing for a new dynamic method
+    of programming. For example iterators, the array module now provides an each()
+	method that can be used like so:
+	
+		Array.each( [ 1, 2, 3 ] ) using ( value ) {
+			Console.println( value );
+		};
+		
+	A block passed in using the 'using' keyword is a closure.
+	
+  - Renamed getArgs() to arguments()
+  - Removed regular expressions from the language and moved them into a more ferite
+    esque module called "regexp"
+  - Added ability to execute a function on an expression: (new A()).someFunction(),
+    it is just necessary to bracket the expression.
+  - Added the ability to do call by reference on variables:
+  
+		function f( number &b, number a ) {
+			b = 10;
+			a = 10;
+		}
+		
+		number b = 1, a = 1;
+		f( b, a );
+		
+		b is now 10 because the variable reference was passed into f
+
+  - Added protocols to ferite allowing classes to conform to a given protocol e.g.
+  
+		protocol X {
+			function getX();
+			function setX( string v );
+		}
+		
+		class A implements X {
+			function getX(){ return ""; }
+			function setX( string v ) { }
+		}
+		
+	 The compiler will ensure that the class does conform or wont complete compliation.
+	 It is also possible to use, on any object, the function 'conformsToProtocol' to
+	 check if the object is valid for ones purpose.
+	 
+   - Sliced arrays now work correctly (there was a foolish bug before)
+   - Added private, protected and public to the ferite compiler and engine. You can now
+     have access control on your functions.
+   - Implemented abstract classes and final classes to contol who can inherit from your
+     creations.
+   - Added the ability to define keys within an associated in-line script:
+   
+		array a = [ 'Key1' => value, 'Key2' => 'value2' ];
+		
+   - Fixed the locating of overloaded methods when they have different parameters types.
+     (ferite woulnd't be able to find various methods)
+   - Major work on the XML module to provide TreeParser and XML.Element to allow the
+     inspection and rebuilding of the xml trees.
+   - Various new array and string routines
+   - The compiler allows you to embed block comments within each other, /* /* */ */
+     making the comment system more sane.
+   - Variable declared within a for loop (especially void variables) will be dealt with
+     correctly (reset and not crash)
+   - You no longer can assign to null and nowt
+   - New feritedoc which is now usable and very fast, which provides much nicer 
+     documentation including an offline search mechanism. It also provides a central
+  	 mechanism for updating documentation to the system documentation.
+	 (feritedoc --regenerate)
+   - ".feh" is now a valid script extension
+   - Made libxml2 a requirement for ferite.
+   - Builder now provides (for feritedoc) a modulename.xml that details all of the files
+     that it used to create the native code for a module; thus making it easy for
+	 feritedoc to find what files it has to scan to get the documentation correct.
+   - Reworked the install paths to be more sane
+   - Split the originally huge sys module into several smaller ones: date, network, posix,
+     unix, sys, filesystem, stream. This makes the module system much cleaner and also 
+	 provides the stream module to make extending stream objects easier.
+   - A test-suite to provide unit based testing, and a set of tests.
+   - A fix for iferr blocks that don't have a else block
+   - The module subsystem can now cope with relative paths.
+   - The rmi (Remote Method Invocation) module now works (it showed some critical bugs
+	 with threading and the garbage collector). The internal threading system along
+	 with the thread module are much better behaved. It also reuses existing connections
+	 and doesnt eat resources.
+	 
+   - The addition of farm to the distribution. farm is a build system written in ferite aimed
+     to make building code easier on one's sanity. farm takes a description constructed in XML
+	 and will build libraries, binaries and modules quicker and with less pain that autotools.
+   
+   - The addition of manual-builder to the distribution. This takes the pain away from using
+     docbook and provides a nice sane way of generating html and pdf documentation from
+	 the same source. ferite uses manual builder for the pdfs and html documentation it 
+	 is provided with.
+	 
+   - API, C API documentation is generated on install, ferite is shipped with numerous
+     examples, pdf and html manuals all installed locally to allow non-networked 
+	 machines access to the documentation.
+	 
+   - Brand new logo :)
+  
+0.99.6
+------
+
+  - Many bug fixes and performance enhancements including speedups between 3-12 times
+    and a couple of critical compiler fixes.
+  - Much more documentation, including API, C API and a developers guide
+  - Object methods can call the constructor of their parent class with super().
+  - Single line functions don't need braces around the function body, eg.
+    
+      function foo( number bar )
+        return bar + 42;
+	
+  - Added the foreach() operator.
+  - Added ( foo ? bar1 : bar0 ) conditionals.
+  - Added parameter overloading- you can now do things like:
+	        
+      function foo( number bar )
+	Console.println("foo: got number " + bar);
+	
+      function foo( string bar )
+	Console.println("foo: got string " + bar);
+
+  - Changed the way variable argument lists are accessed via script code
+  - Added many new functions, classes, and constants to the Sys module. In particular:
+      - Syslog
+      - select()
+      - printf()
+      - UDP sockets
+      - Signal handlers
+      - Full IPV6 support
+      - Unix domain sockets
+      - A pipe stream class
+      - A string stream class
+      - A host class for DNS lookups
+      - Many system constants (eg. the errno and signal values), the values
+        of which are determined at compile time
+								 
+   - Rewrote several String functions and added many new ones
+   - Added several new Array functions, including a generic array sorting routine
+   - Added several new Reflection functions - including better object and function
+     runtime inspection, and the ability to trace a variable's modification.
+   - Feritedoc is now much faster
+   - Basic Remote Method Invocation framework in pure ferite
+   - The ability to duplicate a scripts in C code
+   - The XML module has been re-written in places to be more flexible
+   - Saner Error handling regarding multiple threads within a script
+   
+   
+0.99.5
+------
+   
+  - FreeBSD, Darwin, OpenBSD and Solaris fixes
+  - Support for Cygwin
+  - ferite.m4 for easy ferite install checking
+  - Cross platform library for system interaction [aphex]
+     - Provides consistant file, directory and threading interface
+  - man pages for both ferite and builder
+  - Full api documentation
+  - function renaming and deletion in classes
+  - Complete re-write of the array subsystem
+  - Large amounts of module work
+     - Complete re-write of the module system
+	 - Re-write of builder to reflect changes
+	 - Much more flexible load unload system
+  - Syntax clean ups
+     - Slice operator - allows the selection of ranges out of an array or string
+	 - Removed '->'
+	 - uses now only accepts a quoted string. Including a new contruct c///,
+	   this allows for capture strings to be placed in the variables mentioned in
+	   the comma separated list on the right hand side. eg.
+	       
+		    foo =~ c/some (regex)/place_I_want_it_to_go/
+		  
+	 - Better regular expression detection and processing
+	 - New 'atomic' keyword for threadin - provides locking for functions and 
+	   variables at script level.
+	 - Code at the end of a module is now executed when loaded in
+	 - eval() modifies the script it runs in
+	 - include() can be used to load up another script at run time
+	 - Arrays can be created in scripts using [ value, ... ] syntax
+	 - isa operator to check a variables type
+	 - instanceof operator to see if a variable is an instance of a class or
+	   parent class.
+	 - Ability to embed expressions in a string using "${expr}" syntax.
+  - More functionality added to the command line ferite tool
+  - Big clean up of the native api
+     - More convinice functions
+	 - More macros for easy of use
+	 - All functions now start with ferite rather than __ferite
+  - generate-module - a tool to allow the easy deployment of third party modules
+  - feritedoc - a javadoc like tool for generating documentation in various
+    formats, currently only text and html are outputed. [used for the api docs]
+  - New system module, providing a complete stream interface, test suite, 
+    serialization, and threading libraries. See the API docs for more information.
+  - More test scripts
+  - Variable accessors allowing for tracking of variable changes in native code
+  - Hundreds of bug fixes and clean ups

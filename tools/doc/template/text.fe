@@ -1,0 +1,138 @@
+/**
+ * !class TextTemplate
+ * !declaration class TextTemplate extends Template
+ * !brief Provides a basic text output for feritedoc
+ * !extends Template
+ */
+class TextTemplate extends Template
+{
+   /**
+    * !function TextTemplate
+    * !brief The constructor
+    * !declaration function TextTemplate( string args )
+    * !param string args The arguements to be passed to the template
+    */
+   function constructor( string args )
+   {
+       super( "Text Template", args );
+//       .print( "We are alive!" );
+   }
+
+   function processClass( object klass )
+   {
+       number i = 0;
+
+       Console.println( "+-----------------------------------------------------" );
+       if( klass.mods == "" )
+       {
+           Console.println( "| class ${klass.name}" );
+           Console.println( "| extends ${klass.exts}" );
+       }
+       else
+         Console.println( "| class modifies ${klass.mods}" );
+       Console.println( "+-----------------------------------------------------" );
+       .processAll( klass );
+
+       for( i = 0; i < Array.size(klass.items); i++ )
+       {
+           if( klass.items[i] instanceof DocFunction )
+             .processFunction( klass.items[i] );
+           if( klass.items[i] instanceof DocVariable )
+             .processVariable( klass.items[i] );
+       }
+       Console.println( "+-----------------------------------------------------" );
+   }
+
+   function processNamespace( object space )
+   {
+       number i = 0;
+
+       Console.println( "+-----------------------------------------------------" );
+       if( space.mods == "" )
+         Console.println( "| namespace ${space.name}" );
+       else
+         Console.println( "| namespace modifies ${space.mods}");
+       Console.println( "+-----------------------------------------------------" );
+       .processAll( space );
+       for( i = 0; i < Array.size(space.items); i++ )
+       {
+           if( space.items[i] instanceof DocFunction )
+             .processFunction( space.items[i] );
+           else if( space.items[i] instanceof DocVariable )
+             .processVariable( space.items[i] );
+	   else if( space.items[i] instanceof DocClass ) 
+	     .processClass( space.items[i] );
+           else if( space.items[i] instanceof DocNamespace )
+               .processNamespace( space.items[i] );
+       }
+       Console.println( "+-----------------------------------------------------" );
+   }
+
+   function processFunction( object func )
+   {
+       number i = 0;
+       string type, name, meaning;
+
+       Console.println( "+-----------------------------------------------------" );
+       Console.println( "| function ${func.name}" );
+       Console.println( "+-----------------------------------------------------" );
+
+       if( Array.size(func.parameters) > 0 )
+       {
+           Console.println( "+- parameters ----------------------------------------" );
+           for( i = 0; i < Array.size(func.parameters); i++ )
+           {
+	       object match, regexp = new Regexp("([^ ]+)[\n\t ]+([^ ]+)[\n\t ]+(.*)", "i");
+               type = name = meaning = "";
+	       match = regexp.match(func.parameters[i]);	
+		
+               if(match != null) 
+               {
+		   type = match.capture(0);
+		   name = match.capture(1);
+                   meaning = match.capture(2);
+               }
+               Console.println( "| Parameter #${(i+1)}: '$name', type: $type" );
+               if( meaning != "" )
+                 Console.println( "|  $meaning" );
+           }
+           Console.println( "+-----------------------------------------------------" );
+       }
+       .processAll( func );
+       if( func.return_type != "" )
+       {
+           Console.println( "| returns ${func.return_type}" );
+           Console.println( "+-----------------------------------------------------" );
+       }
+   }
+
+   function processVariable( object var )
+   {
+       Console.println( "+-----------------------------------------------------" );
+       Console.println( "| Variable ${var.name}, type '${var.type}'" );
+       Console.println( "+-----------------------------------------------------" );
+
+       .processAll( var );
+   }
+
+   function processAll( object var )
+   {
+       if( var.brief != "" )
+       {
+           Console.println( "+- brief ---------------------------------------------" );
+           Console.println( "| ${var.brief}" );
+           Console.println( "+-----------------------------------------------------" );
+       }
+       if( var.description != "" )
+       {
+           Console.println( "+- description ---------------------------------------" );
+           Console.println( "| ${var.description}" );
+           Console.println( "+-----------------------------------------------------" );
+       }
+   }
+}
+/**
+ * !end
+ */
+
+return new TextTemplate( template_args );

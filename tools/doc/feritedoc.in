@@ -1,0 +1,12 @@
+#!/bin/sh
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+library_path=@prefix@/share/ferite/doc
+
+echo "Invoking command: "
+echo $prefix/bin/ferite --include $library_path $library_path/doc.fe -- --ferite-prefix @prefix@ --install-path $library_path "$@"
+
+$prefix/bin/ferite --include $library_path $library_path/doc.fe -- --ferite-prefix @prefix@ --install-path $library_path "$@"
+
+exit 0

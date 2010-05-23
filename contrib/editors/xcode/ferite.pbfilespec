@@ -1,0 +1,15 @@
+/**
+	ferite source file specs.
+*/
+(
+{
+  Identifier = sourcecode.ferite;
+  BasedOn = sourcecode;
+  Name = "ferite";
+  Extensions = (fe,fec,feh);
+  MIMETypes = ("text/fe");
+  ComputerLanguage = ferite;
+  IsTextFile = YES;
+}
+
+)

@@ -1,0 +1,4 @@
+This directory houses various contributions to ferite that are useful to most
+people but are not critical to the main distribution.
+
+  editors/ - Highlight modes and tools for common editors

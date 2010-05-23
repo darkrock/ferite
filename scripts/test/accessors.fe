@@ -1,0 +1,74 @@
+uses "console";
+uses "array";
+
+class SuperClass
+{
+   protected number isprotected = 1;
+   private number isprivate = 3;
+   public number ispublic = 2;
+   
+   protected function printPrivate()
+   {
+       Console.println( "SuperClass.isprivate = ${.isprivate}" );
+   }
+}
+
+class SubClass extends SuperClass
+{
+   protected number isprotected = 666;
+   
+   function constructor()
+   {
+       super();
+      
+       .isprotected = 777;
+       super.isprotected = 2;
+       
+       Console.println( ".isprotected == ${.isprotected} (SHOULD = 777)" );
+       Console.println( "super.isprotected == ${super.isprotected} (SHOULD = 2)" );
+   }
+   
+   function printPrivate() {
+		Array.each([1]) using ( value ) {
+			Console.println(super);
+			super.printPrivate();
+		};
+   }
+}
+
+object o = new SuperClass();
+object p = new SubClass();
+
+monitor {
+	o.isprivate = 666;
+} handle {
+	Console.println("SUCCESS");
+}
+monitor {
+	o.isprotected = 666;
+} handle {
+	Console.println("SUCCESS");
+}
+monitor {
+	p.isprotected = 666;
+} handle {
+	Console.println("SUCCESS");
+}
+
+monitor {
+	o.printPrivate();
+} handle {
+	Console.println("SUCCESS");
+}
+
+monitor {
+	p.printPrivate();
+} handle {
+	Console.println("FAIL: ${err.str}");
+} else {
+	Console.println("SUCCESS");
+}
+
+Array.each([1]) using ( value ) {
+	Console.println(value);
+};

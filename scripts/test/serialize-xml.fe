@@ -1,0 +1,34 @@
+uses "serialize-xml";
+
+class Foo {
+	
+	object o;
+	object p;
+	array  a;
+	string s;
+	void   v;
+	void   k;
+}
+
+class Bar {
+	
+	number t = 10;
+	number u = 20;
+}
+
+object o = new Foo();
+object p, q;
+
+o.o = new Bar();
+o.p = o;
+o.a = [ 1, 2, 3 ];
+o.s = "Hello";
+o.k = Foo;
+
+Console.println( Serialize.toXML( o ) );
+
+p = Serialize.fromXML( Serialize.toXML( o ) );
+q = new p.k();
+Console.println( p );
+Console.println( p.p );
+Console.println( q );

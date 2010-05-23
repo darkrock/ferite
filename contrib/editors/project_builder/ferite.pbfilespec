@@ -1,0 +1,12 @@
+/**
+	ferite
+*/
+(
+{
+	Identifier = "sourcecode.c.ferite";
+	BasedOn = "sourcecode.c";
+	Extensions = (fe,feh,fec);
+	MIMETypes = ("text/x-ferite-script");
+	ComputerLanguage = ferite;
+}
+)

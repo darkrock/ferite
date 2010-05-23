@@ -1,0 +1,36 @@
+uses "console";
+
+number i = 0, k = 1, j = 2;
+
+if( i == 1 || k == 2 )
+  Console.println( "OR doesn't work" );
+else
+  Console.println( "OR works" );
+
+if( i == 0 || k == 2 )
+  Console.println( "OR works" );
+else
+  Console.println( "OR doesn't work" );
+
+if( i == 1 || k == 1 )
+  Console.println( "OR works" );
+else
+  Console.println( "OR doesn't work" );
+
+if( i == 0 && k == 2 )
+  Console.println( "AND doesn't work" );
+else
+  Console.println( "AND works" );
+
+if( i == 0 && k == 1 )
+  Console.println( "AND works" );
+else
+  Console.println( "AND doesn't work" );
+
+if( i == 0 && j == 2 )
+  Console.println( "AND works" );
+else
+  Console.println( "AND doesn't work" );
+
+if( (i == 0 and j == 1) or k = 2 )
+  Console.println( "OR works" );

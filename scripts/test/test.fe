@@ -1,0 +1,131 @@
+#!/usr/bin/env ferite
+/* -*- mode: c; mode: fold -*- */
+
+global
+{
+    number a_global_int;
+}
+
+uses "console", "sys", "array", "test2.fe", "regexp", "posix", "filesystem";
+
+function test_one_one()
+{
+    number i = 1, j = 20, k = 2;
+    array testarray1, testarray;
+    string blam;
+    object testfile;
+
+    a_global_int = 10;
+
+    Console.println( "Printing Out All ext3 Partitions in /etc/fstab" );
+    testfile = File.open( "/etc/fstab" );
+    Console.println( "Here." );
+    while( (blam = testfile.readln()) )
+    {
+		object reg1 = new Regexp( '(\/dev\/[hs]d[a-g][1-9])   # device entry
+                                   [\ \t]*                    # whitespace
+                                   (\/[a-z]*(\/[a-z]*)*)      # mount point
+                                   [\ \t]*                    # whitespace
+                                   ext3                       # force adherance to ext3', 'xoi' );
+		object reg2 = new Regexp( "[^ \t]+", "" );
+		
+		if( reg1.match( blam ) )
+            Console.print( "Matched1: [" + reg1.lastMatch().capture(0) + "] [" + reg1.lastMatch().capture(1) + "]\n" );
+		
+        testarray1 = reg2.matchAll( blam );
+		// Console.println( "TestArray: $testarray1" );
+        if( Array.size(testarray1) > 2 )
+            Console.print( "Count:" + Array.size(testarray1) + ", Matched: \"" + testarray1[0].match() + "\" on \"" + testarray1[1].match() + "\"\n" );
+    }
+    testfile.close();
+
+    if( i == 1 && j == 20 )
+      Console.println( "AND works" );
+    if( i == 1 && j == 0 )
+      Console.println( "AND doesn't work" );
+    else
+      Console.println( "AND still works" );
+
+    if( (i == 0 and j == 1) or k = 2 )
+      Console.println( "OR works" );
+
+    if( i != 0 )
+      Console.println( "i is here init." );
+    if( i != 1 )
+      Console.println( "i isn't here init." );
+
+    Console.println ( "Filling Array" );
+
+    Console.print( "Yesh Yesh it werks\n" );
+}
+
+function test_two()
+{
+    array testa, testa2, testa3;
+    number i = 0;
+
+    Console.println( "Filling Arrays" );
+    for( i = 0; i < 10; i++ )
+    {
+        Console.print( "." );
+        testa[] = i;
+    }
+    Console.println( "<" );
+    for( i = 0; i < 10; i++ )
+      testa3[] = "test array 3 . "+i;
+
+    testa2 = testa3;
+
+    testa[0] = 111;
+    testa2[0] = "test array 2 -?????";
+    Console.println( ""+testa[2] );
+    Console.println( ""+testa2[2] );
+    Console.println( ""+testa3[2] );
+}
+
+array blip;
+object blah = new TestClass();
+object test2 = new TestClassTwo();
+number i = 0;
+
+if( Array.size(argv) > 0 )
+{
+    Console.println( "Command Line Arguments:" );
+    for( i = 0; i < Array.size(argv); i++ )
+      Console.println( "  Arg #$i = " + argv[i] );
+}
+else
+  Console.println( "No Arguments Passed To the Script" );
+
+Console.println( "blah.\n" );
+
+test_one_one();
+test_two();
+
+Console.println( "Before TestClass Creation" );
+Console.println( "After TestClass Creation" );
+
+blip["1"] = "HELLO";
+
+Console.println( "BLIP[1][2]:" + blip["1"][2] );
+
+blah.i = 30;
+blah.blah = "Yesh";
+Console.println( blah.blah + blah.i );
+
+blah.testfunction( 2.2 );
+Console.println( blah.blah + blah.i );
+
+for( blah.i = 0; blah.i < 4; blah.i++ )
+{
+    Console.println( "\"" + blah.blah[blah.i] + "\"" );
+}
+
+Console.println( "mod :" + (2%2) );
+
+test2 = new TestClassTwo();
+test2.printclass();
+test2.testfunction(1981);
+test2.printclass();
+
+blah();

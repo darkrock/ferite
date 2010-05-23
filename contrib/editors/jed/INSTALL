@@ -1,0 +1,14 @@
+  mkdir ~/.jed
+  mkdir ~/.jed/lib
+  cp ferite.sl ~/.jed/lib
+
+Add these lines to you ~/.jedrc and it should work
+
+  set_jed_library_path (strcat ("/path/to/home/.jed/lib",",",get_jed_library_path ()));
+
+  autoload("ferite_mode", "ferite" );
+
+  add_mode_for_extension("ferite", "fe");
+  add_mode_for_extension("ferite", "fec");
+
+Open a ferite file and you should have syntax highlighting

@@ -1,0 +1,28 @@
+#!/bin/sh
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+library_path=@prefix@/share/ferite/manual-builder
+
+WD=`pwd`
+NAME=`basename $1 .sgml`
+
+if test -d /tmp/$NAME.pdf.tmp; then
+    rm -rf /tmp/$NAME.pdf.tmp;
+fi
+
+mkdir /tmp/$NAME.pdf.tmp
+
+echo "Generating $NAME.pdf document for $NAME.sgml"
+$prefix/bin/ferite --include $library_path $library_path/manual-builder.fe -- pdf $WD/$NAME.sgml /tmp/$NAME.pdf.tmp/$NAME.tex
+cp $library_path/ManualBuilder/Support/Images/docs-background.png /tmp/$NAME.pdf.tmp/
+
+cd /tmp/$NAME.pdf.tmp
+echo "Running pdfLaTeX..."
+pdflatex $NAME.tex 1>/dev/null 2>/dev/null
+echo "Running pdfLaTeX... (2nd time for index)"
+pdflatex $NAME.tex 1>/dev/null 2>/dev/null
+
+cp $NAME.pdf $WD
+cd $WD
+rm -rf /tmp/$NAME.pdf.tmp

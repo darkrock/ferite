@@ -1,0 +1,108 @@
+uses "array", "console", "reflection", "array";
+/*
+directive property( string name, void value ) {
+	object k = new Namespace(self);
+	if( not Array.keyExists( k.getVariables(), "__properties__" ) ) {
+		eval( "
+				namespace modifies ${k.fullyQualifiedName()} { 
+					array __properties__; 
+					function getProperties(){ 
+						return .__properties__; 
+					}
+				}" );
+	}
+	self.__properties__[name] = value;		
+}
+*/
+class modifies Obj {
+	/*
+	directive access( ... ) {
+		array a = arguments();
+		string code = "class modifies ${Class.name(self)} {";
+		Array.each( a ) using ( name ) {
+			if( name isa string ) {
+				code += "
+				function set$name( void value ) {
+					.$name = value;
+				}
+				function get$name() {
+					return .$name;
+				}";
+			}							
+		};
+		code += "}";
+		eval( code );		
+	}	
+	
+	directive property( string name, void value ) {
+		object k = new Class(self);
+		if( not Array.keyExists( k.getVariables(), "__properties__" ) ) {
+			eval( "
+				class modifies ${Class.name(self)} { 
+					static array __properties__; 
+					static function getProperties(){ 
+						return .__properties__; 
+					}
+				}" );
+			}
+		self.__properties__[name] = value;
+	}
+	
+	directive [attribute #name as #variable] {
+		Console.println("attribute $name, $variable");
+	}
+	*/
+	expansion [getset variable #name of #type] {
+		private #type #name;
+		function get#name {
+			return .#name;
+		}
+		function set#name( #type value ) {
+			.#name = value;
+			return .#name;
+		}
+	}
+	
+	expansion [test #name #op] {
+		function test#name() {
+			Console.println("#name (2 #op 2) = ${(2 #op 2)}");
+		}
+	}
+}
+/*
+namespace Middle {
+	[property name, "Middle Of The Road"];
+	[property author, "Christian M. Stamgren"];
+	[property version, 2.0];
+
+}
+*/
+class Bottom {
+	/*
+	number X = 10;
+	string foo = "hi";
+
+	[access X, foo];
+		
+	[property author,"Chris Ross"];
+	[property version,1.0];
+*/
+	[getset variable chris of number];
+	[test add (+)];
+	[test sub (-)];
+}
+
+object o = new Bottom();
+/*
+Console.println( o.getX() );
+o.setX( 42 );
+Console.println( o.getX() );
+Console.println( o.getfoo() );
+
+Console.println( Bottom.getProperties() );
+Console.println( Middle.getProperties() );
+*/
+o.setchris(10);
+o.testadd();
+o.testsub();
+Console.println(o.getchris());

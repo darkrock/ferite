@@ -1,0 +1,167 @@
+.TH ferite 1L "ferite programming language" "Yeah!" \" -*- nroff -*-
+
+.SH NAME
+builder \- ferite programming lanugage command line tool for module c
+code generation.
+
+.SH SYNOPSIS
+\fBbuilder [options] name_of_script\fP
+
+.SH DESCRIPTION
+This application allows you to parse a number of .fec files and
+generate the necessary c files for the ferite module. It will also
+generate a Makefile.am for use with an autotools project.
+
+.PP
+To get a list of options, use 'builder \-\-help'.
+.SH OPTIONS
+The
+.B builder
+options are listed below.
+In keeping with the freedom-of-choice philosophy, options may be eliminated
+or default values chosen at compile-time, so options and defaults listed
+may not accurately reflect the version installed on your system.
+
+.TP
+.BI \-h, \-\-help
+Show the current for the program
+
+.TP
+.BI \-\-version
+Show the current version or the program
+
+.TP
+.BI \-\-copyright
+Show the current copyright for the program
+
+.TP
+.BI \-v, \-\-verbose
+This will cause the builder executable to be verbose, this means that it will
+explain where abouts in the grand scheme of things it is, eg. loading a file,
+compiling it, deleting it.
+
+.TP
+.BI \-s, \-\-showargs
+This will cause the program to dump the list of arguments it is passing to
+the initialisation of the ferite engine.
+
+.TP
+.BI \-e " script" ", \-\-execute "script
+This will cause builder to, instead of loading a disk file to compile and run,
+use the string
+.I script\.
+
+.TP
+.BI \-m " name" ", \-\-module-name "name
+This will cause builder to use
+.I name\.
+ as the name of the module
+
+.TP
+.BI \-a " file" ", \-\-add-file "file
+This will cause builder to add
+.I file\.
+ as an extra file to be added to the build process of the module.
+
+.TP
+.BI \-A " file" ", \-\-add-dist-file "file
+This will cause builder to add
+.I file\.
+ as an extra file to be installed but not part of the build process.
+
+.TP
+.BI \-i " name" ", \-\-init-name "name
+This will cause builder to change the name of the default module init
+function to
+.I name\.
+
+.TP
+.BI \-d, \-\-no-deinit
+Tell builder not to generate a module deinit function
+
+.TP
+.BI \-f, \-\-no-makefile
+Tell builder not to generate a Makefile.am file.
+
+.TP
+.BI \-k, \-\-force-makefile
+Tell builder to build a Makefile.am even if a Makefile.am already
+exists.
+
+.TP
+.BI \-nc, \-\-no-configm4
+Tell builder not to generate a config.m4 file.
+
+.TP
+.BI \-b " path" ", \-\-builder-path "path
+This will cause builder to use
+.I path\.
+ as for the builder location in the Makefile.am 
+
+.TP
+.BI \-p " path" ", \-\-source-prefix "path
+This will cause builder to use
+.I path\.
+ as for the src prefix in the Makefile.am
+
+.TP
+.BI \-c, \-\-closed
+Tell builder not to generate code that does not require the source
+files to be run. By default ferite uses the source files and the
+loaded module together.
+
+.TP
+.BI \-fp " path" ", \-\-file-prefix "path
+This will cause builder to use
+.I path\.
+ as the place to put the generated files.
+
+.PP
+The following options are specific to the engine and can be used where ever
+the engine is used.
+
+.TP
+.BI \-\-fe-debug
+This will turn on internal debugging of the engine. This will (if the engine
+has been compiled with \-\-enable-debug) cause a huge amount of data to be
+outputed onto
+.I stdout\.
+The information contained within it is invaluable - tracking of function
+execution flow, all sorts of messages allowing for the very quick location of
+bugs.
+
+.TP
+.BI \-\-fe-use-classic
+ferite by default uses's it's own memory suballocator called
+.I jedi
+but there are times when it is useful to either access the system's malloc
+directly, or to track when memory is being used. If ferite is compiled with
+debugging, the classic memory manager will track memory allocations and dump
+a table at the end of the program's execution to show all allocated memory.
+This is vital for tracking memory leaks.
+.I WARNING:
+This mode will cause ferite's speed to drop immensily - it's only useful for
+debugging the engine.
+
+.TP
+.BI \-\-fe-show-mem-use
+ferite keeps internal counters of memory useage, use this to see at the end
+of a programs execution how much memory is still allocated, or has been
+allocated.
+
+.TP
+.BI \-\-fe-use-mm-with-pcre
+Tell ferite to use it's own memory manager with the pcre regular
+expression library
+
+.SH BUGS
+Of course! What software project would be without bugs? Please Please, email
+bug reports to ferite-devel@lists.sourceforge.net \- thanks. 
+
+.SH AUTHOR
+ferite is designed and implemented by Chris Ross <chris@darkrock.co.uk>
+
+.SH URL(s)
+ferite Home Page -- http://www.ferite.org/
+.br
+Author's Home Page -- http://www.darkrock.co.uk/

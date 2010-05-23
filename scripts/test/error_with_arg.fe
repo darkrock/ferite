@@ -1,0 +1,14 @@
+
+uses "console";
+
+class MyError extends Error {
+	function toString() {
+		return "MyError: ${.num}: ${.str}";
+	}
+}
+
+monitor {
+	raise new MyError("Hello");
+} handle ( e ) {
+	Console.println(e);
+}

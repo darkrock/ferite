@@ -1,0 +1,42 @@
+#!/usr/bin/env ferite
+
+uses "string", "array", "console";
+
+array x, y;
+number i, size, num;
+
+if( Array.size( argv ) > 0 )
+    num = String.toLong( argv[0] );
+else
+    num = 1;
+
+for( i = 0; i < num; )
+{
+    x[] = i; ++i;
+    x[] = i; ++i;
+    x[] = i; ++i;
+    x[] = i; ++i;
+    x[] = i; ++i;
+
+    x[] = i; ++i;
+    x[] = i; ++i;
+    x[] = i; ++i;
+    x[] = i; ++i;
+    x[] = i; ++i;
+}
+y = x;
+for( i = num - 1; i >= 0; )
+{
+    y[i] = x[i]; --i;
+    y[i] = x[i]; --i;
+    y[i] = x[i]; --i;
+    y[i] = x[i]; --i;
+    y[i] = x[i]; --i;
+
+    y[i] = x[i]; --i;
+    y[i] = x[i]; --i;
+    y[i] = x[i]; --i;
+    y[i] = x[i]; --i;
+    y[i] = x[i]; --i;
+}
+Console.println( y[num - 1] );

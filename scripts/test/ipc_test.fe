@@ -1,0 +1,51 @@
+#!/usr/bin/env ferite
+
+/*
+ * Copyright 2001, Espen <nilsenea@plu.edu>
+ */
+
+uses "console", "ipc", "string";
+
+object myipc;
+number option = 1;
+string data;
+
+/* create a new ipc object */
+Console.println ("::Connecting...");
+myipc = new IPCObject();
+myipc.connect("/bin/sh");
+
+Console.println ("Choose one of the following options");
+
+while (option != 0)
+{
+    Console.println ("\n0 - QUIT");
+    Console.println ("1 - Write to shm");
+    Console.println ("2 - Read from shm");
+
+    option = String.toLong (Console.readln());
+
+    Console.println("");
+
+    switch( option )
+    {
+      case 1:
+        Console.println ("Type something to put in the shared memory segment:");
+        data = Console.readln();
+        myipc.write (data);
+        Console.println ("\n>>>Wrote: $data");
+        break;
+      case 2:
+        data = myipc.read();
+        Console.println (">>>Got: $data");
+        break;
+      case 0:
+        break;
+      default:
+        Console.println ("Invalid Option. Please choose either 0, 1 or 2");
+    }
+}
+
+myipc.disconnect();
+
+/* DONE */

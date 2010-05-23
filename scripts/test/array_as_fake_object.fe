@@ -1,0 +1,48 @@
+uses "reflection";
+uses "console";
+
+namespace modifies Array {
+	function method_missing(...) {
+		array args = arguments();
+		array Self = args[0];
+		string key = args.last();
+		array params = args[1..-2];
+		object func = Self[key];
+		object o = new Object(func);
+		
+		o.getFunction('invoke').execWithArray(params);
+	}
+}
+
+function TempObjectCreate( string name ) {
+	array obj = [ 
+		'Access' => 0,
+		'boo' => closure( string wibble ) { 
+			obj.Access++;
+			Console.println("$name rock: $wibble : ${obj.Access}: ${obj.Access}");
+		},
+		'har' => closure( string wibble ) { 
+			obj.Access++;
+			Console.println("$name don't rock: $wibble : ${obj.Access}");
+		},
+		'Name' => name
+	];
+	obj.Access = 0;
+	return obj;
+}
+function test( array b ) {
+	b.boo('In test function');
+}
+
+array a, b, c;
+
+a = TempObjectCreate('AObject');
+b = TempObjectCreate('BObject');
+c = TempObjectCreate('CObject');
+
+a.boo('Hi There');
+a.har('From Chris');
+b.boo('Wibble');
+
+test(a);
+test(b);

@@ -1,0 +1,84 @@
+uses "array", "filesystem", "date", "console", "test", "sys";
+
+global {
+    number alarmValue = 1;
+}
+function runAlarm() {
+    alarmValue = Test.SUCCESS;
+}
+
+class AlarmTest extends Test {
+    function stop() { 
+        object o = new Alarm( "runAlarm", 1, false );
+        o.start();
+        Sys.sleep(1);
+        return alarmValue;
+    }
+    function start() { return .stop(); }
+}
+class DateTest extends Test {
+    function __RegisterFromPointer__() { return Test.IGNORE; }
+    
+    function now() {  
+        if( Date.now() <= 0 )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function parse() {  
+        object t = Date.localDate(Date.now());
+        object s = Date.parse(t.format("%H:%M:%S %D"), "%H:%M:%S %D");
+        
+        if( t.toString() != s.toString() )
+            return 1;
+        
+        return Test.SUCCESS;
+    }
+    function timezone() {  
+        return Test.IGNORE;
+    }
+    function localDate() { 
+        object o = Date.localDate(-1000);
+        object p = Date.localDate(0);
+        object q = Date.localDate(1000);
+        if( o.toString() == p.toString() )
+            return 1;
+        if( p.toString() == q.toString() )
+            return 2;
+        return Test.SUCCESS;
+    }
+    function date() {  
+        object o = Date.date(-1000);
+        object p = Date.date(0);
+        object q = Date.date(1000);
+        if( o.toString() == p.toString() )
+            return 1;
+        if( p.toString() == q.toString() )
+            return 2;
+        return Test.SUCCESS;
+    }    
+    function format() { 
+        object t = Date.date(0);
+        if( t.format("%H:%M %D") != "00:00 01/01/70" ) 
+            return 1;
+        return Test.SUCCESS;
+    }
+    function time() { 
+        object t = Date.localDate(0);
+        if( t.time() != 0 )
+            return 1;
+        return Test.SUCCESS;
+    }
+    function toString() { 
+        object t = Date.date(0);  
+        if( t.toString() != "Thu Jan  1 00:00:00 1970\n" )
+            return 1;
+        return Test.SUCCESS;
+    }
+}
+
+object p = new AlarmTest();
+object w = new DateTest();
+
+return 
+w.run('Date') +
+p.run('Alarm');

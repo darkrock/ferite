@@ -1,0 +1,3 @@
+#!/usr/bin/env ferite
+
+uses "somethig_non_existant";

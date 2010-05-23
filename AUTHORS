@@ -1,0 +1,24 @@
+Main Author, Project Maintainer, Who To Blame:
+
+  Chris Ross         (boris,ctr)       <chris@ferite.org>        [most of it =P]
+  	
+Band Of Merry Men (name in no order other than that of alphasort)
+
+  Alex Holden        (holden)    <alex@alexholden.net>     [parts of sys and other random fixes]
+  Andrew Moenk       (Deimos)    <deimos@kfa.cx>           [various fixes]
+  Blake Watters                  <blakewatters@nc.rr.com>  [docs]
+  Christian Stamgren (cms)       <christian@cention.se>    [numerous fixes]
+  Espen              (ymer)      <nilsenea@plu.edu>        [ipc module]
+  Evan Webb          (ntropy)    <ntropy@ntr0py.net>       [triton,initial reflection module]
+  Jeremy Norris                  <ishmael27x@yahoo.com>    [FreeBSD maintainter]
+  Lyle Kempler       (term)      <term@twistedpath.org>    [RPM spec file]
+  Michael Henderson  (blueronin) <blueronin@mdhenderson.com> [Numerous documentation updates]  
+  pfv                (PoppaVic)  <pfv@voyager.net>         [string module work,various fixes]
+  Richard Lowe       (richlowe)  <richlowe@richlowe.net>   [various fixes]
+  Stephan Engstrom               <sem@cention.se>          [lots of code and fixes]
+
+Couch Potato:
+
+  Jaron Frenk (Freud) (freud@freudie.org)                [nothing]
+  
+A special thanks to Cention AB <http://www.cention.se> for the continued support for ferite.

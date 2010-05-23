@@ -1,0 +1,1219 @@
+/*
+ * Copyright (C) 2001-2007 Chris Ross, Stephan Engstrom, Alex Holden et al
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "stream", "regexp", "string", "array";
+uses "network.lib";
+
+module-header {
+
+#include "../../config.h"
+#include "util_network.h"
+
+}
+
+module-register {
+
+#ifdef WIN32
+{
+	WSADATA wsaData;
+	WSAStartup( MAKEWORLD(2,0), &wsaData );
+}
+#endif
+
+}
+
+/**
+ * @namespace Network
+ */
+namespace modifies Network
+{
+    /**
+     * @namespace TCP
+     * @brief TCP contains the tcp/ip specific functions and classes.
+     */
+    namespace TCP {
+        /**
+         * @class Stream
+         * @extends Stream.StdioStream
+         * @brief Provides a tcp stream implementation of the standard stream object
+         */
+        class Stream extends Stream.StdioStream {
+
+            /** @variable af @type number @brief The address family of the socket */
+            number af;
+
+            /**
+             * @variable remoteip
+             * @type string
+             * @brief After an accept(), this is set to the remote IP address.
+             */
+            string remoteip;
+
+            /**
+             * @variable remoteport
+             * @type string
+             * @brief After an accept(), this is set to the remote port.
+             */
+            string remoteport;
+
+            /**
+                * @function accept
+             * @declaration function accept()
+             * @brief Accept an incomming connection
+             * @description This function will accept a connection and return a
+             *              Network.TCPStream object. This function will only work if
+             *              the socket was initially created using
+             *              Network.tcpBind().
+             */
+            native function accept() : Network.TCP.Stream 
+            {
+                int sock;
+                FeriteClass *cls;
+                FeriteVariable *fv, *object, **args;
+#ifdef ENABLE_IPV6
+                unsigned int rlen = sizeof(struct sockaddr_in6);
+                unsigned char rbuf[sizeof(struct sockaddr_in6)];
+#else
+                unsigned int rlen = sizeof(struct sockaddr_in);
+                unsigned char rbuf[sizeof(struct sockaddr_in)];
+#endif
+                do
+                {
+                    sock = accept(StreamObject->file_descriptor, (struct sockaddr *)rbuf, &rlen);
+                }
+                while(sock == -1 && errno == EINTR);
+
+                if(sock == -1)
+                {
+                    ferite_set_error(script, errno, "%s", strerror(errno));
+                    FE_RETURN_NULL_OBJECT;
+                }
+
+                if((cls = ferite_find_class(script, script->mainns, "Network.TCP.Stream")))
+                {
+                    args = ferite_create_parameter_list(script,4);
+                    args = ferite_add_to_parameter_list(args, fe_new_lng_static("socket", sock));
+                    MARK_VARIABLE_AS_DISPOSABLE(args[0]);
+                    object = ferite_new_object(script, cls, args);
+                    ferite_delete_parameter_list(script, args);
+                    fv = ferite_object_get_var(script, self, "af");
+                    set_remoteip(script, VAO(object), (struct sockaddr *)rbuf,
+                                 VAI(fv));
+                    FE_RETURN_VAR(object);
+                }
+                FE_RETURN_NULL_OBJECT;
+            }
+
+            /**
+                * @function listen
+             * @declaration function listen( number backlog )
+             * @brief Set the number of slots the system listens on for connections. 5-10 is a good number.
+             * @param number backlog The number of slots
+             */
+            native function listen( number backlog ) : number
+            {
+                int sock = StreamObject->file_descriptor;
+                int retval = listen( sock, (long)backlog );
+                FE_RETURN_LONG( retval );
+            }
+	        native function __read__( number c ) : string {
+	            struct Stream *Stream = self->odata;
+	            FeriteVariable *in = NULL;
+				int r = 0, size = (int)c;
+
+	            in = fe_new_str_static("read", NULL, (int)c, FE_CHARSET_DEFAULT );
+				//printf("requesting %d bytes\n", size);
+	            r = recv( Stream->file_descriptor, FE_STR2PTR(in), size, 0 );
+	            //printf("got %d bytes\n", r);
+	            Stream->eos = (r <= 0 ? FE_TRUE : FE_FALSE);
+	            if( r == -1 )
+	            {
+	                ferite_error( script, errno, "Network.TCP.Stream: Read: %s (%d)\n", strerror( errno ), errno );
+	                if( Stream->errmsg != NULL ) {
+	                    ffree( Stream->errmsg );
+	                }
+	                Stream->errmsg = fstrdup( strerror( errno ) );
+	                FE_STRLEN(in) = 0;
+	            } else {
+					FE_STRLEN(in) = r;
+					//printf("NETWORK:__READ__:%d[%d]:'%s'", FE_STRLEN(in), r, FE_STR2PTR(in));
+				}
+	            FE_RETURN_VAR( in );
+	        }
+	        native function __write__( string s ) : number {
+	            struct Stream *Stream = self->odata;
+				int fd = Stream->file_descriptor;
+				char *buf = s->data;
+				size_t amount_sent = 0, total_sent = 0, total_amount = s->length;
+				int flags = 0;
+
+				while( total_sent < total_amount ) {
+					amount_sent = send( fd, buf + total_sent, (total_amount - total_sent), flags );
+					if( amount_sent < 0 ) {
+			            ferite_error( script, errno, "Network.TCP.Stream: Write: %s (%d)\n", strerror( errno ), errno );
+		                if( Stream->errmsg != NULL ) {
+		                    ffree( Stream->errmsg );
+		                }
+		                Stream->errmsg = fstrdup( strerror( errno ) );
+		                FE_RETURN_LONG( 0 );
+					}
+					total_sent += amount_sent;
+					if( total_sent < total_amount ) {
+						printf("Network.TCP.Stream: %ld bytes remaining\n", (total_amount - total_sent));
+					}
+				}
+	            FE_RETURN_LONG( total_sent );
+	        }
+        }
+        /**
+        * @end
+         */
+	
+        /**
+        * @function connect
+         * @declaration function connect(string host, number port, number af)
+         * @brief Connect to a host on a specified host and port
+         * @param string host The host to connect to
+         * @param number port The port to connect to
+         * @param number af The address family to use
+         * @return An object connected to the host, or null on failure
+         * @description This function attempts to create a TCP socket connected  to
+         *              the specified remote address and port, and if it succeeds,
+         *              returns a Network.TCP.Stream object. If the address family is
+         *              Network.AF_IPV4, connect will look for an IPV4 address with
+         *              that name and fail if it doesn't find one. If it is
+         *              Network.AF_IPV6, it will look for an IPV6 address and fail
+         *              if it doesn't find one. If it is Network.AF_AUTO, it will
+         *              try to find an IPV6 address, then try to find an IPV4
+         *              address, and only fail if it doesn't find either. Note:
+         *              you can leave off the af parameter if you wish, and it will
+         *              default to Network.AF_AUTO.
+         */
+        native function connect(string host, number port, number af) : Network.TCP.Stream {
+            FeriteClass *cls;
+            struct sockaddr *sa = NULL;
+            int sock, size, family = (int)af;
+            FeriteVariable *fv, *object, **args;
+            
+            if(!(sa = make_sockaddr(script, host->data, (short)port, &family,&size)))
+            {
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if((sock = socket(family, SOCK_STREAM, 0)) == -1)
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                ffree(sa);
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if(connect(sock, sa, size) == -1)
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                close(sock);
+                ffree(sa);
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if((cls = ferite_find_class(script, script->mainns, "Network.TCP.Stream")))
+            {
+                args = ferite_create_parameter_list(script, 4);
+                args = ferite_add_to_parameter_list(args,fe_new_lng_static("socket", sock));
+                MARK_VARIABLE_AS_DISPOSABLE(args[0]); /* automatically clear up */
+                object = ferite_new_object(script, cls, args);
+                ferite_delete_parameter_list(script, args);
+                fv = ferite_object_get_var(script, VAO(object), "af");
+                if(family == AF_INET)
+                    VAI(fv) = 0;
+                else
+                    VAI(fv) = 1;
+                set_remoteip(script, VAO(object), sa, VAI(fv));
+                ffree(sa);
+                FE_RETURN_VAR(object);
+            }
+            FE_RETURN_NULL_OBJECT;
+        }
+        
+        function connect(string host, number port) {
+            return(Network.TCP.connect(host, port, Network.AF_AUTO));
+        }
+        
+        /**
+        * @function bind
+         * @declaration function bind(string host, number port, number af)
+         * @brief Create a socket bound to a TCP port
+         * @param string host The address to bind to
+         * @param number port The port to listen on, use 0 for any port
+         * @param number af The address family to use
+         * @return An object that can accept connections, or null on error.
+         * @description This function attempts to create a TCP socket bound to the
+         *              specified address and port, and if it succeeds, returns a
+         *              Network.TCPStream object. The address to bind to can be
+         *              Network.ANY4 to bind to every IPV4 address or Network.ANY6
+         *              to bind to every IPV6 address. If the address family is
+         *              Network.AF_IPV4, bind will look for an IPV4 address with
+         *              that name and fail if it doesn't find one. If it is
+         *              Network.AF_IPV6, it will look for an IPV6 address and fail
+         *              if it doesn't find one. If it is Network.AF_AUTO, it will
+         *              try to find an IPV6 address, then try to find an IPV4
+         *              address, and only fail if it doesn't find either. Note:
+         *              you can leave off the af parameter if you wish, and it will
+         *              default to Network.AF_AUTO.
+         */
+        native function bind(string host, number port, number af)  : Network.TCP.Stream {
+            FeriteClass *cls;
+            struct sockaddr *sa;
+            int sock, size, family = (int)af;
+            FeriteVariable *fv, *object, **args;
+            
+#ifndef USING_SOLARIS        
+            int yes = FE_TRUE;
+#else
+            char yes = FE_TRUE;
+#endif
+            
+            if(!(sa = make_sockaddr(script, host->data, (short)port, &family, &size)))
+            {
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if((sock = socket(family, SOCK_STREAM, 0)) == -1)
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                ffree(sa);
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                ffree(sa);
+                close(sock);
+                FE_RETURN_NULL_OBJECT;            
+            }        
+            
+            if(bind(sock, sa, size))
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                ffree(sa);
+                close(sock);
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if(listen(sock, 10))
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                ffree(sa);
+                close(sock);
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if((cls = ferite_find_class(script, script->mainns, "Network.TCP.Stream")))
+            {
+                args = ferite_create_parameter_list(script,4);
+                args = ferite_add_to_parameter_list(args, fe_new_lng_static("socket", sock));
+                MARK_VARIABLE_AS_DISPOSABLE(args[0]); /* automatically clear up */
+                object = ferite_new_object(script, cls, args);
+                ferite_delete_parameter_list(script, args);
+                fv = ferite_object_get_var(script, VAO(object), "af");
+                if(family == AF_INET) VAI(fv) = 0;
+                else VAI(fv) = 1;
+                ffree(sa);
+                FE_RETURN_VAR(object);
+            }
+            close(sock);
+            FE_RETURN_NULL_OBJECT;
+        }
+        
+        function bind(string host, number port) {
+            return(Network.TCP.bind(host, port, Network.AF_AUTO));
+        }
+    }
+    /** @end */
+    
+    /**
+     * @variable ANY4
+     * @type string
+     * @brief This is used as the mask on which to bind to any IPV4 network address
+     */
+    string ANY4 = "0.0.0.0";
+    /* Network.ANY is the old name for Network.ANY4: */
+    string ANY = "0.0.0.0";
+
+    /**
+     * @variable ANY6
+     * @type string
+     * @brief This is used as the mask on which to bind to any IPV6 network address
+     */
+    string ANY6 = "::";
+
+    /**
+     * @variable AF_IPV4
+     * @type number
+     * @brief This is used to indicate that an IP address is a version 4 one.
+     */
+    number AF_IPV4 = 0;
+
+    /**
+     * @variable AF_IPV6
+     * @type number
+     * @brief This is used to indicate that an IP address is a version 6 one.
+     */
+    number AF_IPV6 = 1;
+
+    /**
+     * @variable AF_AUTO
+     * @type number
+     * @brief This tells a function to use IPV6 if possible or fall back on IPV4
+     */
+    number AF_AUTO = 2;
+
+    /* *
+     * @function ipHostToNumber
+     * @declaration function ipHostToNumber( string host )
+     * @brief Converts an IPV4/IPV6 numbers-and-dots notation address to a number
+     * @param string host The hostaddress in numbers-and-dots notation
+     * @return A number containing the IPV4/IPV6 adress, 0 if the string was invalid
+     * @description Converts an IPV4 text format address (eg. "127.0.0.1") or an IPV6
+                    text format address (e.g. "::1") into a number. 
+     */
+    /*
+    native function ipHostToNumber( string host )
+    {
+        struct in_addr in;
+#ifdef HAVE_INET_PTON
+        struct in_addr in_val;
+        int r = inet_pton( AF_INET, host->data, &in.s_addr );
+        if( r == 0 )
+        {
+            struct sockaddr_in6 in6;
+            r = inet_pton( AF_INET6, host->data, &in6.sin6_addr );
+            if( r == 1 )
+            {
+                FE_RETURN_DOUBLE((double)in6.sin6_addr);
+            }
+            else
+                FE_RETURN_FALSE;
+        }
+        else if( r == 1 )
+        {
+            FE_RETURN_LONG( in.s_addr );
+        }
+        else
+            FE_RETURN_FALSE;
+#else        
+        if( inet_aton( host->data, &in ) == 0 )
+            FE_RETURN_FALSE;
+        FE_RETURN_LONG( in.s_addr );
+#endif
+    }
+    */
+    /* *
+     * @function ipNumberToHost
+     * @declaration function ipNumberToHost( number ip )
+     * @brief Converts an IPV4/IPV6 address number to text form
+     * @param number ip The IPV4/IPV6 adress in number form
+     * @return The string containing the IPV4/IPV6 address in text form
+     * @description Converts an IPV4/IPV6 numeric address into a dots-and-numbers
+     *              notation string (eg. "127.0.0.1" or "::1"). 
+     */
+    /*
+    native function ipNumberToHost( number ip )
+    {        
+        struct in_addr in;
+        const char *vptr = NULL;
+        char vbuf[1204], *vbufptr;
+
+        vbufptr = vbuf;
+        memset( &in, 0, sizeof( struct in_addr ) );
+        in.s_addr = (long)ip;
+#ifdef HAVE_INET_NTOP
+        memset( vbuf, '\0', 1024 );
+        vptr = inet_ntop( AF_INET, &in.s_addr, vbuf, 1024 );
+        if( vptr != NULL )
+        {
+            FE_RETURN_CSTR( vbufptr, FE_FALSE );
+        }
+        else
+        {
+            struct sockaddr_in6 in6;
+            memset( &in6, 0, sizeof( struct sockaddr_in6 ) );
+            in6.sin6_addr = ip;
+            vptr = inet_ntop( AF_INET6, &in6.sin6_addr, vbuf, 1024 );
+            if( vptr != NULL )
+                FE_RETURN_CSTR( vbufptr, FE_FALSE );            
+        }
+        vbufptr = NULL;
+        FE_RETURN_CSTR( vbufptr, FE_FALSE );
+#else
+        FE_RETURN_CSTR( inet_ntoa( in ), FE_FALSE );
+#endif
+    }
+  */
+ 
+    /**
+     * @function getHostname
+     * @declaration function getHostname()
+     * @brief Returns the system hostname as a string
+     * @return The system hostname
+     */
+    native function getHostname() : string 
+    {
+        char buf[256];
+
+        gethostname(buf, 256);
+
+        FE_RETURN_VAR(ferite_create_string_variable_from_ptr(script, "Hostname", buf, 0, FE_CHARSET_DEFAULT, FE_STATIC));
+    }
+
+    /**
+     * @class Service
+     * @brief Stores information about a network service
+     * @description Instances of this class are returned by the
+     *              Network.getServiceByPort() and Network.getServiceByName()
+     *              functions. It contains the following variables: name -
+     *              a string containing the name of the service; aliases -
+     *              an array of strings specifying alternate names for the
+     *              service (may be empty); port - the port number in host
+     *              byte order; proto - a string specifying the protocol
+     *              (usually "tcp" or "udp").
+     */
+    class Service
+    {
+        /** @variable name @type string @brief The name of the service. */
+       string name;
+        /** @variable aliases @type array @brief The alternative names the service can be identified. */
+       array aliases;
+       /** @variable port @type number @brief The port the service binds to. */
+       number port;
+       /** @variable proto @type string @brief The protocol uses. */
+       string proto;
+       
+       function toString() {
+           return "Service: ${.name}\n Aliases: ${.aliases}\n Port: ${.port}\n Protocol: ${.proto}";
+       }
+    }
+    /**
+     * @end
+     */
+
+    /**
+     * @function getServiceByPort
+     * @declaration function getServiceByPort(number port, number proto)
+     * @brief Returns a Service object corresponding to the specified service
+     * @param number port The port number of the service to look for
+     * @param string proto The protocol of the service to look for
+     * @return A Service object, or null on failure
+     * @description This function searches the system service database
+     *              (typically stored in /etc/services) for a service with
+     *              the specified port number (in host byte order) and
+     *              protocol, and if it finds one, it returns the record as an
+     *              instance of the class Network.Service. If it doesn't find a
+     *              matching service, it returns NULL. The protocol should be a
+     *              string, usually either "tcp" or "udp". Alternatively an
+     *              empty string ("") means "any protocol".
+     */
+    native function getServiceByPort(number port, string proto) : Network.Service
+    {
+        char *prot;
+        FeriteVariable *fv;
+        struct servent *se;
+
+        if(proto->data[0]) prot = proto->data;
+        else prot = NULL;
+
+        if(!(se = getservbyport(htons((int)port), prot)))
+          FE_RETURN_NULL_OBJECT;
+
+        fv = servent_to_Service(script, se);
+        FE_RETURN_VAR(fv);
+    }
+
+    /**
+     * @function getServiceByName
+     * @declaration function getServiceByName(string name, number proto)
+     * @brief Returns a Service object corresponding to the specified service
+     * @param string name The name of the service to look for
+     * @param string proto The protocol of the service to look for
+     * @return A Service object, or null on failure
+     * @description This function searches the system service database
+     *              (typically stored in /etc/services) for a service with
+     *              the specified name and protocol, and if it finds one, it
+     *              returns the record as an instance of the class
+     *              Network.Service. If it doesn't find a matching service, it
+     *              returns NULL. The protocol should be a string, usually
+     *              either "tcp" or "udp". Alternatively an empty string ("")
+     *              means "any protocol". Note that if the name you search for
+     *              is an alias, the name variable of the Service object which
+     *              is returned will contain the primary name for the service
+     *              instead of the name you searched for.
+     */
+    native function getServiceByName(string name, string proto) : Network.Service
+    {
+        char *prot;
+        FeriteVariable *fv;
+        struct servent *se;
+
+        if(proto->data[0]) prot = proto->data;
+        else prot = NULL;
+
+        if(!(se = getservbyname(name->data, prot)))
+          FE_RETURN_NULL_OBJECT;
+
+        fv = servent_to_Service(script, se);
+        FE_RETURN_VAR(fv);
+    }
+
+    /**
+     * @function getHostByName
+     * @declaration function getHostByName(string name, number proto)
+     * @brief Returns a Network.Host object corresponding to the specified host
+     * @param string name The name of the host to look for
+     * @param number reverse Should the system do a reverse look up of each ip found ?
+     * @return A Network.Host object, or null on failure
+     * @description This function searches for the specified host. 
+                    If it doesn't find a matching host, it
+     *              returns NULL.
+     */
+    function getHostByName( string name, number reverse ) {
+        return new Network.Host( name, Network.AF_AUTO, reverse );
+    }
+    
+    /**
+     * @class Host
+     * @brief Finds information about a network host
+     * @description This class is used to look up the IP addresses and names
+     *              of an Internet host. It contains the following members:
+     *              name - the string which was supplied as the "host" parameter
+     *              to the constructor; addresses - an array of strings giving
+     *              the IP addresses of the host in textual form; types - an
+     *              array of numbers specifying the address type of each
+     *              address in the addresses array (either Network.AF_IPV4 or
+     *              Network.AF_IPV6); reversenames - an array which, if the
+     *              reverse parameter of the constructor was true, contains the
+     *              name which each IP in the addresses array reverse resolves
+     *              to (if the resolve fails, they contain the IP string). You
+     *              must supply the constructor with the name or IP address (in
+     *              textual form) of the host to look for, as well as the
+     *              address family (Network.AF_IPV4, Network.AF_IPV6, or
+     *              Network.AF_AUTO) you are interested in.
+     */
+    class Host
+    {
+        /** @variable host @type string @brief The name of the host. */
+        string host;
+        /** @variable reversenames @type array @brief An array containing the host name that each 
+            address in addresses reverse resolves to. */
+        array reversenames;
+        /** @variable addresses @type array @brief An array containg ip addresses as strings. */
+        array addresses;
+        /** @variable types @type array @brief The type of each address within the addresses array (either Network.AF_IPV6
+            or Network.AF_IPV4. */
+        array types;
+        
+        /**
+         * @function constructor
+         * @declaration function constructor(string host, number type, number reverse)
+         * @brief Performs a hostname lookup
+         * @param string host A hostname or IP address
+         * @param number type The type of address to look for
+         * @param number reverse If true, force a reverse lookup of each IP
+         */
+       native function constructor(string host, number type, number reverse)
+       {
+           if(host_constructor(script, self, host->data, (int)type,
+                               (int)reverse))
+           {
+               FE_RETURN_NULL_OBJECT;
+           }
+       }
+       
+       function toString() {
+           return "Host: ${.host}\n Reverse Names: ${.reversenames}\n Addresses: ${.addresses}\n Types: ${.types}";
+       }       
+    }
+    /**
+     * @end
+     */
+
+    /** @namespace UDP @brief The UDP namespace provides a set of tools to access udp streams */
+    namespace UDP {
+      /**
+       * @class Stream
+       * @extends Stream.StdioStream
+       * @brief Used for sending and receiving UDP datagrams
+       * @description To send to a remote UDP service, simply use Network.UDP.connect() 
+                      to create an instance of this class and then use the stream methods to send 
+                      datagrams. To set up a UDP server bound to a particular port,
+       *              call the Network.UDP.bind() method,
+       *              then use the read() methods to receive datagrams. Note that
+       *              UDP is inherently unreliable. There is no guarantee that a
+       *              packet you send will arrive at the destination, or if you
+       *              send multiple packets within a short time that they will
+       *              arrive in the same order as you sent them. This unfortunate 
+                      behaviour is due to
+       *              the way the icmp "port unreachable" mechanism works.
+       */
+      class Stream extends Stream.StdioStream {
+
+          number af;
+
+          /**
+           * @variable remoteip
+           * @type string
+           * @brief After each recv(), this is set to the remote IP address.
+           */
+          string remoteip;
+
+          /**
+           * @variable remoteport
+           * @type string
+           * @brief After each recv(), this is set to the remote port.
+           */
+          string remoteport;
+
+          native function __write__(string dgram) : boolean{
+              struct Stream *stream = self->odata;
+              int sock = (stream->file_descriptor);
+
+              if( sock == -1 )
+              {
+                  ferite_set_error(script, ENOENT, "Socket not connected");
+                  FE_RETURN_FALSE;
+              }
+
+              if(send(sock, dgram->data, dgram->length, 0) == -1)
+              {
+                  ferite_set_error(script, errno, "%s", strerror(errno));
+                  FE_RETURN_FALSE;
+              }
+              else FE_RETURN_TRUE;
+          }
+
+          native function __read__(number maxlen) : string {
+
+              struct Stream *stream = self->odata;
+              int sock = (stream->file_descriptor);
+              FeriteVariable *fv = NULL;
+              int len;
+              char *buf = NULL;
+
+#ifdef ENABLE_IPV6
+              int rlen = sizeof(struct sockaddr_in6);
+              unsigned char rbuf[sizeof(struct sockaddr_in6)];
+#else
+              int rlen = sizeof(struct sockaddr_in);
+              unsigned char rbuf[sizeof(struct sockaddr_in)];
+#endif                
+              ferite_set_error(script, 0, "");
+
+              if(sock == -1 || ((int)maxlen < 1) || !(buf = fmalloc((int)maxlen)))
+              {
+                  ferite_set_error(script, EINVAL, "Invalid arguments to __read__()");
+                  fv = ferite_create_string_variable_from_ptr(script, "", "", 0, FE_CHARSET_DEFAULT, FE_STATIC);
+                  FE_RETURN_VAR(fv);
+              }
+
+              memset( buf, 0, maxlen );
+              if((len = recvfrom(sock, buf, (int)maxlen, 0, (struct sockaddr *)rbuf, &rlen)) == -1)
+              {
+                  ferite_set_error(script, errno, "%s", strerror(errno));
+                  ffree(buf);
+                  fv = ferite_create_string_variable_from_ptr(script, "", "", 0, FE_CHARSET_DEFAULT, FE_STATIC);
+                  FE_RETURN_VAR(fv);
+              }
+
+              fv = ferite_object_get_var(script, self, "af");
+              set_remoteip(script, self, (struct sockaddr *)rbuf, sock);
+
+              /* We do this to make sure that we read-and-write to the same place */
+              if(connect(sock, (struct sockaddr *)rbuf, rlen))
+                  ferite_set_error(script, errno, "%s", strerror(errno));
+
+              fv = ferite_create_string_variable_from_ptr(script, "", buf, len, FE_CHARSET_DEFAULT, FE_STATIC);
+
+              ffree(buf);
+              FE_RETURN_VAR(fv);
+          }
+
+          native function __close__() : undefined
+          {
+              struct Stream *stream = self->odata;
+              int sock = (stream->file_descriptor);
+
+              if(sock != -1) close(sock);
+			  STREAM_RESET(stream);
+          }
+      }
+      /**
+      * @end
+       */
+        /**
+        * @function bind
+         * @declaration function bind(string host, number port)
+         * @brief Binds the socket to the specified IP and port
+         * @param string host The hostname or IP to listen on, or Network.ANY
+         * @param number port The port number to listen on
+         * @param number af The address family to use
+         * @returns A Network.UDP.Stream object on success, null otherwise.
+         * @description This function binds the socket to a specific IP and
+         *              port (although the IP can be Network.ANY which means
+         *              "listen to every IP address on the machine"). 
+                        You do not need to listen() or accept() like TCP sockets.
+                        If the address
+         *              family is Network.AF_IPV4, bind will look for an IPV4
+         *              address with that name and fail if it doesn't find one.
+         *              If it is Network.AF_IPV6, it will look for an IPV6
+         *              address and fail if it doesn't find one. If it is
+         *              Network.AF_AUTO, it will try to find an IPV6 address,
+         *              then try to find an IPV4 address, and only fail if it
+         *              doesn't find either. Note: you can leave off the af
+         *              parameter if you wish, and it will default to
+         *              Network.AF_AUTO.
+         */
+        native function bind(string host, number port, number af) : Network.UDP.Stream {
+            FeriteClass *cls;
+            FeriteVariable **args, *object, *fv;            
+            struct sockaddr *sa;
+            int size, sock, family = (int)af;
+#ifndef USING_SOLARIS        
+            int yes = FE_TRUE;
+#else
+            char yes = FE_TRUE;
+#endif
+            if(!(sa = make_sockaddr(script, host->data, (short)port, &family, &size)))
+            {
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if((sock = socket(family, SOCK_DGRAM, 0)) == -1)
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                ffree(sa);
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                ffree(sa);
+                close(sock);
+                FE_RETURN_NULL_OBJECT;            
+            }        
+            
+            if(bind(sock, sa, size))
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                ffree(sa);
+                close(sock);
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if((cls = ferite_find_class(script, script->mainns, "Network.UDP.Stream")))
+            {
+                args = ferite_create_parameter_list(script,4);
+                args = ferite_add_to_parameter_list(args, fe_new_lng_static("socket", sock));
+                MARK_VARIABLE_AS_DISPOSABLE(args[0]); /* automatically clear up */
+                object = ferite_new_object(script, cls, args);
+                ferite_delete_parameter_list(script, args);
+                fv = ferite_object_get_var(script, VAO(object), "af");
+                if(family == AF_INET) VAI(fv) = 0;
+                else VAI(fv) = 1;
+                ffree(sa);
+                FE_RETURN_VAR(object);
+            }
+            close(sock);
+            FE_RETURN_NULL_OBJECT;
+        }
+        
+        function bind(string host, number port) {
+            return(.bind(host, port, Network.AF_AUTO));
+        }
+        
+        /**
+        * @function connect
+         * @declaration function connect(string host, number port)
+         * @brief Sets the default destination of the socket
+         * @param string host The hostname or IP of the destination
+         * @param number port The destination port number
+         * @param number af The address family to use (Network.AF_IPV4 or Network.AF_IPV6)
+         * @returns A Network.UDP.Stream object on success, null otherwise.
+         * @description This function creates a usp stream and sets the default destination of the
+         *              UDP socket. Note that it does not
+         *              actually connect to the remote server or indeed even
+         *              communicate with it in any way. If the
+         *              address family is Network.AF_IPV4, connect will look for
+         *              an IPV4 address with that name and fail if it doesn't
+         *              find one. If it is Network.AF_IPV6, it will look for an
+         *              IPV6 address and fail if it doesn't find one. If it is
+         *              Network.AF_AUTO, it will try to find an IPV6 address,
+         *              then try to find an IPV4 address, and only fail if it
+         *              doesn't find either. Note: you can leave off the af
+         *              parameter if you wish, and it will default to
+         *              Network.AF_AUTO.
+         */
+        native function connect(string host, number port, number af) : Network.UDP.Stream {
+            FeriteClass *cls;
+            struct sockaddr *sa;
+            int size, sock, family = (int)af;
+            FeriteVariable **args, *object, *fv;            
+            
+            if(!(sa = make_sockaddr(script, host->data, (short)port, &family, &size)))
+            {
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if((sock = socket(family, SOCK_DGRAM, 0)) == -1)
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                ffree(sa);
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if(connect(sock, sa, size))
+            {
+                ferite_set_error(script, errno, "%s", strerror(errno));
+                close(sock);
+                ffree(sa);
+                FE_RETURN_NULL_OBJECT;
+            }
+            
+            if((cls = ferite_find_class(script, script->mainns, "Network.UDP.Stream")))
+            {
+                args = ferite_create_parameter_list(script,4);
+                args = ferite_add_to_parameter_list(args,fe_new_lng_static("socket", sock));
+                MARK_VARIABLE_AS_DISPOSABLE(args[0]); /* automatically clear up */
+                object = ferite_new_object(script, cls, args);
+                ferite_delete_parameter_list(script, args);
+                fv = ferite_object_get_var(script, VAO(object), "af");
+                if(family == AF_INET)
+                    VAI(fv) = 0;
+                else
+                    VAI(fv) = 1;
+                set_remoteip(script, VAO(object), sa, VAI(fv));
+                ffree(sa);
+                FE_RETURN_VAR(object);
+            }
+        }
+        
+        function connect(string host, number port) {
+            return(.connect(host, port, Network.AF_AUTO));
+        }
+    }
+    /**
+     * @end
+     */
+
+	class URI {
+		string host;
+		number port;
+		string path;
+		string target;
+
+		static function parse( string url ) {
+			return new Network.URI(url);
+		}
+
+		function constructor( string server ) {
+			object regexp = new Regexp("(http:\/\/)?([^:/]*)(:([0-9]+))?([^@]*)(@(.*))?", "i");
+			object match = regexp.match( server );
+
+			.host = "";
+			.port = 80;
+			.path = "/";
+
+			.host = match.capture( 1 );
+			if( match.capture( 3 ) )
+				.port = String.toLong( match.capture( 3 ) );
+			if( match.capture( 4 ) != "" )
+				.path = match.capture( 4 );
+			if( match.capture( 6 ) != "" )
+				.target = match.capture( 6 ) + ".";
+		}
+	}
+
+	class HTTPResponse {
+		array payload;
+
+		constructor( array p ) {
+			.payload = p;
+		}
+		function status {
+			if( .payload.keyExists('Response-Code') )
+				return .payload['Response-Code'];
+			return 0;
+		}
+		function statusRange( number base ) {
+			number status = .status();
+			if( status >= base and status <= (base + 100) )
+				return true;
+			return false;
+		}
+
+		function information return .statusRange(Network.HTTP.RANGE_INFORMATION);
+		function success     return .statusRange(Network.HTTP.RANGE_SUCCESS);
+		function redirect    return .statusRange(Network.HTTP.RANGE_REDIRECT);
+		function clientError return .statusRange(Network.HTTP.RANGE_CLIENT_ERROR);
+		function serverError return .statusRange(Network.HTTP.RANGE_SERVER_ERROR);
+
+		function body {
+			if( .payload.keyExists('Content') )
+				return .payload['Content'];
+			return '';
+		}
+	}
+
+	class HTTP {
+
+		static number TYPE_GET = 1;
+		static number TYPE_POST = 2;
+
+		// HTTP Information
+		final static number RANGE_INFORMATION = 100;
+		final static number CONTINUE = 100; // Continue
+		final static number SWITCHG_PROTOCOLS = 101; // Switching Protocols
+		final static number PROCESSING = 102; // Processing (WebDAV) (RFC 2518)
+		final static number URI_TOO_LONG = 122; // Request-URI too long
+		// HTTP success
+		final static number RANGE_SUCCESS = 200; // OK		
+		final static number OK = 200; // OK
+		final static number CREATED = 201; // Created
+		final static number ACCEPTED = 202; // Accepted
+		final static number NON_AUTHORATIVE_INFORMATION = 203; // Non-Authoritative Information (since HTTP/1.1)
+		final static number NO_CONTENT = 204; // No Content
+		final static number RESET_CONTENT = 205; // Reset Content
+		final static number PARTIAL_CONTENT = 206; // Partial Content
+		final static number MULTI_STATUS = 207; // Multi-Status (WebDAV)
+		// HTTP Redirect
+		final static number RANGE_REDIRECT = 300; // OK
+		final static number MULTIPLE_CHOICES = 300; // Multiple Choices
+		final static number MOVED_PERMANTLY = 301; // Moved Permanently
+		final static number FOUND = 302; // Found
+		final static number SEE_OTHER = 303; // See Other (since HTTP/1.1)
+		final static number NOT_MODIFIED = 304; // Not Modified
+		final static number USE_PROXY = 305; // Use Proxy (since HTTP/1.1)
+		final static number SWITCH_PROXY = 306; // Switch Proxy
+		final static number TEMPORARY_REDIRECT = 307; // Temporary Redirect (since HTTP/1.1)
+		// HTTP Client Error
+		final static number RANGE_CLIENT_ERROR = 400; // OK
+		final static number BAD_REQUEST = 400; // Bad Request
+		final static number UNAUTHORISED = 401; // Unauthorized
+		final static number PAYMENT_REQUIRED = 402; // Payment Required
+		final static number FORBIDDEN = 403; // Forbidden
+		final static number NOT_FOUND = 404; // Not Found  
+		final static number METHOD_NOT_ALLOWED = 405; // Method Not Allowed
+		final static number NOT_ACCEPTABLE = 406; // Not Acceptable
+		final static number PROXY_AUTH_REQUIRED = 407; // Proxy Authentication Required
+		final static number REQUEST_TIMEOUT = 408; // Request Timeout
+		final static number CONFLICT = 409; // Conflict
+		final static number GONE = 410; // Gone
+		final static number LENGTH_REQUIRED = 411; // Length Required
+		final static number PRECONDITION_FAILED = 412; // Precondition Failed
+		final static number REQUEST_ENTITY_TOO_LARGE = 413; // Request Entity Too Large
+		final static number REQUEST_URI_TOO_LONG = 414; // Request-URI Too Long
+		final static number UNSUPPORTED_MEDIA = 415; // Unsupported Media Type
+		final static number RANGE_ERROR = 416; // Requested Range Not Satisfiable
+		final static number EXPECTATION_FAIL = 417; // Expectation Failed
+		final static number TEAPOT = 418; // I'm a teapot
+		final static number UNPROCESSABLE_ENTITY = 422; // Unprocessable Entity (WebDAV) (RFC 4918)
+		final static number LOCKED = 423; // Locked (WebDAV) (RFC 4918)
+		final static number FAILED_DEPENDANCY = 424; // Failed Dependency (WebDAV) (RFC 4918)
+		final static number UNORDERED_COLLECTION = 425; // Unordered Collection
+		final static number UPGRADE_REQUIRED = 426; // Upgrade Required (RFC 2817)
+		final static number RETRY_WITH = 449; // Retry With
+		final static number BLOCKED = 450; // Blocked
+		// HTTP Server Error
+		final static number RANGE_SERVER_ERROR = 200; // OK
+		final static number INTERNAL_SERVER_ERROR = 500; // Internal Server Error
+		final static number NOT_IMPLEMENTED = 501; // Not Implemented
+		final static number BAD_GATEWAY = 502; // Bad Gateway
+		final static number SERVICE_UNAVAILABLE = 503; // Service Unavailable
+		final static number GATEWAY_TIMEOUT = 504; // Gateway Timeout
+		final static number HTTP_VERSION_ERROR = 505; // HTTP Version Not Supported
+		final static number VARIANT_ALSO_NEGOTIATES = 506; // Variant Also Negotiates (RFC 2295)
+		final static number INSUFFICIENT_STORAGE = 507; // Insufficient Storage (WebDAV) (RFC 4918)
+		final static number BANDWIDTH_EXCEEDED = 509; // Bandwidth Limit Exceeded (Apache bw/limited extension)
+		final static number MOT_EXTENDED = 510; // Not Extended (RFC 2774)
+
+		string url;
+		number type;
+		string userAgent = "ferite/Network.HTTP";
+
+		static function post( string url ) {
+			object http = new Network.HTTP();
+			http.type= Network.HTTP.TYPE_POST;
+			http.url = url;
+			return http;
+		}
+		static function get( string url ) {
+			object http = new Network.HTTP();
+			http.type= Network.HTTP.TYPE_GET;
+			http.url = url;
+			return http;
+		}
+
+		string user, password;
+		function authenticate( string user, string password ) {
+			.user = user;
+			.password = password;
+		}
+
+		array payload_pairs;
+		function payload( array formValues ) {
+			.payload_pairs = formValues;
+		}
+		string payload_raw;
+		function payload( string raw ) {
+			.payload_raw = raw;
+		}
+		function payload {
+			if( .payload_raw ) {
+				return .payload_raw;
+			} else if( .payload_pairs ) {
+				array pairs = [];
+				.payload_pairs.map() using ( key, value ) {
+					pairs[] = "$key=${String.urlEncode('' + value)}";
+				};
+				return pairs.join('&'); 
+			}
+			return '';
+		}
+
+		array optional_headers;
+		function headersReset {
+			.optional_headers = [];
+		}
+		function headersAdd( string name, string value ) {
+			.optional_headers[] = [ 'name' => name, 'value' => value ];
+		}
+		
+		function request {
+			string type, parameters, content, payload = .payload();
+			object uri = Network.URI.parse(.url);
+			array output;
+
+			switch( .type ) {
+				case Network.HTTP.TYPE_POST:
+					type = 'POST';
+					content = payload;
+					parameters = '';
+					break;
+				case Network.HTTP.TYPE_GET:
+					type = 'GET';
+					content = '';
+					payload and parameters = "?$payload";
+					break;
+			}
+
+			output[] = "$type ${uri.path}$parameters HTTP/1.1";
+			output[] = "Host: ${uri.host}";
+			output[] = "User-Agent: ${.userAgent}";
+
+			.user   and output[] = "Authorization: Basic ${String.base64encode(.user + ':' + .password)}";
+			content and output[] = "Content-Length: ${content.length()}";
+			
+			.optional_headers.each() using ( value ) {
+				output[] = "${value['name']}: ${value['value']}";
+			};
+			
+			output[] = "";
+			if( .type == Network.HTTP.TYPE_GET ) {
+				output[] = "";
+			}
+			
+			content and output[] = content;
+
+			return output.join("\r\n");
+		}
+
+		function readChunk( object o ) {
+			string line = o.readln();
+			number length = 0;
+			line.trim("\r\n");
+			length = line.hexStringToNumber();
+			if( length > 0 ) {
+				return o.read(length);
+			}
+			return '';
+		}
+		function response( object o ) {
+			array headers = [];
+			string content = '';
+			boolean keepReading = true;
+			boolean seenLeadingLine = false;
+
+			while( keepReading and not o.eos() ) {
+				string line = o.readln();
+				object match = null;
+				
+				line = line.trim("\r\n");
+				if( line and (match = Regexp.match("HTTP/1\.[10] ([0-9]+) ([A-Za-z ]+)", line)) ) {
+					headers['Response-Code'] = match.capture(0).toNumber();
+					headers['Response-Name'] = match.capture(1);
+					seenLeadingLine = true;
+				}
+				else if( line and (match = Regexp.match( "([^:]+): (.*)", line )) ) {
+					headers[match.capture(0)] = match.capture(1);
+				}
+				else if( not line and seenLeadingLine and headers.keyExists('Transfer-Encoding') and headers['Transfer-Encoding'] == 'chunked' ) {
+					string content = .readChunk(o);;
+					if( content ) {
+						if( not headers.keyExists('Content') ) {
+							headers['Content'] = '';
+						}
+						headers['Content'] += content;
+					} else {
+						keepReading = false;
+					}
+				}
+				else if( not line and seenLeadingLine ) {
+					if( headers.keyExists('Content-Length') ) {
+						content = o.read( headers['Content-Length'].toNumber() ).trim("\r\n");
+					}
+					headers['Content'] = content;
+					keepReading = false;
+				}
+			}
+			return headers;
+		}
+		function run {
+			object uri = Network.URI.parse(.url);
+			object connection = Network.TCP.connect(uri.host, uri.port, Network.AF_IPV4);
+			if( connection ) {
+				string request = .request();
+				connection.write( request );
+				connection.flush();
+				return new Network.HTTPResponse(.response(connection));
+			} else {
+				raise new Error("Unable to connect to: ${.url}");
+			}
+		}
+	}
+}
+/**
+ * @end
+ */

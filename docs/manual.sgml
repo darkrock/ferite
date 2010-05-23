@@ -1,0 +1,2732 @@
+<!DOCTYPE book [ <!ELEMENT document (#PCDATA)>
+<!ENTITY ferite    "<monospace>ferite</monospace>">
+<!ENTITY results   "<strong>&raquo;</strong>">
+<!ENTITY fstring   "<monospace><strong>string</strong></monospace>">
+<!ENTITY fnumber   "<monospace><strong>number</strong></monospace>">
+<!ENTITY fvoid     "<monospace><strong>void</strong></monospace>">
+<!ENTITY fobject   "<monospace><strong>object</strong></monospace>">
+<!ENTITY farray    "<monospace><strong>array</strong></monospace>">
+<!ENTITY raquo     "<monospace>&gt;&gt;</monospace>">
+]>
+
+<!-- TODO v1.0: -->
+<!-- TODO v1.1: type hinting, remove operator overloading, exception handling, atomic on functions -->
+
+<document id="ferite-manual">
+    <title>The Ferite Programming Language 1.0</title>
+
+    <section id="introduction">
+    	<title>Introduction</title>
+    	<section id="what">
+        <title id="what.title">What is &ferite;?</title>
+        <para>
+        	&ferite; is a small robust scripting engine providing straight forward application
+        	integration, with the ability for the API to be extended very easily. The design goals
+        	for &ferite; are lightweight - small memory and CPU footprint, fast, thread-safe, and 
+        	straight
+        	forward both for the programmer of the parent application and the programmer
+        	programming &ferite; scripts to learn the system.
+        </para>
+    	</section>
+    	<section id="document-provides">
+        <title id="document-provides.title">What does this documentation provide?</title>
+        <para>
+        	This document is the official commentary on &ferite;, including language information such
+        	as constructs and known issues. An API guide for the standard objects provided
+        	with every &ferite; distribution and the means in which to embed &ferite; are provided
+        	separately. 
+        </para>
+    	</section>
+    	<section id="why-choose">
+        <title id="why-choose.title">Why should I choose &ferite;?</title>
+        <para>
+            &ferite; is designed to be added into other applications. Providing a consistent API, your
+            application will be able to stay binary compatible with the latest &ferite; engine, allowing 
+            you, the application programmer, to add powerful scripting to your application without the
+            worry of the internals of &ferite;.       
+        </para>
+        <para>
+            &ferite; provides a language very similar to that of C and Java with additional features
+            from other languages such as: closures from scheme and namespaces from C++. This means that
+            the skill set acquired through learning existing main-stream languages can be instantly
+            applied to the creation of &ferite; scripts. &ferite; is not a heavy language and prides itself
+            on being clean and to the point; it is easy to pick up a script written long ago and instantly
+            understand what is going on, which, unfortunately, can not be said for some other languages.
+        </para>
+        <para>
+            &ferite; provides a framework for creating structured programs: variables must be declared at the
+            beginning of a block, global variables must declared as such, critical variables and functions 
+            within a thread can be clearly defined as thread-safe. &ferite; has classes, objects, namespaces,
+            modules, threading and exception handling. The scripts are more verbose than other languages 
+            but &ferite; makes it easy to write, maintain and debug.
+        </para>
+        <para>
+            If you are looking for a scripting engine that is thread-safe, allowing for
+            thread-safe use within an application, &ferite; is the way to go. Not only does &ferite; remain 
+            thread-safe, it also uses the operating systems native threads; you can now have scripts that
+            run safely across multiple processors.
+        </para>
+    	</section>
+    </section>
+
+    <section id="language-reference">
+    	<title id="language-reference.title">Language Reference</title>
+    	<section id="convention">
+    	   <title id="convention.title">Conventions Used</title>
+    	   <para>
+    	       Within this document there are a number of conventions used to aid the delivery of examples
+    	       when discussing various parts of the language.
+    	   </para>
+    	   <para>
+    	       To write a complete example for each and every part of the language would be both confusing
+    	       and over kill. To aid the understanding of examples the following convention is used:
+    	       There will be a &results; symbol which means that the result of doing
+    	       what is on the left hand side is on the right hand side. If you wish to copy the example you
+    	       must remove the &results; and the text that follows it. E.g.
+    	   </para>
+    	   <code>
+1 + 2 &results; 3 </code>
+            <para>
+                The above example demonstrates that the result of 1 + 2 is 3.
+            </para>
+        </section>
+    	<section id="scripts">
+        <title id="scripts.title">Scripts</title>
+        <para>
+        A script file is a plain text file that usually ends in <strong>.fe</strong>. Each file consists of three main parts:
+        <list mark="opencircle">
+            	<list-item><para>
+                A set of imports using the <strong>uses</strong> keyword to give you access to extra functionality (such as printing out text, string or mathematic functions).</para></list-item>
+            <list-item><para>
+                Zero or more function, class and namespace declarations.
+            </para></list-item>
+            <list-item><para>
+                The code to be executed when the script is first run. E.g. If you can have a script that does some processing on each argument passed to it; you could have a loop going through each argument within the startup code which calls a function you have declared in the middle section of a script.
+            </para></list-item>
+        </list> 
+        For example:
+        </para>
+        	<code>
+// The importing of extra functionality
+<strong>uses</strong> "console", "array";
+
+// Declaration of a function. Classes and Namespaces also go here
+<strong>function</strong> processArgument( &fstring; argument ) {
+    Console.println( "Argument: " + argument );
+}
+
+// The startup code
+Array.each( argv ) <strong>using</strong> ( argument ) {
+    processArgument( argument );
+};</code>
+        <para>
+            First thing; do not worry if you do not understand the above code, you will know what it means at the
+            end of this manual.
+        </para>
+        <para>
+            The <strong>startup code</strong> is what is called when the script is run.  
+            The <strong>startup code</strong> is equivalent to the <strong>main</strong>
+            method within a C or Java program. 
+        </para>
+        <para>
+            Having just shown you a more involved script, here is the famous <emphasis>Hello World</emphasis> program:
+        </para>
+        	<code>
+<strong>uses</strong> "console";
+Console.println( "Hello World from ferite" );</code>
+        <para>
+            The 'uses' statement is used to import API either from an external module or from another script. Its 
+            use is described in greater depth later on in this manual. You may be wondering why it takes two lines 
+            of code to print out a line of text; &ferite; does not have any built in functions - they all have to be
+            pulled in by the programmer. The result? The only thing used within &ferite; is what you need.
+        </para>
+    	</section>
+
+    	<section id="comments">
+        <title id="comments.title">Comments</title>
+        <para>
+            Writing documentation is not fun, but, it can make your and others lives much easier in the long run.
+            Commenting code is the same boat. You can reduce the amount of commenting you do through the use of meaningful
+            variable, function and class names, and writing clear code. However, there are times when it is not obvious what is
+            happening within a block of code, which is when comments become important.
+        </para>
+        <para>
+            &ferite; supports two methods of commenting code: using block comments ( /* */ ) or single line comments ( // ).
+            Block comments cause &ferite; to ignore everything from the start of the comment '/*' to the end of the comment '*/'.
+            Single line comments cause &ferite; to ignore everything from, and including, the comment start '//' to the end of the line.
+            Comments can be used throughout the scripts you are writing.
+        </para>
+        	<code>
+// This is a single line comment
+/* 
+   This is another comment.
+   But it is for blocks.
+   And can span multiple lines.
+*/</code>
+        <para>
+            &ferite; can handle nested block comments. This allows easy commenting out of code regardless of the
+            comments or code that is within the block. Note that this is different from the default behavior of some other
+            languages.
+        </para>
+        <code>
+/* 
+    /* Print out some information */
+    Console.println( "Today" );
+*/ </code>
+    	</section>
+
+    	<section id="types">
+        <title id="types.title">Types</title>
+        <para>
+            A type is a hint from you, the programmer, to &ferite; on how to look after and deal with your 
+            information. &ferite; requires you to state the type of each variable or parameter you declare.
+            This keeps writing code and debugging easier because &ferite; can stop you making mistakes -
+            such as trying to add a string to an object. There are a number of types within the type system which
+            fall into two main categories: simple types (&fnumber; and <strong>string</strong>)
+            and complicated types (&farray;, &fobject; and &fvoid;).
+        </para>
+        <para>
+            In this section we talk about not only types but some operators and variables which are discussed later
+            on in the manual. It is suggested that you read this section and come back to it when you have made more
+            progress with the other sections.
+        </para>
+        <section id="number">
+        	<title id="number.title">number</title>
+        	<para>
+            This type encapsulates all integer and floating point numbers within the 64bit IEEE specification and will 
+            automatically handle issues regarding overflow and conversion. In layman terms that means that they 
+            can store really big numbers and will convert between integer numbers (E.g. 1, 2, 14 - numbers without
+            a decimal point) and floating point numbers (E.g. 3.14, 23.5 - numbers with a decimal point). Once the conversion has
+            taken place, the number will remain a floating point number.
+<!-- mdh: use of natural vs real vs double vs float vs integer -->
+<!-- ctr: noted and changed. -->
+                </para>
+            <list mark="opencircle">
+            	<list-item>
+                <para>
+                    All numbers start out as 64bit signed integers. When the value of a number goes above what can be stored
+                    in 64bits, the number will switch over to being a 64bit floating point number (allowing for much larger
+                    numbers; it should be noted that accuracy can potentially be tainted when this occurs). This is also true 
+                    if the value to be stored is a floating point value. The point where the switch occurs is +-(2^64/2).
+                </para>
+            	</list-item>
+            	<list-item>
+                <para>
+                    Comparisons can be made between numbers but it should be noted that once a number has internally become a 
+                    floating point number, equality comparisons can potentially give unexpected results. To try and solve this problem, when 
+		    floating point numbers 
+                    are being compared there is a slight amount of tolerance involved which means that they do not need to be identical 
+                    but very close in value. The default tolerance is <strong>0.000001</strong>. At the time of writing the
+                    default tolerance can not be changed by the programmer.
+                </para>
+            	</list-item>
+            </list>
+        	<code>
+&fnumber; someValue = 10;
+&fnumber; someOtherValue = 1.21;
+&fnumber; newValue = someValue + someOtherValue;</code>
+            <para>
+                It is possible to use various different notations for numbers within a script. The different methods allow for 
+                different number bases. &ferite; supports decimal, real, binary, octal and hexadecimal notation. Most of the examples
+                within this document use either decimal or real as they are easily recognized. These notations all end up being stored
+                the same internally, however there are times when it is more useful to use either hexadecimal or binary to define values
+                depending on what data you wish to manipulate. The following examples demonstrate how to use the binary, octal and
+                hexadecimal notations.
+            </para>
+            <para>
+                To define a binary number, a set of '1' and '0' should be prefixed with '0b'.
+            </para>
+            <code>
+number one = 0b1 &results; one is the numerical value 1
+number four = 0b100 &results; four is the numerical value 4 
+number twentyone = 0b10101 &results; twentyone is the numerical value 21 </code>
+            <para>
+                To define an octal number, a set of numbers from '0' to '7' should be prefixed with '0'.
+            </para>
+            <code>
+number one = 01 &results; one is the numerical value 1
+number four = 04 &results; four is the numerical value 4
+number twentyone = 025 &results; twentyone is the numerical value 21</code>
+            <para>
+                To define a hexadecimal number, a set of numbers '0' to '9', and a set of alpha characters 'a' to 'f', should be prefixed 
+                with a '0x'.
+            </para> 
+            <code>
+number one = 0x1 &results; one is the numerical value 1
+number four = 0x4 &results; four is the numerical value 4
+number twentyone = 0x15 &results; twentyone is the numerical value 21</code>
+            <para>
+                Even though they provide different notations, the above should demonstrate how &ferite; interprets them to
+                numbers of the same value.
+            </para>
+        </section>
+        <section id="string">
+        	<title id="string.title">string</title>
+        	<para>
+                Strings are specified using double quote ("") and contain a string of characters. It is possible to embed variables and
+                expressions within a string to make complex string construction easier (such as generating XML). To access individual 
+                characters within a string you can use square brackets along with an index or range. There are a number of control characters
+                that can be used within a string to provide various formatting options such as a tab or new line character. These control
+                characters are described in the list below:
+<!-- mdh: in the table below, should \40 be \040? -->
+<!-- ctr: yes, changed. -->
+<!-- mdh: Does octal have to be a fixed width? if not, how to handle \401, where you want <space>1 to be output? -->
+<!-- mdh: the \b is used for both binary and a backspace? how to handle \b1, where you want <backspace>1 to be output? -->
+<!-- ctr: removed \b -->
+<!-- mdh: is binary fixed width or variable, as above? -->
+<!-- ctr: it is variable width -->
+        	</para>
+                    <list>
+        	           <list-item>
+        	               <monospace>\n</monospace> -- Adds a new line to the string -- Non visible character
+        	           </list-item>
+        	           <list-item>
+        	               <monospace>\r</monospace> -- On windows this character provides a line feed. -- 
+        	           </list-item>
+        	           <list-item>
+        	               <monospace>\t</monospace> -- Adds a tab character to the string -- Non visible character
+        	           </list-item>
+        	           <list-item>
+        	               <monospace>\"</monospace> -- " 
+        	           </list-item>
+        	           <list-item>
+        	               <monospace>\x??</monospace> -- Character with the hexadecimal value
+        	               e.g. \x20 would provide the space character. The question marks are where the hexadecimal digits go.
+        	           </list-item>
+        	           <list-item>
+        	               <monospace>\???</monospace> -- Character with the octal value
+        	               e.g. \040 would provide the space character. The question marks are where the octal digits go.
+        	           </list-item>
+        	           <list-item>
+        	               <monospace>\b????????</monospace> -- Output
+        	               e.g. \b00100000 would provide the space character. The question marks are where the binary digits go.
+        	           </list-item>
+        	           <list-item>
+        	               <monospace>\a</monospace> -- Audible bell -- Cause the computer to beep.
+        	           </list-item>
+        	           <list-item>
+        	               <monospace>\f</monospace> -- Form feed -- Tell the output to create a new page.
+        	           </list-item>
+                    </list>
+            <para>
+                You can reference variables or even place small expressions within a strings that get evaluated at runtime. This allows 
+                for the complicated construction of strings to be less painful and easier to understand. To reference a variable you simply
+                prefix its name with a dollar symbol '$'. When the value of the referenced variable is placed in the string, it is 
+                important to note that the string representation for the variable will be used. For objects the function 
+                <monospace>toString()</monospace> will be called and the return value used. To place an expression within a string you can
+                use a dollar symbol followed by a set of curly brackets '{ }' with the expression between them. The following code will 
+                print out "Hello World" and then print out 2. It is important to note that expressions within a string have effect outside.
+		For instance using <monospace>++</monospace> on a variable within the braces would cause the variable to remain incremented
+		after the string is constructed.
+        	</para>
+        	<code>
+&fstring; test = "Hello";
+Console.println( "$test World" );
+Console.println( "${(1 + 1)}" );</code>
+<!-- mdh: note that "${ x++ }" has a side effect of actually incrementing x -->
+        	<para>
+                Strings can also be defined using single quotes (''). These strings differ
+                from the double quote notation because everything between the single quotes is use verbatim. 
+                As a result control characters are ignored as well as embedded expressions. There is only one
+		control code that is obeyed and that is <monospace>\'</monospace> which will insert a single quote within the
+		string.
+<!-- mdh: how to embed ' in a single quoted string? string x = 'blah' + "'" + 'blah'; -->
+        	</para>
+        </section>
+        <section id="array">
+        	<title id="array.title">array</title>
+        	<para>
+        	   An array allows the sequential or random storage of data that can be retrieved at any point.
+        	   They can grow as you need them and are able to store any type of data within them; they are 
+        	   not limited to a specific type meaning that numbers, string, objects and even arrays can be
+        	   stored side by side. To access the contents of an array you need to use a set of square brackets
+        	   with a reference between them - this is covered by the Index Operator.
+        	</para>
+        	<para>
+                When declared an array variable contains no elements. To add a value it is possible to use
+                one of the provided Array functions, use an set of empty square brackets or use the in-line
+                array notation. The second option allows you to pop a value onto the end of the array very 
+                easily and is demonstrated below. The third allows you to create arrays using a very simple
+                syntax: a comma separated list of values (they can be expressions), surrounded in a set of
+                square brackets.
+        	</para>
+        	<code>
+&farray; a = [ 1, 2, 3 ]; // Declare an array 'a' and initialize it to have 3 elements
+a[] = 4; // Add the value '4' to the end of the array
+a[] = 5; // Add the value '5' to the end of the array</code>
+            <para>
+                The above code shows how to use an array in a linear fashion. To initialize and access arrays
+                using names for look-up and retrieval you can use code similar to the following example.
+            </para>
+            <code>
+&farray; a = [ 'FirstValue' => 1, 'SecondValue' => 2 ]; // Declare 'a' with two elements 
+                                                     // 'FirstValue' maps to the value 1
+Console.println( a['FirstValue'] ); // print out '1' to the console 
+a['ThirdValue'] = 3; // Set 'ThirdValue' to map to the value 3</code>      
+            <para>
+                When you create the array using the above notations, it is important to note that &ferite; will 
+                copy the value and add it to the array. It will not reference the variable you pass to it. 
+                The following correct code should demostrate this fact.
+            </para>
+            <code>
+&fvoid; v;
+&farray; a = [ v ];
+a[0] = 10;
+v = "ten"; </code>
+            <para>
+                It is possible to mix the different types of values you can store in an array, however, once
+                a value has been set for a spcific index, it must remain that type. For instance the following
+                is <emphasis>invalid</emphasis> code because the value at 0 is already a number.
+            </para>
+            <code>
+&farray; a = [ 2 ];
+a[0] = "two"; </code>                      
+        </section>
+        <section id="object">
+        	<title id="object.title">object</title>
+        	<para>
+                Variables of type object either point to an object or they point to <strong>null</strong>. 
+                Null allows you to see if an object variable points to something. All object variables, when 
+                declared, are initialized to null. To check if an object variable points to null; it is only necessary to
+                check for equality to null. Pointing to an object is done in two ways: the new operator, which
+                creates a new instance of a class, or by assigning it the value that another object points to. 
+                Although this is covered later, it is important to note that two different object <strong>variables</strong>
+                can point to the same object and that an object variable can point to any type of allocated object.
+        	</para>
+        	<code>
+&fobject; o = <strong>null</strong>;
+&fobject; o2 = <strong>new</strong> SomeObject();	
+o2 = <strong>new</strong> SomeOtherObjectType(); </code>
+        </section>
+        <section id="void">
+        	<title id="void.title">void</title>
+        	<para>
+        	   The void type is &ferite;'s semi-polymorphic type; only semi-polymorphic because once it has morphed into
+        	   a specific type it remains that type. What this means in simpler terms is that the void variable can be
+        	   seen as a place holder type. Assigning a value to a variable of type void will cause it to change to that
+        	   type; for instance, declaring a variable of type void and assigning a numerical value to it will cause it
+        	   to become a number. This allows you to write dynamic code that does not depend on a specific type. It is
+        	   important to note that a variable declared at the beginning of a function will remain a type for the duration
+        	   that function is running and will be reset when it is next called. If it is an object's instance variable,
+        	   it will remain that type for that object for the duration of the object's life time.
+            </para>
+        	<para>
+                It is important to note that the only thing that can not be assigned to a variable of type void is a 
+                function. You can assign namespaces and classes to variables of type void and then use them as normal.
+                The ability to assign namespaces and classes is very useful when writing abstraction layers as it allows
+                you to use different concrete implementations and pass those references into functions.
+        	</para>
+        	<code>
+&fvoid; v = <strong>null</strong>;&results;v is now an object pointing to null
+&fvoid; v2 = 42; &results; v2 is now a number with the value 42
+&fvoid; v3 = SomeNamespace; &results; v3 points to SomeNamespace
+&fvoid; v4 = SomeClass; &results; v4 points to SomeClass </code>
+            <para>
+                <emphasis>Question</emphasis> Is there any performance penalty for using void? In other words, could a lazy 
+                programmer just declare all variables as void and let the type system make all of the decisions, and not pay a price
+                other than maintainability?
+            </para>
+            <para>
+                <emphasis>Answer</emphasis> There is no performance penality in using void and a lazy programmer can declare 
+                &fvoid; if wanted. It is strongly recommended that this practice not be followed because you drop a
+                core feature (declared types) of ferite which is there to make maintenance and debugging less of a headache.
+            </para>
+        </section> 
+    	</section>
+    	<section id="variables">
+        <title id="variables.title">Variables</title>
+        <para>
+            Variables are containers for values; the sort of value a variable stores is dependent on its type. Variables
+            come in a number of similar but distinct varieties: local variable within a function, a parameter into a function,
+            class, object and namespace variables. Before it is possible to store, or pass information around, it is necessary
+            to declare your variables. 
+        	</para>
+        	<code>
+modifiers type name [= expression] [, name [= expression], ...]</code>
+        	<list>
+            <list-item>
+            	<para>modifiers</para>
+            	<para>
+            	   There are a number of modifiers that can be applied to variables. This affects how they are treated within
+            	   &ferite; and allow you, the programmer, to specify what restrictions you wish to put on them. Depending on the
+            	   context of the variable declaration you can use zero of more of the keywords:
+            	   <list>
+            	       <list-item><para>final - the value of the variable, once set, can not be changed.</para></list-item>
+            	       <list-item><para>atomic - all accesses on the variable (getting the value and setting the value) are atomic, 
+            	                       i.e. thread safe, which means that it is unnecessary to create an explicit lock for it. It is
+            	                       important to note that this does have an execution time, and space, overhead to the variable and
+            	                       should therefore be used wisely.</para></list-item>
+            	   </list>
+            	   There are a few more that will be discussed in the section about classes and namespaces (they are
+            	   <strong>public</strong>, <strong>private</strong>, <strong>protected</strong>, <strong>abstract</strong> 
+            	   and <strong>static</strong>).
+            	</para>
+            </list-item>
+            <list-item>
+            	<para>type</para>
+            	<para>
+                    This is the type of variable that you wish to declare. It can be void, number, string, array or object.
+            	</para>
+            </list-item>
+            <list-item>
+            	<para>name</para>
+            	<para>
+                    The name of the variable to be declared. The name must start with an alpha
+                    character (a-z, A-Z) or underscore (_) and after that may contain underscores, digits ([0-9]) and other
+                    alpha characters.
+            	</para>
+            </list-item>
+            <list-item>
+                <para>[= expression]</para>
+                <para>
+                    Variables can be initialized to a custom default value. If the expression is omitted the default value
+                    will be '0' for numbers, an empty string for strings, an empty array for arrays and null for objects.
+                </para>
+                <para><strong>Please Note!</strong></para>
+                <para>
+                    When a variable is declared within a function you can specify any valid expression to be used as the variable's
+                    initializer (assuming the types are correct). E.g. a return from a function, the addition of two previously declared
+                    variables. 
+                </para>
+                <para>
+                    However, when the variable is declared within a global, class or namespace block, it is only possible
+                    to use a constant e.g. initialize a number with an integer or real number (e.g. 120 or 1.20 respectively), a string 
+                    with a double (without expressions) or single quoted string. It is <strong>not</strong> possible to 
+                    initialize an array or object in a global, class, or namespace block; these will have to be done using 
+                    some form of initializer function.
+                </para>
+            </list-item>
+            <list-item>
+            	<para>[, ...]</para>
+            	<para>
+                    Rather than having to declare modifiers and type again for a set of variables it is possible
+                    to simply add more names and initializers in a comma separated list. The modifiers apply to all of the variables
+                    declared within the list which should reduce ambiguity when debugging. 
+            	</para>
+            </list-item>
+        	</list>
+        <code>
+&fnumber; mynumber = 10, another_number;
+<strong>final</strong> &fstring; str = "Hello World";
+&fobject; newObj = <strong>null</strong>;
+&farray; myarray = [ 1, 2, 3 ];</code>
+        <para>
+            A variable's scope is as local as the function in which it is declared. The exception being global variables which
+            can be accessed from any function. Global variables can be accessed anywhere within
+            a script and are declared using the following syntax:
+<!-- mdh: not clear - do you have to declare the variable as global prior to using it? -->
+        </para>
+        <code>
+<strong>global</strong> {
+	...variable declarations...
+} </code>
+        <para>
+            Unless explicitly defined a variable is considered local. There are a number of
+            predefined global variables within a &ferite; script, these are <strong>argv</strong>, <strong>null</strong> and <strong>err</strong>.
+            <strong>argv</strong> is an array of strings containing the parameters passed into the top level script that first gets executed. 
+            <strong>null</strong> is used to allow checking of object variables. 
+            <strong>err</strong> is the error object used for exception handling.
+        </para>
+    	</section>
+
+    	<section id="expressions">
+        <title id="expressions.title">Expressions</title>
+        <para>
+            Almost everything written in &ferite; is an expression as they are the building blocks of a
+            program. They are combined to build other expressions which are in turned used in others
+            using operators. Expressions are built up using various operators, variables and other
+            expressions, e.g. adding of numbers, or creating an instance of a new
+            object. Expressions are made clearer when discussing operators as these are what are used
+            to build them.
+        </para>
+
+        <section id="truth-value">
+        	<title id="truth-value.title">Truth Values</title>
+        	<para>The crux of program flow are true and false. It is important to know what constitutes a truth value.</para>
+        	<list>
+            <list-item>
+            	<para>
+                    A number that is not zero is considered as true, this also means that negative
+                    values are also true. It has to be noted that if a number has switched into real
+                    format it is never likely to be considered false. Currently &ferite; deals with this
+                    by binding false to the range plus/minus 0.00001.
+            	</para>
+            	<code>
+0 &results; false
+1 &results; true 
+0.0 &results; false
+0.2 &results; true </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    A string that has zero characters is considered false, otherwise it is true.
+            	</para>
+            	<code>
+"" &results; false
+"Any Value" &results; true </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    An array with no elements is false, otherwise is considered true.
+            	</para>
+            	<code>
+[] &results; false
+[ 1, 2, 3 ] &results; true </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    An object is considered to be false if it does not reference any instantiated object.
+            	</para>
+            	<code>
+null &results; false
+(new Object()) &results; true </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    A void variable can not be true and therefore will always be false. For a variable of
+                    type void to become true, it must be instantiated to a truth value of another type. This
+                    side-effect of void variables is useful because it allows you to, knowing that it is void,
+                    use a simple if statement to see whether the variable has been initialized or not.
+            	</para>
+            	<code>
+void v &results; false </code>
+            </list-item>
+        	</list>
+        	<para>
+                There are currently two keywords that can be used 'true' and 'false' these are of type number. For passing
+                explicit truth values around these are the considered the correct way.
+        	</para>
+        	<code>
+&fnumber; shouldKeepDoingThings = true;</code>
+        </section>
+    	</section>
+
+    	<section id="operators">
+        <title id="operators.title">Operators</title>
+        <para>
+        	An operator applies a operation to one or more values. &ferite; provides a set of operators
+        	that allow you to do basic arithmetic, assignment, comparison and a whole load more operations.
+        	This section is broken down into a set of groups; each containing like-wise operators. Before
+        	we delve into what operators exist, it is important to consider some terminology. A unary operator
+        	is one that operates on only one value and usually prefixes the value that it is applied to. 
+        	A binary operator operates on two values; these two values are called the <monospace>left hand 
+        	side</monospace> and <monospace>right hand side</monospace>.
+        </para>
+        <section id="arithmetic-operators">
+        	<title id="arithmetic-operators.title">Arithmetic Operators</title>
+        	<list mark="opencircle">
+            <list-item>
+            	<para>
+                    The addition operator '+' allows you to add two variables together. Addition requires that
+                    the left hand side of the operator should be either a &fnumber; or a &fstring;.
+                    If the left hand side is a number, the right hand side can only be a number; otherwise an exception will
+                    be thrown. If the left hand side is a string, the right hand side can be of any type: &ferite; will
+                    inspect the right hand side and produce a string representation of that value. If the value is an object,
+                    &ferite; will invoke the <monospace>toString()</monospace> method and use its return value as the right hand side.
+            	</para>
+            	<code>
+1 + 2 &results; 3
+"How many times? " + 10 &results; "How many times? 10" </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    The subtraction operator '-' is mainly used with numbers. Although if the left hand side is a string, the right
+                    hand side must also be a string, every occurrence of the string on the right hand side, in the left hand side will
+                    be removed.
+            	</para>
+            	<code>
+2 - 1 &results; 1
+"How many times? " - "How " &results; "many times? " 
+"A B C B D" - "B " &results; "A C D"</code>
+            </list-item>
+            <list-item>
+            	<para>
+                    Multiplication '*' only applies to number types. The result is the left hand side multiplied by the right hand side.
+            	</para>
+            	<code>
+2 * 2 &results; 4 </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    Division '/' also only applies to number types. The result is the left hand side divided by the
+                    right hand side. If both sides of the operation are integer based numbers, the division will be
+                    integer otherwise it will be floating point division.
+            	</para>
+                <code>
+2 / 2 &results; 1
+2 / 0.5 &results; 4 </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    Modulus '%' - Returns the remainder of integer division between two number
+                    variables. If the numbers are in real format they will be implicitly cast into
+                    integers and then the operation will be done.
+            	</para>
+            	<code>
+2 % 2 &results; 0
+11 % 10 &results; 1 </code>
+            </list-item>
+        	</list>
+        </section>
+                <section id="bitwise-operators">
+        	<title id="bitwise-operators.title">Bitwise Operators</title>
+        	<para>
+                Please note that a if a real number is passed to a bitwise operator, it will be implicitly
+                cast to a integer number and then the operation applied. The examples within this section show
+                the resulting number in binary format, however, in &ferite;, printing the value out to the console
+                will display the result in decimal format.
+        	</para>
+        	<code>
+10&amp;11.1 &results; <strong>10&amp;11</strong></code>
+        	<list>
+                <list-item>
+                    <para>
+                        Bitwise AND '&amp;' - does a bitwise AND on the two values passed to it. The result of the 
+                        operation is the left hand side value bitwise 'and'ed with the right hand side. In basic terms,
+                        this means that for every bit in the right hand side that has a value of 1, the corresponding bit
+                        in the left hand side will be noted, otherwise 0 will be used.
+<!-- mdh: using 0b1010&amp;0b1001 would show all combinations of bits -->
+                    </para>
+                    <code>
+0b1010 &amp; 0b1000 &results; 0b1000
+0b1111 &amp; 0b0000 &results; 0b0000 </code>
+                </list-item>
+                <list-item>
+                    <para>
+                        Bitwise OR '|' - does a bitwise OR on the two values passed to it. The result of the operation
+                        is the left hand side bitwise 'or'ed with the right hand side. In basic terms, this means that for
+                        corresponding bits on each side, if either bit is 1, 1 is used otherwise 0.
+                    </para>
+                    <code>
+0b1010 | 0b1000 &results; 0b1010
+0b1111 | 0b0000 &results; 0b1111 </code>
+                </list-item>
+                <list-item>
+                    <para>
+                        Bitwise XOR '^' - does a bitwise XOR on the two values passed to it. The result of the operation 
+                        is the left hand value bitwise 'xor'ed with the right hand side. In basic terms, this means that
+                        for corresponding bits on each side, if either bit is 1, 1 is used otherwise if both bits equal 0
+                        or 1, then 0 is used. 
+                    </para>
+                    <code>
+0b1010 ^ 0b1000 &results; 0b0010
+0b1111 ^ 0b0000 &results; 0b1111 </code>
+                </list-item>
+                <list-item>
+                    <para>
+                        Left Shift '<![CDATA[<<]]>' - does a bitwise left shift on the left hand value by the right hand
+                        value number of bits. For each bit shift, it is equivalent to multiplying the left hand value by 2.
+                        All new bits resulting in the shift will be set to 0.
+                    </para>
+                    <code>
+0b0010 <![CDATA[<<]]> 2 &results; 0b1000
+0b1111 <![CDATA[<<]]> 2 &results; 0b1100 </code>
+                </list-item>
+                <list-item>
+                    <para>
+                        Right Shift '<![CDATA[>>]]>' - does a bitwise right shift on the left hand value by the right hand
+                        value number of bits. For each bit shift, it is equivalent to dividing the left hand value by 2.
+                        All new bits resulting in the shift will be set to 0.
+                    </para>
+                    <code>
+0b0010 <![CDATA[>>]]> 2 &results; 0b0000
+0b1111 <![CDATA[>>]]> 2 &results; 0b0011 </code>
+                </list-item>
+        	</list>
+        </section>
+        
+        <section id="incremental-decremental-operators">
+        	<title id="incremental-decremental-operators.title">Incremental and Decremental Operators</title>
+        	<para>
+        	   Incremental operators allow in-line incrementing and decrementing of numerical values and should
+        	   be applied to variables of type number. There are two flavors of both incrementing and 
+        	   decrementing: pre and post operators. When using the prefix operator, the variable's value is
+        	   incremented and the expression evaluates to the new value. The postfix operator differs slightly
+        	   because it will evaluate to the variable's current value and increment it afterwards.
+        	</para>
+        	<list mark="opencircle">
+                <list-item>
+                    <para>
+                        Prefix Increment '++'
+                    </para>
+                    <code>
+number var = 10; &results; variable 'var' of value 10
+10 + (++var) &results; 21, var is incremented to 11 and the value is added to 10</code>
+                </list-item>
+                <list-item>
+                    <para>
+                        Postfix Increment '++'
+                    </para>
+                    <code>
+number var = 10; &results; variable 'var' of value 10
+10 + (var++) &results; 20, var is added to 10, resulting in 20, but var now has the value 11</code>
+                </list-item>
+                <list-item>
+                    <para>
+                        Prefix Decrement '--'
+                    </para>
+                    <code>
+number var = 10; &results; variable 'var' of value 10
+10 + (--var) &results; 19, var is decremented to 9 and the value is added to 10</code>
+                </list-item>
+                <list-item>
+                    <para>
+                        Postfix Decrement '--'
+                    </para>
+                    <code>
+number var = 10; &results; variable 'var' of value 10
+10 + (var--) &results; 20, var is added to 10, resulting in 20, but var now has the value 9</code>
+                </list-item>
+        	</list>
+            <para>
+                The examples hopefully demonstrate the subtle differences of the operators and their variants.
+                These operators are often used within looping.
+            </para>
+        </section>
+        
+        <section id="assignment-operators">
+        	<title id="assignment-operators.title">Assignment Operators</title>
+        	<para>
+                The basic assignment operator is '='. The operator will take the value of the expression on
+                the right hand side and place that value in the variable on the left hand side. 
+        	</para>
+        	<code>
+number a = 10; &results; the variable a contains the numerical value 10
+string b = "Hello World"; &results; the variable b contains the string value "Hello World"</code>
+            <para>
+                It is useful to note that an obvject variable can point to any object. This means that an object
+                variable could point to an object of type Foo, and then point to an object of type Bar.
+            </para>
+            <code>
+class Foo { &fnumber; idx; }
+class Bar { &fnumber; idx; }
+
+&fobject; f = new Foo();
+f = new Bar(); </code>  
+        	<para>
+                There are a number of short hands using assignment: they couple one operator with assignment.
+                For instance, in the example below, to add-assign you could use the first expression, however 
+                you could use the second shorter and less clunky version.            
+        	</para>
+        	<code>
+number a = 10; &results; a is initialized to 10
+a = a + 100; &results; a now contains 110
+a += 100; &results; a now contains 210 </code>
+            <para>
+                You can use the short hand of an operator with any of the arithmetic or bitwise operators,
+                just prefix the assignment operator with the operator you wish to use. For instance:
+            </para>
+            <code>
+b -= "many" &results; remove "many" from the string b
+c *= 10 &results; multiple c by 10 
+a += 12; &results; 'a' now is equal to a+12
+b += " From Ferite"; &results; 'b' now is equal to b+" From Ferite" </code>
+        	<para>
+                A variable of type void can be morphed into a specific type through assignment. In the example
+                below the variable c is morphed into a number, and variable d morphed into a string. These variables
+                can not be changed into a different type once morphed.
+        	</para>
+        	<code>
+&fvoid; c = 42; &results; c has been morphed into a number
+&fvoid; d = "Now A String"; &results; d has been morphed into a string </code>
+<!-- mdh: inconsistent mutated vs morphed -->
+<!-- ctr: changed. -->
+        </section>
+        
+        <section id="comparison-operators">
+        	<title id="comparison-operators.title">Comparison Operators</title>
+        	<para>
+                Comparison operators allow the differences between two values to be checked. &ferite; provides
+                a standard set of comparison operators that should be found in all programming languages. It is
+                important to note that &ferite; will not throw an exception if different types are used (such as
+                a string and a number) within a comparison, instead the result will be set to false. Comparison operators
+                are used for conditional statements and loops (discussed later).
+        	</para>
+        	<list mark="opencircle">
+                <list-item>
+                    <para>
+                        Equal To '==' - true if both sides are equal, false otherwise. 
+                    </para>
+                    <code>
+10 == 11 &results; false, 10 does not equal 11
+4 == (2 + 2) &results; true, 4 does equal 2 + 2 </code>
+                </list-item>
+            <list-item>
+            	<para>
+                    Not Equal To '!=' - true if both sides are not equal, false otherwise
+            	</para>
+                <code>
+10 != 11 &results; true, 10 does not equal 11
+4 != (2 + 2) &results; false, 4 does equal 2 + 2 </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    Less Than '<![CDATA[<]]>' - true if the left hand side is less than the right, false otherwise.
+            	</para>
+                <code>
+10 <![CDATA[<]]> 11 &results; true, 10 is less then 11
+4 <![CDATA[<]]> (2 + 2) &results; false, 4 is equal to 2 + 2 </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    Less Than Or Equal To '<![CDATA[<=]]>' - true if the left is less than or equal to the right hand side, false otherwise.
+            	</para>
+                <code>
+10 <![CDATA[<=]]> 11 &results; true, 10 is less then 11
+4 <![CDATA[<=]]> (2 + 2) &results; true, 4 is equal to 2 + 2 </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    Greater Than '>' - true if the left hand side is greater than the right, false otherwise.
+            	</para>
+                <code>
+10 &gt; 11 &results; false, 10 is less then 11
+4 &gt; (2 + 2) &results; false, 4 is equal to 2 + 2 </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    Greater Than Or Equal To '>=' - true if the left is greater than or equal to the right hand side, false otherwise.
+            	</para>
+                <code>
+10 >= 11 &results; false, 10 is less then 11
+4 >= (2 + 2) &results; true, 4 is equal to 2 + 2 </code>
+            </list-item>
+            <list-item>
+            	<para>
+                    isa 'isa' - true if the left hand side expression is of type stated on the right hand side.
+<!-- mdh: number foo = bar isa string; is legal -->
+            	</para>
+            	<code>
+"Hello World" <strong>isa</strong> string &results; true
+42 <strong>isa</strong> string &results; false, 42 is a number</code>
+            </list-item>
+            <list-item>
+            	<para>
+                    instanceOf 'instanceof' - true if the left hand side expression is an instance of the class stated on the right hand side.
+            	</para>
+            	<code>
+Console.stdin <strong>instanceof</strong> Sys.StdioStream &results; true
+Console.stdin <strong>instanceof</strong> Test &results; false</code>
+            </list-item>
+        	</list>
+        </section>
+        
+        <section id="logical-operators">
+        	<title id="logical-operators.title">Logical Operators</title>
+        	<para>
+        	   These operators are useful for connecting comparison operators to build bigger expressions.
+        	</para>
+        	<list>
+            <list-item>
+            	<para>
+                    Not '!' - true if the expression it is applied to is false.             	
+                </para>
+            	<code>
+!(4 &gt; (2+2)) &results; true, (4 &gt; (2+2)) evaluates to false, the ! operator flips this to true.
+!(10 &gt; 4) &results; false, (10 &gt; 4) evaluates to true, the ! operator flips this to false.</code>
+                <para>
+                    You can also use the keyword <strong>not</strong> to represent the operator. This is
+                    present in &ferite; because sometimes the '!' can get lost in the expression. 'not' is
+                    the same as '!'.
+                </para>
+            	<code>
+<strong>not</strong> (4 &gt; (2+2)) &results; true
+<strong>not</strong> (10 &gt; 4) &results; false</code>
+            </list-item>
+            <list-item>
+            	<para>
+                    And '&amp;&amp;' - true if both variables/expressions are true.
+                </para>
+                <code>
+true &amp;&amp; (4 &gt; (2+2)) &results; false, (4 &gt; (2+2)) is false, therefore true &amp;&amp; false &results; false
+true &amp;&amp; (10 &gt; 4) &results; true, (10 &gt; 4) is true, therefore true &amp;&amp; true &results; true</code>
+                <para>
+                    It is also possible to use the keyword <monospace>and</monospace> to represent this operator.
+            	</para>
+                <code>
+true <strong>and</strong> (4 &gt; (2+2)) &results; false
+true <strong>and</strong> (10 &gt; 4) &results; true</code>
+            </list-item>
+            <list-item>
+            	<para>
+                    Or '||' - true if either variable/expression is true. 
+                </para>
+                <code>
+true || (4 &gt; (2+2)) &results; true, (4 &gt; (2+2)) is false, therefore true || false &results; true
+true || (10 &gt; 4) &results; true, (10 &gt; 4) is true, therefore true || true &results; true</code>                
+                <para>
+                    It is also possible to use the keyword <monospace>or</monospace> to represent this operator.
+            	</para>
+                <code>
+true <strong>or</strong> (4 &gt; (2+2)) &results; true
+true <strong>or</strong> (10 &gt; 4) &results; true</code>                
+            </list-item>
+        	</list>
+        	<para>
+        	   It is important to note that to make sure the operators are evaluated in the expected order
+        	   it is often necessary to use brackets. The example below demonstrates how an extra set of
+        	   brackets changes the order of evaluation.
+            </para>
+            <code>
+<strong>not</strong> (4 &gt; 2) and (4 &gt; 4) &results; false
+<strong>not</strong> ((4 &gt; 2) and (4 &gt; 4)) &results; true </code>
+        </section>
+
+        <section id="index-operator">
+            <title id="index-operator.title">Index Operator</title>
+        	<para>
+        	   The index operator provides a mechanism for pulling information out of an array or
+        	   a string. There are a number of variations of the operator that are explained below.
+        	</para>
+        	<list>
+            <list-item>
+            	<para>
+                    '[]' - This works on only the array type. When used in this form, the operator
+                    adds a new void variable onto the end of the array and then provides it ready for
+                    use. The main aim of this variant of the index operator is to provide an easy way
+                    of placing new values onto the end of an array.
+            	</para>
+            	<code>
+&farray; a;
+a[] = 1;
+a[] = 2;
+a[] = 3; &results; a being an array with three elements: [ 1, 2, 3 ]</code>
+                <para>
+                    For the record the above example can be re-written as shown in the example below.
+                    This does not make the above example invalid, we just ask you to imagine lots of code
+                    between each line.
+                </para>
+                <code>
+&farray; a = [ 1, 2, 3 ]</code>
+            </list-item>
+            <list-item>
+            	<para>
+                    [<emphasis>expression</emphasis>] - this variant is the main way you can pull either
+                    a value or character out of an array or string respectively. When used with an array,
+                    if the expression evaluates to a number, the operator will evaluate the value at that 
+                    index. If the expression is of any other type, the value will be used to create a hash
+                    index to get the array value. If the operator is applied to a string, only a numerical
+                    expression can be used; the operator will evaluate to the character at that index.                                    
+                </para>
+            	<code>
+&farray; a = [ 1, 2, 'Hello World' => 3 ];
+a[0] &results; the first value within the array, in this example '1'
+a["Hello World"] &results; the value pointed to by "Hello World", in this example '3'
+a[2] &results; the third value (created using the 4th line of the example)</code>
+                <para>
+                    It is important to note that counting for an index starts at 0 (for historical reasons), 
+                    therefore a value in position 10 will have an index 9.
+                </para>
+            </list-item>
+            <list-item>
+            	<para>
+            	    [<emphasis>lower bound expression</emphasis>..<emphasis>upper bound expression</emphasis>] (also referred to as the slice operator) - 
+            	    This is a range expression. 
+                    With strings and arrays it allows you to
+                    take a slice of the variable; in the case of an array, the operator will evaluate to a new array
+                    containing the values described within the range, in the case of a string, a new string with 
+                    the described range will be evaluated to.
+                </para>
+                <para>
+                    The range can be ascending - in which case the order in the
+                    variable is preserved, or descending in which case, the slice is made with the contents
+                    being reversed. It is possible to leave out the upper or lower bound expression dictating
+                    that the operator should go to the end or from the beginning respectively. If a negative number
+                    is given, &ferite; interprets the expression to imply an offset from the end of the variable's
+                    range.
+            	</para>
+            	<code>
+&fstring; s = "Hello";
+&fstring; t = s[-1..0]; &results; a slice of the entire string and reverse it
+&fstring; u = s[..2]; &results; a slice of the first 3 characters in the string s
+&farray; a = [ 1, 2, 3 ];
+&farray; b = a[1..]; &results; a slice of a containing [ 2, 3 ]</code>
+            </list-item>
+        	</list>
+        </section>
+
+        <section id="complex-operators">
+        	<title id="complex-operators.title">Complex Operators</title>
+        	<para>
+                These are not complicated operators. They are actually very friendly and nice operators. In-fact
+                they are quite simple. Just slightly more complicated than the previous operators.
+                <footnote><para>I wish to apologize. I am listening to a goon show and couldn't come up with a better
+                introduction and I felt it was necessary to write something rather than leave it blank. Besides, it is
+                not often you get something silly about something nice and important ;)</para></footnote>
+        	</para>
+        	<list mark="opencircle">
+            <list-item>
+            	<para>
+                    Instantiate an object 'new' - this operator takes a class name and a set of values and
+                    will create a new object based upon that class. It will call the constructor of that class
+                    and then return the object.
+                </para>
+            	<code>
+<strong>new</strong> SomeClass( 10 ) &results; a new object from SomeClass </code>
+            	<para>
+                    It should be noted that multiple <emphasis>object</emphasis> variables can point to
+                    the same object created using the new keyword. This is discussed later on within
+                    <link target="classes-objects.title">Objects and Classes section</link>.
+            	</para>
+            	<code>
+&fobject; newObject = <strong>new</strong> SomeClass( "aString", 10 );
+&fobject; anoObject = newObject; &results; both variables point to the same object</code>
+            </list-item>
+            <list-item>
+            	<para>
+                    Evaluate a string 'eval' - The eval operator allows you to on the fly compile
+                    and execute a script <strong>and</strong> get a return value. They say a picture
+                    is worth a thousand words, so here is an example of eval. If the string supplied to
+                    the operator is invalid, an exception will be thrown.
+            	</para>
+            	<code>
+<strong>eval</strong>( "Console.println(\"Hello World\");" );</code>
+            	<para>
+                    The above example is the same as running the following script:
+            	</para>
+            	<code>
+Console.println("Hello World"); </code>
+            	<para>
+                    To return a value, you just use the return keyword (mentioned within the function
+                    documentation in the next section). The code below will return '42', which will in 
+                    turn be assigned to the variable <strong>value</strong>.
+            	</para>
+            	<code>
+&fnumber; value = eval( "return 42;" );</code>
+            	<para>
+                    This is of course a very simple example and does not show what a useful operator it
+                    is, but it does allow you to, at runtime, modify the behavior of code. It should also
+                    be noted that there are potential security risks involved with this operator and it
+                    should be considered carefully; it is advised that you never eval a string that is
+                    from an unknown source.
+            	</para>
+            	<para>
+                    Later on in this manual, the operator <strong>include</strong> is discussed. This operator
+                    is similar to eval except it will evaluate a file.
+            	</para>
+            </list-item>
+        	</list>
+        </section>
+    	</section>
+
+    	<section id="statements">
+        <title id="statements.title">Statements and Blocks</title>
+        <para>
+        	Statements are basically a collection of expressions followed by a ';'. 
+        </para>
+        <code>
+x = 1 + 2;
+x++; </code>
+        <para>
+        A block is a set of statements sat between two braces '{}'. It is possible to declare new variables but they must
+        be declared at the beginning of a block.
+         </para>
+        <code>
+{
+    &fnumber; x = 10;
+    x = x + 2;
+    x++; 
+} </code>
+        <para>
+            Sometimes it is useful to isolate variables to a specific block in a large chunk of code. To make writing code
+            easier, &ferite; allows you to nest blocks allowing you to, if required, reduce the number of variable declarations
+            at the beginning of functions and/or re-use variable names. The example below shows this in action.
+        </para>
+        <code>
+{
+    &fnumber; x = 10;
+    {
+        string str = "Some Value";
+    }
+} </code>
+        <para>
+            Even though it is possible to re-use variable names within blocks it is not recommended as it can introduce 
+            ambiguity. However, &ferite; will correctly use the most locally declared variable.
+        </para>
+        <code>
+{
+    &fnumber; x = 10; // 1st x
+    x = 20;        // 1st x
+    {
+        &fnumber; x = 20; // 2nd x
+        x = 30;        // 2nd x
+    }
+    x = 40;        // 1st x
+} </code>    
+    	</section>
+
+    	<section id="control-structures">
+        <title id="control-structures.title">Control Structures</title>
+        <para>
+            &ferite; contains methods for changing the program flow, these are formally called control
+            structures. The control structures can be nested as deeply as you need, however, we strongly 
+            urge you to not nest them too deeply as it can cause confusion and ambiguity. 
+        </para>
+        <section id="if-then-else">
+        	<title id="if-then-else.title">If, Then and Else</title>
+        	<para>
+            This allows for the conditional execution of &ferite; scripts based upon the result of a
+            test in the form of an expression. There are two types you can employ: one that will execute code
+            if test is true, the other will do the same as the first but also execute a different bit of 
+            code if the test is false.
+        	</para>
+        	<code>
+<strong>if</strong> ( expression ) {
+    <emphasis>statements if the expression is true</emphasis>
+} </code>
+        <code>
+<strong>if</strong> ( expression ) {
+    <emphasis>statements if the expression is true</emphasis>
+} <strong>else</strong> {
+    <emphasis>statements if the expression is false</emphasis>
+} </code>
+        	<para>
+            It is not necessary to place braces around the statement block if it is only one statement.
+        	</para>        	
+        	<code>
+<strong>if</strong> ( a &lt; 10 )
+    a = a + 2;</code>
+        	<para>
+            The truth value of the expression is determined when the control structure is executed based upon
+            the definition of the truth values in the <link target="truth-value.title">truth values</link>.
+<!-- mdh: how is a "dangling" else resolved? it binds to the closest if statement in the same block
+  if (foo) if (bar) Console.println("one"); else Console.println("two");
+is equivalent to
+  if (foo) {
+    if (bar) {
+      Console.println("one");
+    } else {
+      Console.println("two");
+    }
+  }
+-->
+        	</para>
+        	<code>
+<strong>if</strong> ( a &lt; b )
+	Console.println( "A is less than B" );
+
+<strong>if</strong> ( b &gt; c ) {
+	Console.println( "B is greater than C" );
+	Console.println( "This could be fun." );
+} <strong>else</strong> {
+	Console.println( "It's all good." );
+}
+        	</code>
+		<para>
+		  There is the age old problem of the <emphasis>dangling else</emphasis> problem. With &ferite; the else binds to the closest
+		  if statement within the same block. For instance:
+		</para>
+		<code>
+if (foo) if (bar) Console.println("one"); else Console.println("two"); </code>
+		<para>
+		  Is equivalent to:
+		</para>
+		<code>
+
+if (foo) {
+    if (bar) {
+        Console.println("one");
+    } else {
+        Console.println("two");
+    }
+} </code>
+               </section>
+        
+        <section id="looping">
+        <title id="looping.title">Looping</title>
+        <para>
+            You can not do very much without the ability to loop over data. Each time the block of a loop is executed it
+            is called an iteration. There are several forms of iterating over data in &ferite;: <strong>while</strong>, 
+            <strong>for</strong> and <strong>do..while</strong> loop.
+        </para>
+            <section id="while-loop">
+            <title id="while-loop.title">while Loop</title>
+            <para>
+                The first type of loop &ferite; supports
+                is the while loop; this allows you to keep looping until the expression, used as the test, evaluates to 
+                false. Each time the loop executes, the test is evaluated and if it is true, the body of the while will
+                run.
+<!-- mdh: { } is optional like if statement above. Seems to be true for all of the constructs. Maybe a note on statements vs blocks in or near the scoping? -->
+            </para>
+            <code>
+<strong>while</strong> ( <emphasis>expression</emphasis> ) {
+	<emphasis>statements if the expression is true</emphasis>
+} 	
+
+<strong>while</strong> ( <emphasis>expression</emphasis> )
+	<emphasis>single statement if the expression is true</emphasis> </code>
+            <para>
+                The following code will keep looping until n is equal to 10. On each loop the code will print out the 
+                current value of n from 0 to 9 on a new line and then increment the value of n by 1.
+<!-- mdh: Is the fuzz only for comparison to zero, or is it all numbers? Eg,
+         number x has somehow been forced to real, when compared to 10, is it
+         actually comparing to 10 +/- 0.00001 like when comparing to zero? -->
+            </para>
+        	<code>
+&fnumber; n = 0;
+<strong>while</strong> ( n &lt; 10 ) {
+	Console.println( "$n" );
+	n++;
+} 	</code>
+            </section>
+
+            <section id="for-loop">
+            <title id="for-loop.title">for Loop</title>
+            <para>
+                All of &ferite;'s looping constructs can be modeled using the while loop, however, it is often useful to
+                use the for loop.
+<!-- mdh: Is the for loop faster than the equivalent while? -->
+            </para>
+            <code>
+<strong>for</strong> ( <emphasis>initiator</emphasis>; <emphasis>test</emphasis>; <emphasis>post-block</emphasis> ) {
+	<emphasis>statements if the expression is true</emphasis>
+}	
+
+<strong>for</strong> ( <emphasis>initiator</emphasis>; <emphasis>test</emphasis>; <emphasis>post-block</emphasis> )
+	<emphasis>single statement if the expression is true</emphasis> </code>
+            <para>
+                The initiator expression is executed unconditionally at the beginning of the loop. This is useful, as an example,
+                for setting the initial value of a loop variable. The test is used in the same fashion as a while loop; if it
+                evaluates to true the looping continues, if it evaluates to false the loop will terminate. The main difference to
+                the while loop is the ability to execute a statement at the end of each iteration - often used to increment
+                a variable.
+            </para>
+            <para>
+                If the test is empty it will automatically evaluate to true, causing the loop to continue until 
+                <link target="break">break</link> is used.
+            </para>
+            <code>
+&fnumber; i = 0;
+<strong>for</strong> ( i = 0; i &lt; 10; i++ )
+    Console.println( "variable i currently equals " + i ); // print out the value of i	</code>
+	    <para>
+	      It is possible to declare a loop variable within the first section of a for loop declaration. This allows you
+	      to use loop only variables, knowing that there will be no impact on the surrounding code. This is commonly done
+	      when using for loops. The above example, re-written to take advantage of the feature looks like this:
+	    </para>
+	    <code>
+<strong>for</strong> ( &fnumber; i = 0; i &lt; 10; i++ )
+    Console.println( "variable i currently equals " + i ); // print out the value of i	</code>
+            </section>
+                               
+            <section id="do-while">
+            <title id="do-while.title">do .. while Loop</title>
+            <para>
+                The <emphasis>do .. while</emphasis> loop is a variation of the
+                <emphasis>while</emphasis> loop, the one difference being that it guarantees at least
+                one execution of its body. It will only then complete looping until the expression
+                evaluates to false.
+            </para>
+        	<code>
+<strong>do</strong> {
+	<emphasis>statements if the expression is true</emphasis>
+} <strong>while</strong> ( <emphasis>expression</emphasis> ) 
+
+<strong>do</strong> 
+	<emphasis>single statement if the expression is true</emphasis>
+<strong>while</strong> ( <emphasis>expression</emphasis> ) </code>
+            </section>
+        </section>
+        
+        <section id="manipulating-loops">
+        <title id="manipulating-loops.title">Manipulating Loops</title>
+            <section id="break">
+                <title id="break.title">Break</title>
+                <para>
+                <emphasis>break</emphasis> will end the current <emphasis>for, while, do .. while, or switch
+                </emphasis> loop it is executed in. It allows you to easily escape the current loop if you wish to.
+                </para>
+            </section>
+    
+            <section id="continue">
+                <title id="continue.title">Continue</title>
+                <para>
+                continue will cause execution flow to jump to the end of the block of the current
+<!-- mdh: is it beginning or end? minor point, but above the for reads "execute at statement at the end of each iteration" -->
+<!-- ctr: changed -->
+                <emphasis>for, while, do .. while, or switch</emphasis> loop it is executed in. continure is useful
+                to move onto the next iteration before the current one has finished.
+                </para>
+            </section>
+        </section>
+
+        
+        <section id="iferr-fix-else">
+        	<title id="iferr-fix-else.title">Exception Handling</title>
+        	<para>
+            This control structure provides the exception handling within &ferite;. There are three main components
+            to this structure: the code to execute that may throw an exception, the code to execute if an exception
+            is thrown and an optional block to execute if an exception is <strong>not</strong> thrown.
+        	</para>
+        	<code>
+<strong>iferr</strong> {
+	<emphasis>statements</emphasis>
+} <strong>fix</strong> {
+	<emphasis>statements to clean up in case of an exception</emphasis>
+} <strong>else</strong> {
+	<emphasis>statements if no exception has occurred</emphasis>
+} </code>
+        	<para>
+            It is possible to nest <strong>iferr-fix-else</strong> blocks. When an exception does occur a global
+            variable called err is instantiated and given information relating to the thrown exception. 
+            The object has two attributes, a string 'str' and number 'num' - these provide information on the error 
+            that occurred. Exceptions are propagated up through the system until a handler is found; if no iferr-fix-else
+            block catches the exception, &ferite; will cease execution of the script.
+        	</para>
+        </section>
+        <section id="switch-statement">
+        	<title id="switch-statement.title">Switch</title>
+        	<para>
+            This allows you to write blocks of code that are only executed when an expression evaluates to a certain
+            value. This is roughly equivalent to doing a number of successive <strong>if</strong> blocks,
+            but it is cleaner, tidier and easier to understand.
+<!-- mdh: is it more efficient than the equivalent if-else statements? -->
+<!-- ctr: at the moment no -->
+        	</para>
+        	<code>
+<strong>switch</strong> ( expression ) {
+	<strong>case</strong> expression:
+       ... code ...
+	   <emphasis>... more case blocks ...</emphasis>
+	<strong>default:</strong>
+       ... code ...
+} 	</code>
+            <para>
+                When the switch statement is executed, the expression at the top is evaluated and its value
+                stored for comparison. A <strong>case</strong> expression is evaluated to see if it equals the
+                value previously stored for comparison. If it does, the cases block is executed until the end of the
+                switch statement (including other case blocks). To restrict the flow of execution to that of the matching case
+                block, the  <strong>break</strong> is used. 'break' will cause the execution to jump to the end of the switch 
+                statement. If you use <strong>continue</strong>, the first expression will be re-evaluated, effectively
+                causing the switch statement to start again.
+            </para>
+            <para>
+                It is possible to define a catch-all case block using the <strong>default</strong> identifier. If no
+                case blocks match the switch expression, this case block will be executed.
+            </para>
+            <code>
+<strong>switch</strong>( input ) {
+	<strong>case</strong> 0:
+      Console.println( "case 0" );
+	<strong>case</strong> 1:
+      Console.println( "case 1" );
+      break;
+	<strong>case</strong> 2:
+      input++;
+      Console.println( "case 2" );
+      continue;
+	<strong>case</strong> "3":
+      Console.println( "case 3" );
+      break;
+	<strong>default</strong>:
+      Console.println( "default" );
+} </code>
+            <para>
+                When the variable input is equal to 0, the following will be printed out to the console.
+                The first two case blocks are executed because there is no <strong>break</strong> at the end of the first
+                case block.
+            </para>
+            <code>
+case 0
+case 1 </code>
+            <para>
+                When input = 1, the following will be output-ed to the console. The break at the end of the second case
+                block causes execution of the switch statement to finish.
+            </para>
+            <code>
+case 1 </code>
+            <para>
+                When input = 2, the following will be output-ed to the console. The third case block increments the value of
+                input and causes the execution of the switch statement to be restarted. The value of input increases to 
+                the numerical value of 3; as there is no case block that can catch that value the <strong>default</strong>
+                case block is executed. At first it may seem that the fourth case block may be used, but its expression is
+                the string representation of 3. 
+<!-- mdh: is it worth mentioning that a change to the switch's expression won't impact any further processing?
+            once a case has been matched, you either fall through to the next case, break to the end, or continue from the top? -->
+            </para>
+            <code>
+case 2
+default </code>
+            <para>
+                When input = "3", the following will be output-ed to the console. Once again, the break causes the switch statement
+                to finish.
+            </para>
+            <code>
+case 3 </code>
+            <para>
+                When input is anything else:
+            </para>
+            <code>
+default	</code>
+            <para>
+                It is very important to note that you can use any valid expression as the case expression.
+                It can even have different types than the first switch expression (there won't be any exceptions
+                thrown). This makes switch a very powerful construct. You do not need to supply a <strong>
+                default</strong> block if you do not wish to have one.
+            </para>
+        </section>
+    	</section>
+
+    	<section id="functions">
+        <title id="functions.title">Functions</title>
+        <para>
+            Blocks of statements have been discussed before and functions are just a block of code with a name
+            attached to it. Using this name you can re-use the block of code, creating a library of functions to
+            solve common tasks.
+        </para>
+        <para>
+            A function consists of a name, a parameter list declaration and a block of code - but before delving into
+            the creating of functions, it is important to look at how to call a function.
+        </para>
+        <code>
+x = add_numbers( 1, 2 ); </code>
+        <para>
+            To call a function, you use its name and pass it a set of values. The above example shows a function
+            call to a function named <strong>add_numbers</strong>; it is passed two values: the number 
+            <strong>1</strong> and the number <strong>2</strong>. Any value can be passed to a function and is
+            often the result of evaluating an expression; &ferite; will throw an exception if the types mismatch
+            those of the function being called. All functions may return a value and, in the above example, it 
+            is assigned to some variable x. You can ignore the return value from a function call if you so wish,
+	    ferite will automatically handle the return and discard it as needed.
+<!-- mdh: it is legal to ignore the value being returned. For example, just call add_numbers(1,2); -->
+<!-- ctr: yes -->
+        </para>
+        <para>
+            As mentioned before, a function consists of a name, a parameter list and a block of code. It looks
+            like the example below.
+        </para>
+        <code>
+<strong>function</strong> <emphasis>function_name</emphasis>( <emphasis>parameter declarations</emphasis> ){
+	<emphasis>block of code</emphasis>
+} </code>
+        <list mark="opencircle">
+        	<list-item>
+            <para>
+            	<emphasis>function_name</emphasis> - This is the name of the function and must obey the same rules
+            	for naming as the rules for naming <link target="variables.title">variables</link>. It is recommended
+            	that the name should reflect the purpose of the function, e.g. open, close, add; rather than how the function
+            	works.
+            </para>
+        	</list-item>
+        	<list-item>
+            <para>
+            	<emphasis>parameter declarations</emphasis> - This is a comma separated list of variables. For each variable
+            	it is only necessary to supply the type of a variable and its name. Sometimes it is necessary to pass a variable
+            	by reference; &ferite; allows this to happen by allowing the name of the variable to be prefixed with a '&amp;'. 
+            	Passing variables by reference is covered later in <link target="passing-variables-by-reference">passing variables by reference</link>. 
+            </para>
+        	</list-item>
+        	<list-item>
+            <para>
+            	<emphasis>block of code</emphasis> - To what a block consists of you should see the section <link target="statements">statements</link>.
+            </para>
+        	</list-item>
+        </list>
+        <code>
+/*
+  This function will add the string "foo" onto the end of the string it has been 
+  given and then return it.
+*/
+<strong>function</strong> foo( &fstring; bar ) {
+	bar += "foo";
+	<strong>return</strong> bar;
+} </code>
+        <para>
+            It is important to note that &ferite; falls into the category of call-by-value languages. This means that
+            when a function is called, &ferite; takes each value passed to the function, copies it and assigns it to the variable
+            for that parameter. This means that variables passed into a function call will not be modified by that function
+            call and will remain the same afterwards. This is the same for all types, including arrays, strings and objects.
+            There is a slight oddity with objects: whereas with strings and arrays, you get a complete copy of the 
+            original value, with an object variable you get a copy of the reference to the object it points to. Therefore
+            making a function call, or changing a variable, on an object reference (even though it is copied) will change 
+            that object and that change will be seen after the function call; this is because the reference to the object
+            and <strong>not</strong> the object itself that has been copied.
+        </para>
+        <para>
+            The following example demonstrates this effect with arrays and objects. (It is assumed that StringObject used 
+            within the example holds a string that can be set using <strong>setString()</strong> and obtained by 
+            calling <strong>stringValue()</strong> and using the return value. For more information about classes and 
+            objects please read the section <link target="classes-objects">Classes and Objects</link>
+        </para>
+        <code>
+<strong>function</strong> test( &farray; a, &fobject; b ) {
+    a[] = "Add Item On The End"; // Add an item to the end of the array
+    b.setString( "Set A String In Test" );
+}
+
+&farray; a = [ 1, 2, 3, 4 ];
+&fobject; b = <strong>new</strong> StringObject( "Hello World" );
+Console.println( "Before call to test: ${a}, ${b.stringValue()}" );
+test( a );
+Console.println( "After call to test: ${a}, ${b.stringValue()}" ); </code>
+        <para>
+            The output of the above program is shown below. Note how the array has remained the same but the object
+            has been changed.
+        </para>
+        <code>
+Before call to test: [ 1, 2, 3, 4 ], Hello World
+After call to test: [ 1, 2, 3, 4 ], Set A String In Test </code>        
+        <para>
+            Functions provide an easy way of grouping statements together to perform a task and are the corner stone
+            of any nutritious &ferite; script.
+        </para>
+        <section id="variable-argument-functions">
+        <title id="variable-argument-functions.title">Variable Argument Functions</title>
+        <para>
+            Sometimes it is hard to know how many values you wish to pass into a function; to aid you, &ferite; provides
+            an easy mechanism to write functions that depend on an unknown set of values. When executed it is possible
+            for the function to get a list of the arguments by invoking the <strong>arguments()</strong> strong.
+            This returns an array containing the values passed into the function, with the last value being the name
+            of the function being called. 
+        </para>
+        <para>
+            Although <strong>arguments()</strong> is often used in a variable argument setting, it is possible to 
+            use it within any function.
+        </para>            
+        <para>
+            Declaring a function with variable arguments is the same as declaring a normal function, except the last
+            item in a parameter list is <strong>...</strong>. This tells &ferite; that the function can accept
+            more values including and beyond that point within the parameter list. The following program listing shows 
+            how to declare and use variable argument functions.
+        </para>
+        <code>
+<strong>uses</strong> "array", "console";
+
+<strong>function</strong> test( &fstring; fmt, ... ){
+   &fnumber; i = 0;
+   &farray; fncArgs = <strong>arguments()</strong>;
+   
+   Console.println( "test() called with ${ Array.size(fncArgs) } args" );
+   Console.println( fmt );
+   
+   <strong>for</strong>( i = 0; i &lt; Array.size(fncArgs); i++ ){
+	  Console.println( "Arg[$i]: ${ fncArgs[i] }" );
+   }
+}
+
+test( "nice" );
+test( "nice", "two", "pretty" ); </code>
+        <para>
+            This is an important concept as it is used elsewhere in &ferite; to provide a clean method of dynamic programming
+            when used with 	<link target="dynamic-programming-with-objects">dynamic programming with objects</link>.
+        </para>
+        </section>
+        <section id="returning-a-value">
+        <title id="returning-a-value.title">Returning A Value</title>
+        <para>
+        	If there is not an explicit return statement then the function will return nothing in the form of a void
+        	variable. To return a value from a function, it is as simple as using the <strong>return</strong> keyword. 
+        	<strong>return</strong> takes an expression and returns the result of its evaluation to the caller of the
+        	function. Just as values are passed in by copying them to the parameter variables, the return value from a 
+        	function is also copied to the function calling it.
+<!-- mdh: is "return nothing in the form of a void variable" the same as function foo() { void x; return x; } -->
+<!-- mdh: using that function, calling void y = foo(); does what i'd expect and leaves y as un-morphed.
+  function foo() {
+    void x;
+    return x;
+  }
+  void y = foo();
+  if (y) {
+    Console.println("y is assigned");
+  } else {
+    Console.println("y is not assigned");
+  }
+  y = 3; // works
+-->
+        </para>
+        <code>
+<strong>return</strong> someValue * 10;
+<strong>return</strong> 0;
+<strong>return</strong> "Hello World"; </code>
+	<para>
+	  The default return from a function is a void variable. The two functions below will return exactly the same
+	  value to the caller. &ferite; has a default return value to remove the necessity of requiring the programmer
+	  to always supply one.
+	</para>
+	<code>
+function foo() {
+    &fvoid; x;
+    <strong>return</strong> x;
+}
+function bar() {
+
+} </code>
+        </section>
+        <section id="function-overloading">
+        <title id="function-overloading.title">Function Overloading</title>
+        <para>
+            There are times when you wish to have the same operation applied to different data
+            types, for example, a print method where you wish to handle various different types
+            and/or number of arguments. &ferite; provides a function overloading mechanism
+            which allows you to write a set of functions all with the same name but with different
+            parameters. When the program is run &ferite; will automatically choose the best function
+            for the job based upon the types being passed into the function.
+        </para>
+        <code>
+<strong>uses</strong> "console";
+
+<strong>function</strong> print( &fnumber; n ){
+	Console.println( "Number: $n" );
+}
+
+<strong>function</strong> print( &fstring; s ){
+	Console.println( "String: $s" );
+}
+
+print( 10 );
+print( "Hello World" ); </code>
+        <para>
+        	The above code declares two functions with the name <monospace>print</monospace>. If the 
+        	script is run the following output would occur.
+        </para>
+        <code>
+Number: 10
+String: Hello World </code>
+        </section>
+        <section id="one-line-functions">
+        <title id="one-line-functions.title">One Line Functions</title>
+        <para>
+            Some functions return the result of a single expression, or call a different function. Using
+            braces is somewhat over kill and can cause clutter within the code. &ferite; allows you to use one
+            line functions; these are best explained through the use of an example.
+        </para>
+        <code>
+<strong>uses</strong> "console";
+
+<strong>function</strong> printNumber( &fnumber; n )
+	Console.println( "Number: $n" );
+
+<strong>function</strong> printString( &fstring; s )
+	Console.println( "String: $s" );
+
+printNumber( 10 );
+printString( "Hello World" ); </code>
+        </section>
+        <section id="passing-variables-by-reference">
+        <title id="passing-variables-by-reference.title">Pass By Reference</title>
+        <para>
+            Earlier in this section on functions, it was mentioned that &ferite; passes parameters in by value.
+            This is fine for small strings and arrays, but there are times when you do not want the overhead
+            of copying a large array or large string from one function to another. Or you would like a function
+            to return more than one value. To make life easier &ferite; allows you to pass a variable in by
+            reference; this means that when you change the value of a parameter, the value of the variable in
+            the calling function is modified - there is no copying.
+        </para>
+        <para>
+            This feature is enabled through the use of a '&amp;' before the name of the parameter. The following
+            example should help demonstrate what happens and how it differs from the normal behavior of &ferite;. In
+            the example, the function test has two parameters: a number 'b' which is marked as pass-by-reference
+            and a string str which will maintain normal behavior.
+        </para>
+        <code>
+<strong>uses</strong> "console";
+
+<strong>function</strong> test( &fnumber; &amp;b, &fstring; str ){
+    b = 2;
+    str += "From Foo";
+}
+
+&fnumber; a = 1;
+&fstring; str = "bar";
+
+Console.println( "This should be 1: $a, should be 'bar': $str" );
+test( a, str );
+Console.println( "This should be 2: $a, should be 'bar': $str" ); </code>
+        <para>
+            The result of running the program, is the number 'a' passed into 'test' is passed by reference which
+            means that rather than the value being passed the variable is passed into test. When test changes the
+            value of the parameter to be '2', the variable 'a' is changed. Even though test changes the value of
+            the string parameter, it is only changing the value of the copy. The output of this code running is
+            shown below.
+        </para>
+        <code>
+This should be 1: 1, should be 'bar': bar
+This should be 2: 2, should be 'bar': bar </code>
+        <para>
+            This can be a very useful tool for speeding up programs or returning multiple values; it is recommended
+            that it is used sparingly because it can potentially cause confusion.
+        </para>        
+        </section>
+    	</section>
+
+    	<section id="classes-objects">
+        <title id="classes-objects.title">Classes and Objects</title>
+        <para>
+            Object oriented programming (OOP) is a proven methodology for implementing large complicated systems.
+            The core idea behind object orientation is the grouping of likewise data and methods into special
+            containers called objects. Each object provides a specific purpose, for instance: you could have an
+            'Employee' object that stores data about an employee, such as name, age and salary and has a set of
+            functions that do things with the data within the object, such as increasing the salary or incrementing
+            the age of the employee. OOP allows you to think of a programs structure as you do the real world and
+            therefore plays a critical role within &ferite;.
+        </para>
+        <para>
+            Objects within &ferite; have already been mentioned before, however, this section covers them in great 
+            depth: such as creating classes (the templates that objects are created from), instantiating objects 
+            and how to use &ferite; to implement a clean object base architecture. Before we can talk about objects, 
+            we must discuss classes. A class is a description of a structure; it describes how an object is put
+            together: what information it can hold and what functions can be called on that data. Every single 
+            object within &ferite; is an instance of a class; the following code shows what a class looks like.
+        </para>
+        <code>
+<strong>class</strong> ExampleClass {
+	&fstring; stringValue;
+
+	<strong>function constructor</strong>( &fstring; str ){
+        <strong>self</strong>.stringValue = str; 
+	}
+
+	<strong>function</strong> printString(){
+        Console.println( <strong>self</strong>.stringValue );
+	}
+} </code>
+        <para>
+            The above code snippet declares a class called <strong>ExampleClass</strong>. The class declares
+            the variable <strong>stringValue</strong> and two functions, a constructor <strong>constructor</strong>
+            and normal function <strong>printString</strong>. When an object is created from a class definition
+            it said to have been 'instantiated' from that class; we say that the object is an instance. It is
+            possible, and often the case, that each class will have more than one instance within a program. When
+            an object is instantiated, &ferite; takes the description provided by the class, creates the variables
+            within that object and then calls the constructor. constructors are covered in 
+            	<link target="constructors">constructors section</link>.
+        </para>
+        <para>
+            To create an instance of a class the <strong>new</strong> keyword is used; it takes the name of
+            the class, the values to be passed onto the class's constructor and will return an object. The code
+            below shows how to create a new object and then call the function <strong>printString</strong> on 
+            it.
+        </para>
+        <code>
+&fobject; someObj = <strong>new</strong> ExampleClass( "Hello World" );
+someObj.printString(); <emphasis>// will output Hello World</emphasis> </code>
+        <para>
+            What good is an object if you can not do anything with it? To access the variables, or call a function,
+            in an object requires two things to be known: what you want to access/call and which object to use.
+            Using the above example, we call the function <strong>printString()</strong> on the object 
+            <strong>someObj</strong>; the trick is with the '.', it tells &ferite; to apply the function call on
+            the right hand side to the object on the left hand side.
+        </para>
+        <para>
+            To reference variables and functions from within an object's function, it is necessary to prefix the
+            variable with <strong>self.</strong> or simply a <strong>.</strong>. Just as in the above example,
+            we use <strong>someObj</strong> on the outside of the object, on the inside - the class description
+            - we use <strong>self</strong> to refer to the object we are in. This can be seen in use in the 
+            definition of the class <strong>ExampleClass</strong>; in the function <strong>printString</strong>
+            we use the <strong>self</strong> variable to access the string contained in the object.
+        </para>
+        <para>
+            Lots of objects can cause a lot of headaches, especially when you have to make sure to clean them 
+            up when finished. &ferite; comes to the rescue with a garbage collector; a behind the scenes helper
+            that deletes objects from memory when they are no longer in use. An object is considered in use when
+            there is at least one variable of type object pointing to it. When the number of variables referencing
+            an object drops to 0, the object will be deleted because it is no longer reachable from the program.
+            &ferite;'s garbage collector is designed to deal with large and small programs and should have minimal
+            performance impact on the execution of a program. There are no guarantees as to when an object will 
+            be deleted.
+        </para>
+        <section id="constructors">
+        <title id="constructors.title">What is a constructor?</title>
+        <para>
+            A constructor is a special function that is called, if it exists, when a 
+            object is instantiated from a class. It provides a mechanism for setting up the default values
+            for an object when it is created. Like normal
+            functions, a constructor may have a parameter list and obtains the value through the <strong>new</strong>
+            keyword. An example constructor can be seen in the body of <strong>ExampleClass</strong>.
+            This constructor assigns the value of the parameter to the string contained in the object.
+            All constructors are called <strong>constructor</strong>.
+<!-- mdh: this last sentance seems to disagree with the 3rd sentance. -->
+        </para>
+        </section>
+        <section id="inheritance">
+        <title id="inheritance.title">Inheritance</title>
+        <para>
+            One of the best pieces of advice when developing a program is to re-use code. Inheritance provides
+            a clean mechanism of re-using the functionality in your classes. As an example, let's say that a program needs
+            to deal with vehicle information. You want to store information about different vehicles and for simplicity
+            we shall say that there are three types: motor bikes, cars and trains. There is a common set of details that
+            can be stored about them: the size of engine, make, model, top speed, number of wheels. We have
+            to create a new class, for each vehicle type, that deals with all the pieces of information; this can 
+            introduce bugs, inconsistencies and make life complicated. Inheritance to the rescue! To solve this problem,
+            we create a class that contains all the information that can be shared. We then create a set of classes
+            that inherit from our class; each new class contains the vehicle specific information. The example below 
+            shows how to implement the solution within &ferite;.
+        </para>
+        <code>
+<strong>class</strong> Vehicle {
+    &fstring; make;
+    &fstring; model;
+    &fnumber; engineSize;
+    &fnumber; topSpeed;
+    &fnumber; wheelCount;
+}
+
+<strong>class</strong> MotorBike <strong>extends</strong> Vehicle {
+    &fnumber; handleBarType;
+}
+
+<strong>class</strong> Car <strong>extends</strong> Vehicle {
+    &fnumber; doorCount;
+}
+
+<strong>class</strong> Train <strong>extends</strong> Vehicle {
+    &fnumber; carriageCount;
+} </code>
+        <para>
+            To extend a class, the <strong>extends</strong> keyword is used; it tells &ferite; to note that this
+            class inherits the variables and methods from the class named on the right of the keyword. In the example
+            above, a class <strong>Motor Bike</strong> inherits from the class <strong>Vehicle</strong>. When an
+            an instance of Motor Bike has been created; it is possible to set the value of each variable named in 
+            both Motor Bike and Vehicle. The code below demonstrates how it is possible to use the variables.
+        </para>
+        <code>
+&fobject; bike = new MotorBike();
+bike.handleBarType = 1;   <emphasis>// From 'MotorBike'</emphasis>
+bike.make = "Honda";      <emphasis>// From 'Vehicle'</emphasis>
+bike.model = "Fireblade"; <emphasis>// From 'Vehicle'</emphasis> </code>
+        <para>
+            &ferite; only supports single inheritance; a class may inherit from a maximum of one other class. This 
+            distinction is being made because some languages support multiple inheritance. If we have two classes,
+            A and B, and B inherits from A, we call A the 'super' class, and B the 'sub' class.
+        </para>
+        <para>
+            There are a few important points that should be noted about inheritance:
+        	<list numeration="arabic">
+        	    <list-item>
+        	   <para>
+        	       It is possible to create a function in a subclass with the same name as a function in the super class.
+                This allows you to create custom functionality and change the way the super class's implementation
+                may work.
+            </para>
+            <code>
+<strong>class</strong> A {
+    <strong>function</strong> someFunction() {
+        Console.println( "someFunction in A" );
+    }
+}
+
+<strong>class</strong> B <strong>extends A</strong> {
+    <strong>function</strong> someFunction() {
+        Console.println( "someFunction in B" );
+    }
+} </code>
+            <para>
+                If an object of type A is created and <strong>someFunction</strong> called, the output will be:
+            </para>
+            <code>
+someFunction in A </code>
+            <para>
+                However, as we have changed the <strong>someFunction</strong> in B, the output for an object from
+                B will be:
+            </para>
+            <code>
+someFunction in B </code>
+            </list-item>
+            <list-item>
+            	<para>
+                When we inherit values or functions from a super class we sometimes want to access them as if we
+                are an object of that super class; &ferite; allows you to prefix items with the keyword <strong>super</strong>.
+                This is similar to <strong>self</strong> except that the object is seen as an instance of its super class.
+                E.g. <monospace>super.someFunction()</monospace> will call the function <monospace>someFunction</monospace>
+                as if it was coming from an object created from the parent class.
+            	</para>
+            	<code>
+<strong>class</strong> B <strong>extends</strong> A {
+    <strong>function</strong> someFunction() {
+        super.someFunction(); <emphasis>// Call the someFunction in A</emphasis>
+        Console.println( "someFunction in B" );
+    }
+} </code>
+            <para>
+                The result in making the above addition to <strong>someFunction</strong> in B, will cause the following 
+                output, if <strong>someFunction</strong> called.
+            </para>
+            <code>
+someFunction in A
+someFunction in B </code>
+            </list-item>
+            <list-item>
+            	<para>
+                As mentioned before, it is possible for &ferite; to invoke a constructor on an object when it is 
+                created. It is important that if the class the object is being instantiated from inherits
+                from another class, there is a call to the super class's constructor - it is not done automatically.
+                This can either be done by doing super.NameOfconstructor() or super(). 
+            	</para>
+            	<code>
+<strong>class</strong> B <strong>extends</strong> A {
+    <strong>function</strong> <strong>constructor</strong>() {
+        super(); <emphasis>// Let the super class initialize the object</emphasis>
+    }
+} </code>
+            </list-item>
+            <list-item>
+            <para>
+                You do not need to re-implement each function within a class. If a function is called on an
+                object, and the subclass does not have an implementation for it, &ferite; will go up the tree
+                of inheritance until it can find one.
+            </para>
+            <code>
+<strong>class</strong> A {
+    <strong>function</strong> someFunction() {
+        Console.println( "someFunction in A" );
+    }
+}
+
+<strong>class</strong> B <strong>extends</strong> A {
+}
+
+&fobject; o = new B();
+o.someFunction();  <emphasis>// Will use the implementation in class A</emphasis> </code>
+            <para>
+                The output to the above example will be:
+            </para>
+            <code>
+someFunction in A </code>
+            </list-item>
+            <list-item>
+            <para>
+                You can inherit from a class as many times as you like and you can inherit from classes that
+                inherit from other classes.
+            </para>
+            <code>
+<strong>class</strong> A {
+}
+
+<strong>class</strong> B <strong>extends</strong> A {
+}
+
+<strong>class</strong> C <strong>extends</strong> B {
+}
+
+<strong>class</strong> D <strong>extends</strong> B {
+}
+
+<strong>class</strong> E <strong>extends</strong> D {
+} </code>
+            </list-item>
+            <list-item>
+                <para>It is possible to call the constructor of the parent class by using the special function
+                <strong>super()</strong>.</para>
+                <code>
+<strong>class</strong> A {
+    <strong>function</strong> constructor() {
+        Console.println( "A" );
+    }
+}
+
+<strong>class</strong> B <strong>extends</strong> A {
+    <strong>function</strong> constructor() {
+        super(); // Call the constructor in A
+        Console.println( "B" );
+    }
+} </code>
+
+            </list-item>
+        	</list>
+        </para>
+        </section>
+        <section id="static-members">
+        	<title id="static-members.title">Static Members</title>
+        	<para>
+        	   When &ferite; creates an object from a class, all the variables and functions are added to the object;
+        	   however, it is potentially useful to tie variables or functions to a class. An example of this need is
+        	   generating a unique id for each object that has been created: the current id is stored in the class
+        	   and a function to get the next id. To tell &ferite; that you want this behavior, it is necessary to
+        	   use the <strong>static</strong> modifier. When &ferite; sees the keyword it notes that the function
+        	   or variable it is used with must remain within the class and not appear in any instances. 
+        	</para>
+        	<para>
+        	   The code below shows how to solve the unique id problem mentioned above.
+        </para>
+        <code>
+<strong>class</strong> SpecialClass {
+    <emphasis>// The class only items</emphasis>
+    
+    <strong>static</strong> &fnumber; currentID;
+    
+    <strong>static function</strong> getNextUniqueID() {
+        <emphasis>// self refers to the class</emphasis>
+        self.currentID++;
+        <strong>return</strong> self.currentID;
+    }
+    
+    <emphasis>// The object only items</emphasis>
+    
+    &fnumber; myID;
+    
+    <strong>function</strong> constructor() {
+        <emphasis>// self refers to the object that has been created</emphasis>
+        self.myID = SpecialClass.getNextUniqueID();
+    }
+} </code>
+        <para>
+            There are a number of important things to note about the use of static items: the keyword <strong>static</strong>
+            prefixes the items to be made static; to reference a static member of a class you must first use the class name
+            and then the member you want - even if you are making the reference from within an object from that class. If you
+            do try and access a static member within an object through self, &ferite; will throw an exception.
+        </para>
+        <para>
+            There is another trick that can be used with classes: static constructors. These allow you to run initialization 
+            code on a class once &ferite; has finished compiling it. The code will run during compilation <strong>not</strong> execution.
+            Static constructors are the same as normal constructors with a few differences: there is no guaranteed order of
+            execution (class A may be called before class B but it is not guaranteed), they must have no parameters and they
+            have the static keyword prefix. An example of how to write a static constructor is below.
+        </para>
+<!-- mdh: is static function A() or static constructor() -->
+        <code>
+<strong>class</strong> A {
+    <strong>static function</strong> constructor() {
+        Console.println( "Boot Strapping Class A" );
+    }
+} </code>
+        </section>
+        <section id="access-control">
+            <title id="access-control.title">Access Control: Public, Protected, Private, Abstract and Final</title>
+            <para>
+                Programmers are notoriously good at creating bugs, it is, therefore, sometimes necessary to lay down some
+                rules on how classes and objects should be used. &ferite; has a set of access controls that allow you, the programmer, to
+                specify how functions and variables can be accessed from outside or inside an object. Why would you want 
+                to add restrictions? Sometimes it is important to hide the mechanisms within an object or class and add
+                a well specified interface; if you change the way things work in the background, impact on existing code
+                should be minimal. The variables within an object are that object's data and it should be up to the object
+                to change the values, not an external entity fishing about. If some other piece of code changed a variable
+                without the object's consent, all manner of mayhem could occur.
+            </para>
+            <para>
+                What restrictions can be specified? Public, Protected, Private, Abstract and Final.
+            </para>
+            	<list numeration="arabic">
+                <list-item>
+                    <para><strong>public</strong>: a public variable or function that may be accessed from any part of a program;
+                    there are no restrictions. By default everything is made public.</para>
+                    <code>
+<strong>class</strong> A {
+    <strong>public</strong> &fnumber; objectID;
+} </code>
+                </list-item>
+                <list-item>
+                    <para><strong>private</strong>: when applied to a function or variable, it will only be accessible from that
+                    object or class. <strong>private</strong> will hide the variable or function from any subclasses that 
+                    may exist.</para>
+                    <code>
+<strong>class</strong> A {
+    <strong>private</strong> &fstring; mutableBuffer;
+} </code>
+                </list-item>
+                <list-item>
+                    <para><strong>protected</strong>: protected sits between private and public; a protected variable or function
+                    may only be accessed from within an object it is part of, however, unlike private, a protected item can be 
+                    accessed from any subclass.</para>
+                    <code>
+<strong>class</strong> A {
+    <strong>protected</strong> &fnumber; databaseRefID;
+} </code>
+                </list-item>
+                <list-item>
+                    <para><strong>final</strong>: Sometimes it is necessary to make sure that a variable can not be changed. 
+                    <strong>final</strong> does a couple of things. With a variable, <strong>final</strong> tells &ferite; that, 
+                    once a value has been assigned to it, the variable must not be modified. This is a great way of setting up constants within 
+                    a program. If a program attempts to assign a new value to a final variable an exception will be thrown. When used with
+		    a class, final will make sure that another class can not inherit from it. This is useful feature allowing you, as the programmer,
+		    to dictate whether or not you want people changing the behavior of your class.</para>
+<!-- mdh: that's "run time"? -->
+<!-- mdh: what are the other things? -->
+                    <code>
+<strong>class</strong> A {
+    static <strong>final</strong> &fnumber; maxObjectCount = 1024;
+} </code>
+                </list-item>
+                <list-item>
+                    <para><strong>abstract</strong>: this can only be applied to classes. An abstract class can not be instantiated;
+                    a programmer may only inherit from an abstract class. This is useful when enforcing a factory-methods style of 
+                    programming. There is the top level abstract class which all concrete implementations inherit from; functionality 
+                    is driven using the abstract class. E.g. an abstract protocol class with concrete implementations for HTTP, ftp and HTTPS.
+                    </para>
+                    <code>
+<strong>abstract</strong> <strong>class</strong> Protocol {
+    function sendRequest( string req ) { ... };
+    function receiveRequest() { ... };
+} 
+
+<strong>class</strong> HTTP <strong>extends</strong> Protocol {
+    ...
+}</code>
+                </list-item>
+            </list>
+        </section>
+        <section id="protocols">
+            <title id="protocols.title">Protocols</title>
+            <para>Protocols are your friend and solve the problem of multiple inheritance. What are they for? Sometimes it is necessary 
+            to have an agreed upon protocol between a collection of objects. For example, if there is an event engine that you wish to 
+            register an object with, it is important that two properties are true: the event engine can quickly and easily check to see 
+            if the object responds to the function calls the event engine expects, and that a programmer can easily craft an object that 
+            contains the correct functions.</para>
+            <para>
+                Protocols allow, in our example, the event engine developer to define the interface that it expects all registered objects 
+                to respond to. The definition contains a set of functions without implementation and, using this protocol, developing a 
+                client to the event engine, programmers can specify that the class they are developing should conform to the protocol.
+                When &ferite; finishes compiling a class it first executes, if it exists, the class's static constructor and then checks to see
+                if the class implements all the functions described in the protocol list. If the class fails to conform to any of the protocols,
+                compilation will halt with a compile error.
+<!--mdh: to clarify usage, "halt" is compile time and "throw" is run time? -->
+            </para>
+            <code>
+<strong>protocol</strong> EventHandler {
+    <strong>function</strong> respondsToEvent( &fstring; event );
+    <strong>function</strong> handleEvent( &fstring; event, &farray; data );
+} </code>
+            <para>
+                This is a protocol definition. It defines a protocol called <strong>EventHandler</strong> with two functions. A class
+                that implements this protocol must have two functions with the same names and signatures as these two functions. Protocols
+                look very similar to classes in their structure.
+            </para>
+            <code>
+<strong>class</strong> EventEngine {
+    <strong>function</strong> registerEventHandler( &fobject; eventh ) {
+        if( <strong>eventh.getClass().conformsToProtocol( EventHandler )</strong> ) {
+            // register the event
+            return true;
+        }
+        return false;
+    }
+} </code>
+            <para>
+                This code shows how to test if an object conforms to a protocol. The <strong>getClass()</strong> function returns the
+                class that the object is instantiated from. <strong>conformsToProtocol</strong> is a function that all classes
+                respond to; it takes one parameter and that is the name of the protocol to check for. It returns true if the class 
+                supports the protocol and false otherwise. If true, it is safe to call the functions described within the protocol.
+            </para>
+            <code>
+<strong>class</strong> KeystrokeEvent <strong>implements EventHandler</strong> {
+    <strong>function</strong> respondsToEvent( &fstring; event ) {
+        return true;
+    }
+    <strong>function</strong> handleEvent( &fstring; event, &farray; data ) {
+        ...
+    }
+} </code>
+            <para>
+                This class shows how to tell &ferite; that a class should conform to a protocol. The important part of the above example 
+                is the <strong>implements EventHandler</strong>; it tells &ferite; that the class should 'implement' the protocol 
+                'EventHandler'. It is possible for a class to conform
+                to more that one protocol at a time; instead of a single protocol name, you use a comma separated list.
+            </para>
+            <code>
+<strong>class</strong> Keystroke <strong>implements EventHandler, LogClient</strong> {
+    ...
+} </code>
+            <para>
+                It is important to note that if you are using protocols, the extends clause must come before the implements clause.
+            </para>
+            <code>
+<strong>class</strong> <emphasis>SomeClass</emphasis> <strong>extends AnotherClass</strong> implements <emphasis>SomeProtocol</emphasis> {
+    ...
+} </code>
+        </section>
+        <section id="dynamic-programming-with-objects">
+            <title id="dynamic-programming-with-objects.title">Dynamic Objects</title>
+            <para>
+                Sometimes you do not know what you will have to deal with at runtime as information and structure can change. &ferite; 
+                provides mechanisms to catch missing variables and functions within objects. The mechanism makes building dynamic 
+                systems easier; for instance, a generic database table object does not know what fields may exist. To keep usage
+                consistent with the way values are obtained from an object, the table object can implement <strong>attribute_missing</strong>.
+                When &ferite; can not locate a variable within an object, the runtime will call, if it exists, the <strong>attribute_missing</strong>
+                function. It passes a string to the function which contains the name of the required variable. In the case of the table 
+                object, the <strong>attribute_missing</strong> function loads the value from the database and returns it.
+            </para>
+            <code>
+<strong>class</strong> DatabaseTable {
+    <strong>function</strong> <strong>attribute_missing( &fstring; variable )</strong> {
+        &fvoid; v = <emphasis>load_value_from_db( "sometable", variable );</emphasis>
+        return v;
+    }
+} </code>
+            <para>
+                The mechanism for missing functions is <strong>method_missing</strong>. When &ferite; calls this function it provides
+                all the original parameters as well as the name of the function as the last parameter. To get the parameters it is possible
+                to use the <link target="variable-argument-functions">variable arguments</link> mechanism. 
+                This functionality is used extensively within &ferite;'s rmi module.
+<!-- mdh: the following example doesn't fit on the printed PDF page -->
+            </para>
+            <code>
+<strong>class</strong> RemoteSystem {
+    <strong>function method_missing( ... )</strong>
+    {
+        &fnumber; i = 0;
+        &farray; args = arguments();
+        
+        Console.println( "Function called: " + args[Array.size(args)-1] );
+        Console.println( "With arguments:\n" );
+        <strong>for</strong>( i = 0; i &lt; Array.size(args)-1; i++ )
+            Console.println( "\tArgument ${(i+1)} = '" + 
+                             args[i] + 
+                             "' (${Reflection.type(args[i])})" );
+        Console.println( "" );
+    }
+} </code>
+            <para>
+                The above code prints out the name of the function and then prints out each argument and the argument's type.
+            </para>
+        </section>
+        <section id="modifying-existing-classes">
+        	<title id="modifying-existing-classes.title">Modifying Existing Classes</title>
+        	<para>
+            &ferite; has a number of features that allow you to modify existing classes. Why is this useful?
+            Well, say you have a class that is used all over the place, let's say <strong>File</strong>,
+            and you wish to debug a method, or re-implement a method to work around a bug, or even just add
+            a method. It transparently allows you to shape an existing class to be how you want it to be.
+        	</para>
+        	<para>
+            To do this you use a few keywords: modifies, alias and rename. Here is an example:
+        	</para>
+        	<code>
+<strong>class modifies</strong> File {
+
+    <strong>rename</strong> readln oldReadln;
+    <strong>rename</strong> open oldOpen;
+    
+    <strong>function</strong> readln(){
+        <strong>return</strong> self.oldReadln(1024);
+    }
+    
+    <strong>function</strong> open( &fstring; file, &fstring; mode ){
+        Console.println( "Opening file $file" );
+        self.oldOpen( file, mode, "" );
+    }
+    
+    <strong>function</strong> toString(){
+        &fstring; str = "";
+        
+        <strong>while</strong>( !self.eof() )
+            str += self.readln();
+        <strong>return</strong> str;
+    }
+   
+    <strong>function</strong> newName() {
+        ...
+    }
+    <strong>alias</strong> oldName newName;
+} </code>
+        	<para>
+                To modify a class you use the syntax '<strong>class modifies</strong> nameOfClass', this will
+                tell &ferite; that the target for modification is 'nameOfClass'; the class must exist otherwise you will 
+                get a compile error. Once this is done you can add new methods and variables, and manipulate the existing
+                ones.
+        	</para>
+        	<para>
+                <strong>rename</strong> - this takes two labels, the current name and the new name and renames
+                it. The advantage of this approach is that you can drop in a replacement method and still call
+                the old method within your new method. The above example re-implements the <strong>readln</strong> method within the
+                <strong>File</strong> class such that it does not require the passing of a number of bytes to read.
+        	</para>
+        	<para>
+        	   <strong>alias</strong> - this allows you to create a pointer to a function using a different name. This
+        	   is useful when an API gets renamed to keep existing code functioning whilst it is moved over. In the above
+        	   example the name <strong>oldName</strong> is aliased to the function <strong>newName</strong>.
+            </para>
+        	<para>
+                The above example also adds a new <strong>toString()</strong> which will return the file's contents
+                in a string.
+            </para>
+        	<para>
+                <strong>WARNING:</strong> you can potentially cause a lot of confusion using this mechanism, but it is
+                very useful for debugging and various other uses. You can modify any class within a program. This mechanism
+		can not be applied to a class with a final modifier - it attempted, &ferite; will halt the compliation.
+<!-- mdh: no such thing as a "final" class that can't have this mechanism applied to it? -->
+        	</para>
+        </section>
+    	</section>
+
+    
+    	<section id="namespaces">
+        <title id="namespaces.title">Namespaces</title>
+        <para>
+            Namespaces are defined in the following manner:
+        </para>
+        <code>
+<strong>namespace</strong> <emphasis>name of namespace</emphasis> {
+	<emphasis>variable, namespace, class, and function declarations</emphasis>
+} </code>
+        <para>
+<!-- mdh: next sentance "grouping into a group" -->
+            Namespaces are a means of grouping likewise data and functions into a box to reduce the potential for name
+            conflicts. Functions, Variables, Classes and even other namespaces can be defined within a namespace.
+            For example, say we have several different methods for delivering error messages to a user depending 
+            on their preference. We have a couple of ways we can do it: the non namespace approach or with namespaces.
+        </para>
+        <code>
+<strong>function</strong> text_deliverErrorMessage( string msg ) {}
+<strong>function</strong> gtk_deliverErrorMessage( string msg ) {}
+<strong>function</strong> qt_deliverErrorMessage( string msg ) {}
+<strong>function</strong> network_deliverErrorMessage( string msg ) {} </code>
+        <para>
+            It quickly gets confusing. It can only get worse when you start to add yet another function e.g. for delivering
+            a warning. What we need is a little organization and to the rescue are namespaces.
+        </para>
+        <code>
+<strong>namespace</strong> Text {
+	<strong>function</strong> deliverErrorMessage( &fstring; msg ){}
+}
+<strong>namespace</strong> Gtk {
+	<strong>function</strong> deliverErrorMessage( &fstring; msg ){}
+} 
+<strong>namespace</strong> Qt {
+	<strong>function</strong> deliverErrorMessage( &fstring; msg ){}
+} 
+<strong>namespace</strong> Network {
+	<strong>function</strong> deliverErrorMessage( &fstring; msg ){}
+} </code>
+        <para>
+            The namespace approach is cleaner and more concise. We know that all we have to do is call the 
+            'deliverErrorMessage' in the correct namespace. The code below shows how you can use the magic of 
+            void variables to get a handle on a namespace and then call the functions within it.
+        </para>
+        <code>
+&fvoid; outputMechanism;
+
+<strong>if</strong>( wantGtk )
+    outputMechanism = Gtk;
+<strong>else</strong>
+    outputMechanism = Text;
+
+outputMechanism.deliverErrorMessage( "We have an Error" ); </code>
+        <para>
+            They promote clean and precise code. When a function is defined within a
+            namespace it has to reference stuff within the namespace as code outside does, e.g.
+            <monospace>someNamespace.resource</monospace>.
+        </para>
+        <para>
+            Some readers will note that this can also be achieved with classes and static members, however
+            namespaces are useful for grouping similar functionality that does not necessarily operate on the
+            same data; such as a namespace full of mathematical functions for numbers or string routines.
+        </para>
+        <section id="modifying-existing-namespaces">
+        	<title id="modifying-existing-namespaces.id">Modifying Existing Namespaces</title>
+        	<para>
+            There is also an alternative syntax for namespaces allowing you to extend an already
+            existing namespace or create a new one if it does not already exist. This is done like so:
+        	</para>
+        	<code>
+<strong>namespace modifies</strong> <emphasis>name of namespace</emphasis> {
+	<emphasis>variable, namespace, class and function declarations</emphasis>
+} </code>
+        	<para>
+            When this modifies the namespace it places all items within it in the block in the
+            namespace mentioned. e.g:
+        	</para>
+        	<code>
+<strong>namespace</strong> foo {
+	&fnumber; i;
+}
+
+<strong>namespace modifies</strong> foo {
+	&fnumber; j;
+} 	</code>
+        	<para>
+            In the above example the namespace <strong>foo</strong> has a number i and a number j.
+            The main reason for this syntax is to allow module writers to easily intermingle native
+            and script code within the namespace. There are times when placing something in
+            another namespace makes more sense. e.g. placing a custom written network protocol within
+            a Network namespace.
+        	</para>
+        	<para>
+           It is possible to use the same set of commands on namespaces as you can on classes. See
+           <link target="modifying-existing-classes">modifying existing classes</link> for more information.
+        	</para>
+        </section>
+    	</section>
+
+    	<section id="closures">
+    	   <title id="closures.title">Closures</title>
+    	   <para>
+                A closure is best described as an environment capturing anonymous function. They can provide the
+                core mechanism for a number of different methods of programming. The most prominent use is iteration: closures
+                can provide a very natural method and syntax for iterating over a set of elements no matter what their source.
+                Another use is registering code to be executed when necessary. Both these will be covered within this section.
+    	   </para>
+    	   <para>
+    	       We shall first observe how closures can be used in the most basic of forms.
+    	   </para>
+    	   <code>
+&fnumber; x = 1;
+&fnumber; y = 1;
+
+&fobject; o = <strong>closure</strong> { 
+    &fnumber; z = y;
+    
+    y = 1000;
+    <strong>return</strong> x + z; 
+};
+
+y = 10;
+x = 10;
+
+Console.println( "If this works the next number should be 20: ${o.invoke()}" );
+Console.println( "And y should be 1000: $y" ); </code>
+    	   <para>
+    	       The above code does the following: declares two variables, creates a closure, sets the default values
+    	       for the variables and then invokes the closure by calling <strong>invoke</strong> on it. All parts
+    	       are straight forward except creating a closure. So what happens when &ferite; compiles a closure? 
+    	   </para>
+    	   <para>
+    	       A function is created and compiled as you would expect, however there is one exception: if there is a
+    	       reference to a variable that is not declared within the closure, &ferite; will create a binding to the 
+    	       variable outside the closure. The binding means that the closure can be passed to another function,
+    	       stored in an array and accessed at a later point and the bound variables will be accessible. In the
+    	       above example the variables <emphasis>x</emphasis> and <emphasis>y</emphasis> are both referenced
+    	       within the closure, when a change to the value of x and y is done, the variables that they are bound
+    	       to are updated. In the above example the variable <emphasis>y</emphasis> is changed from 1 (declared
+    	       value) to 1000 and this change is reflected in the above code. This form of binding is known as static
+    	       binding: it means that the variables are bound in the context of the closure's creation rather than
+    	       at the time of the closure's execution.
+    	   </para>
+    	   <para>
+    	       Closures are seen by &ferite; as objects making it easy to pass them from one function to another. The 
+    	       code below is a modification to the above example and demonstrates passing values into a closure.
+    	   </para>
+    	   <code>
+<strong>function</strong> incrementBy( &fobject; c, &fnumber; value ) {
+    &fnumber; x = 99;
+    return c.invoke( value );
+}
+
+<strong>function</strong> closureEx() {
+    &fnumber; x = 1;
+    &fobject; c = <strong>closure</strong>( ivalue ) {
+        x = x + ivalue;
+    };
+    
+    <emphasis>// x = 1</emphasis>
+    incrementBy( c, 10 );
+    <emphasis>// x = 11</emphasis>
+    incrementBy( c, 100 );
+    <emphasis>// x = 111</emphasis> 
+} </code>
+            <para>
+                The above function <emphasis>closureEx</emphasis> creates a closure that accepts one value, in this example
+                called <emphasis>ivalue</emphasis>, and adds it to the current value of x. The closure binds to the x 
+                variable declared above it. The function <emphasis>incrementBy</emphasis> takes a closure object and a number, 
+                invokes the closure passing it the number. The function <emphasis>incrementBy</emphasis> is provided to demonstrate 
+                the nature of binding: even though there is an x variable in incrementBy, the closure has already bound to the
+                x variable in closureEx. 
+            </para>
+            <para>
+                Passing values into a closure is straight forward, it is the same as calling a function. Declaring is as easy 
+                as declaring the parameters a function requires, except you do not declare the types. Each parameter is of 
+                type void making closures useful for dynamic programming.
+            </para>
+    	   <code>
+<strong>function</strong> nTimes( &fnumber; multiplier ) {
+    return <strong>closure</strong>( base ) {
+        return base * multiplier;
+    };
+}
+
+&fobject; times_two = nTimes( 2 );
+&fobject; times_ten = nTimes( 10 );
+
+Console.println( "multiple of  2: 2: ${times_two.invoke(2)}" ); <emphasis>// (1)</emphasis>
+Console.println( "multiple of  2: 5: ${times_two.invoke(5)}" ); <emphasis>// (2)</emphasis>
+Console.println( "multiple of 10: 2: ${times_ten.invoke(2)}" ); <emphasis>// (3)</emphasis>
+Console.println( "multiple of 10: 5: ${times_ten.invoke(5)}" ); <emphasis>// (4)</emphasis> </code>
+            <para>
+                The above is yet another example of binding: even when a function exits, a variable bound within a closure will
+                not be deleted from the program until the closure itself is deleted (by the garbage collector). The function
+                <emphasis>nTimes</emphasis> creates a closure that will return the multiplication of the base parameter and the
+                bound multiplier value. The creation of the <strong>times_two</strong> closure binds its multiplier value to
+                '2' and the creation of the <strong>times_ten</strong> binds its multiplier value to '10'. Therefore the results
+                of the printout lines are as follows:
+            </para>
+            <code>
+multiple of  2: 2: 4
+multiple of  2: 5: 10
+multiple of 10: 2: 20
+multiple of 10: 5: 50 </code>
+            <para>
+                Hopefully you should have a reasonable understanding of the core features of closures. More examples on how
+                they can be applied to real world programming problems will be presented in section 3.     
+            </para>           
+    	   <section id="recipients-deliver-and-using">
+    	       <title id="recipients-deliver-and-using.title">Recipients, Deliver and Using</title>
+    	       <para>
+    	           Closures are a great way of injecting custom actions into generic code. For instance, if you have
+    	           written an advanced structure, you may want to provide a generic sorting function or a generic walking
+    	           function. However there is a slight problem: you do not know what type of information may be stored
+    	           in your structure. The solution is to write a generic walking or sorting algorithm and use a passed in
+    	           closure that can deal with the specifics of the data and provide the overall functionality. This solution
+    	           can be applied to a lot of different mechanisms and to make code less ambiguous, &ferite; provides 
+    	           a special interface to passing a closure into a function, checking to see if a function has received 
+    	           a closure and executing the supplied closure.
+    	       </para>
+    	       <para>
+    	           To demonstrate how to use the special interface here is the implementation of the function <strong>Array.each</strong>
+    	           and some code that uses it.
+    	       </para>
+    	       <code>
+<strong>namespace</strong> Array {
+    <strong>function</strong> each( &farray; a ) {
+        if( <strong>recipient()</strong> != null )
+        {
+            &fnumber; i = 0;
+            &fnumber; size = Array.size(a);
+            
+            for( i = 0; i &lt; size; i++ )
+            {
+                void val = <strong>deliver( a[i] )</strong>;
+                if( val == false or val == null )
+                    break;
+            }
+        }        
+    }
+}
+
+&farray; a = [ 1, 2, 3, 4, 5 ];
+Array.each( a ) <strong>using</strong> ( value ) {
+    Console.println( "Array value: $value" );
+}; </code>
+                <para>
+                    The above example passes an array and a closure to Array.each, which then iterates over each element within the array and delivers
+                    the value to the supplied closure. When the closure is invoked it prints out the value passed to it.
+                </para>
+                <para>
+                    The new keywords introduced in this example are highlighted in bold: <strong>recipient()</strong>, 
+                    <strong>deliver()</strong> and <strong>using</strong>. 'recipient()' is a special function, like 
+                    'arguments()', that is core to the &ferite; engine; the job of the call is to return an object or null 
+                    if there is, or is not, a supplied recipient: a closure. 'deliver()' is another special
+                    function that delivers a set of values to a closure, it simply gets the recipient and calls the 
+                    <strong>invoke</strong> function on it. If there is no recipient, deliver will throw an exception. 
+                    'using' is how you provide a closure to the function
+                    call: you append using after the function call and then define your closure <emphasis>without</emphasis> the 
+                    <strong>closure</strong> keyword.
+                </para>
+                <para>
+                    The code below demonstrates the difference in manually writing the above mechanism.
+                </para>
+                <code>
+<strong>namespace</strong> Array {
+    <strong>function</strong> each( &farray; a, &fobject; c ) {
+        if( c != null )
+        {
+            &fnumber; i = 0;
+            &fnumber; size = Array.size(a);
+            
+            for( i = 0; i &lt; size; i++ )
+            {
+                void val = c.invoke( a[i] );
+                if( val == false or val == null )
+                    break;
+            }
+        }        
+    }
+}
+
+&farray; a = [ 1, 2, 3, 4, 5 ];
+Array.each( a, closure ( value ) {
+    Console.println( "Array value: $value" );
+} ); </code>
+                <para>
+                    It is generally more untidy and and less clear what the intended operation for Array.each is; hence the addition of 
+                    this syntax. It is possible to pass a closure onto another function by using recipient() rather than a new closure.
+                </para>
+                <code>
+<strong>function</strong> someFunction() {
+    anotherFunction() using recipient();
+}
+
+someFunction() using ( v ) {
+    ...
+}; </code>
+    	   </section>
+    </section>
+    
+    <section id="uses-and-include">
+    	<title id="uses-and-include.title">Uses and Include</title>
+    	<para>
+            Both the <strong>uses</strong> and the <strong>include()</strong> instructions tell &ferite; to
+            include another script within the current one. The main difference is that <strong>uses</strong>
+            is a compile time directive and <strong>include()</strong> is a runtime directive.
+    	</para>
+    	<para>
+            It is important to note that &ferite; will, when using or including a script, use a set of paths
+            to resolve relative file names. It will always try and find the script relative to the current
+            script file first and then search in the global paths.
+        </para>
+        <para>
+        	In the case of the &ferite; strong line application, <monospace>$prefix/lib/ferite</monospace> is
+        	searched for scripts plus any directories that are added on the strong line by using the -I flag.
+        	Native modules are placed in <monospace>$prefix/lib/ferite/$platform</monospace>, where $platform is
+        	of the form <monospace>os-cpu</monospace>. If either the script or the module can not be found the 
+        	compilation of the script will cease with an error. It is suggested that these are
+        	placed at the top of the script (although this is not a requirement).
+        </para>
+
+    	<section id="uses">
+        <title id="uses.title">Uses</title>
+        <para>
+        	The uses keyword is used to import API from other external modules and scripts. The
+        	uses keyword is a compile time directive and provides the method for building up the
+        	environment. It can either pull in an external module, or compile in another script.
+        	The syntax is as follows:
+        </para>
+        <code>
+<strong>uses</strong> <emphasis>"name of module or script file", ...</emphasis>; </code>
+        <para>
+        	The name must be in quotes. When &ferite; gets this call it will do the following: if there is no
+        	extension it will try loading a script
+        	in the system's library paths trying the extensions '.fe', '.fec' and '.feh'. The paths for the
+        	native and scripts are defined by the parent application. If an extension is given, &ferite; will
+        	check to see if it equals <strong>.lib</strong>, if it does it will load the correct native
+        	module, e.g. <monospace>uses "array.lib";</monospace> will cause &ferite; to load <monospace>array.so</monospace>
+        	under unices and <monospace>array.dll</monospace> under windows. This gives a platform independent
+        	method to tell &ferite; to load a native library. This is the method used to load
+        	a native module. If it does not equal <strong>.lib</strong>, &ferite; will treat it as a script
+        	and load it.
+        </para>
+    	</section>
+    	<section id="include">
+        <title id="include.title">Include</title>
+        <para>
+        	<strong>include()</strong> operates the same way as <strong>uses</strong>, except that
+        	it can currently only import other scripts. Once the call has been made - the facilities provided by 
+        	the imported script can be used. It should be noted that the return value from the include() call is the
+        	return of the main method when the script is loaded. This allows items to be passed to the parent script.
+        </para>
+        <code>
+&fvoid; v = <strong>include</strong> ( <emphasis>"someScript.fe"</emphasis> );</code>
+        <para>
+            The above code will assign the return value from 'someScript.fe's main code to the variable 
+            v. This is a useful mechanism for writing plug-in architectures: include a script and have
+            the return be an object that represents the loaded plug-in.
+        </para>
+    	</section>
+    </section>
+        <section id="conclusion">
+    	<title id="conclusion.title">Conclusion</title>
+    	<para>
+            We have been on an epic journey: a once foreign language should be familiar and dancing around in your head,
+            making life easier. It is important that we can now look back at the first example given in this manual: it
+            should now be easy to recognize and understand what is going on. To aid you a little further, keywords have
+            been made bold.
+        </para>
+                	<code>
+<emphasis>// The importing of extra functionality</emphasis>
+<strong>uses</strong> "console", "array";
+
+<emphasis>// Declaration of a function. Classes and Namespaces also go here</emphasis>
+<strong>function</strong> processArgument( &fstring; argument ) {
+    Console.println( "Argument: " + argument );
+}
+
+<emphasis>// The startup code</emphasis>
+Array.each( <strong>argv</strong> ) <strong>using</strong> ( argument ) {
+    processArgument( argument );
+};</code>
+    </section>
+	</section>
+	
+	<section id="solving-common-problems">
+	   <title id="solving-common-problems.title">Solving Common Problems With &ferite;</title>
+	   <para>
+	       How to solve problems using &ferite;.
+	   </para>
+    </section>
+</document>

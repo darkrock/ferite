@@ -1,0 +1,34 @@
+uses "console";
+
+class Test {
+
+	function add( string str, number num ){
+		Console.println( "Add String:$str, Number:$num" );
+	}
+
+	function add( number num, string str ){
+		Console.println( "Add Number:$num, String:$str" );
+	}
+}
+
+function test( string foo ){
+  Console.println("String:$foo");
+}
+
+function test( number foo ){
+  Console.println("number:$foo");
+}
+
+object t = new Test();
+
+test("Hello");
+test(2);
+
+t.add( "Hello", 1 );
+t.add( 2, "World" );
+
+monitor {
+  t.add( null );
+} handle {
+  Console.println( "Trying to add null failed. We knew this would happen." );
+}

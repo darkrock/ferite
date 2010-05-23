@@ -1,0 +1,45 @@
+uses "console", "array";
+
+function threeTimes() {
+	deliver();
+	deliver();
+	deliver();
+}
+
+function inject( array a, number n ) {
+	object o = recipient();
+	Array.each( a ) using ( value ) {
+		n = o.invoke( n, value );
+	};
+	return n;
+}
+
+function nTimes( void thing ) {
+	return closure ( n ) { 
+		return thing * n; 
+	};
+}
+
+function passOnToThreeTimes() {
+	threeTimes() using recipient();
+}
+
+array a = [ 1, 2, 3, 4, 5 ];
+object o = null;
+
+threeTimes() using {
+	Console.println( "Hello World" );
+};
+
+passOnToThreeTimes() using {
+	Console.println( "Hello World, via passOnTo" );
+};
+
+Console.println( "" + inject(a, 0) using ( n, value ) { 
+		                return n + value; 
+					  } );
+
+o = nTimes( 23 );
+Console.println( "${o.invoke(3)}" );
+Console.println( "${o.invoke(4)}" );
+

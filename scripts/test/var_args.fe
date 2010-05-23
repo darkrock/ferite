@@ -1,0 +1,21 @@
+#!/usr/bin/env ferite
+
+uses "array", "console";
+
+function test( string fmt, ... )
+{
+    array fncArgs = arguments();
+    number i = 0;
+
+    Console.println( "test() called with ${Array.size(fncArgs)} args" );
+    Console.println( "format: $fmt" );
+
+    for( i = 0; i < Array.size(fncArgs); i++ )
+    {
+        Console.println( "Arg[$i]: ${fncArgs[i]}" );
+    }
+}
+
+test( "nice" );
+test( "nice", "hello world" );
+test( "nice", "two", "pretty" );

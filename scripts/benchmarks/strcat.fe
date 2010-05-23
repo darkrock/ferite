@@ -1,0 +1,16 @@
+#!/usr/bin/env ferite
+
+uses "string", "array", "console";
+
+number i,num;
+string str;
+if( Array.size( argv ) > 0 )
+    num = String.toLong( argv[0] );
+else
+    num = 1;
+
+for( i = 0; i < num ; i++ )
+    str += "hello\n";
+
+Console.println( "" + String.length( str ) );
+

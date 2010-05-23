@@ -1,0 +1,34 @@
+#!/usr/bin/env ferite
+
+uses "console";
+
+namespace foo
+{
+
+    class bar
+    {
+       public static number i;
+
+       function constructor( string hello )
+       {
+           Console.println( "$hello" );
+       }
+
+       static function test()
+       {
+           Console.println( "foo::test()" );
+       }
+    }
+
+}
+
+object bah = new foo.bar("foo");
+foo.bar.test();
+foo.bar.i = 2;
+
+monitor {
+  bah.i = 3;
+} handle {
+  Console.println( "bah.i = 3; Failed, This was expected" );
+}
+              

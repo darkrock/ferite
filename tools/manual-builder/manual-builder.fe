@@ -1,0 +1,38 @@
+uses "console", "filesystem", "xml";
+uses "ManualBuilder/DocUtils";
+uses "ManualBuilder/DocumentFilter";
+uses "ManualBuilder/Filters/HTML";
+uses "ManualBuilder/Filters/PDF";
+
+function generateTexFile( string source, string output ) {
+    object p = new PDFDocumentFilter();
+    File.create( output ) using ( file ) {
+        string pdf = p.convertFromDocumentToType(source);
+        file.writeln( pdf );
+    };    
+}
+
+function generateHTMLFile( string source, string output ) {
+    object o = new HTMLDocumentFilter();
+    File.create( output ) using ( file ) {
+        string html = o.convertFromDocumentToType(source);
+        file.writeln( "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"><html><head>" );
+		file.writeln( "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">");
+        file.writeln( "<title>${o.title}</title>" );
+        file.writeln( '<link rel="stylesheet" href="style.css" type="text/css">' );
+        file.writeln( "</head><body>" );
+        file.writeln( html );
+        file.writeln( "</body></html>" );
+    };    
+}
+
+string f = File.open(argv[1]).toString();
+
+switch( argv[0] ) {
+    case 'pdf':
+        generateTexFile( f, argv[2] );
+        break;
+    case 'html':
+        generateHTMLFile( f, argv[2] );
+        break;
+}        

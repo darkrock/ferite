@@ -1,0 +1,21 @@
+class RMITransportLayer  {
+	function constructor( string url ) {
+	}
+	
+	function send( string str ) {
+	}
+	
+	function receive() {
+		return "";
+	}
+	
+	function cleanup() {
+		
+	}
+	
+	function waitForClient()
+		return null;
+	
+	function isBlocking()
+		return false;   
+}

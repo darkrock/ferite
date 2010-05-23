@@ -1,0 +1,363 @@
+/*
+ * Copyright (C) 2001-2007 Chris Ross, Stephan Engstrom, Alex Holden et al
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "stream";
+uses "unix.lib";
+
+module-header {
+#include "../stream/util_stream.h"
+#include <syslog.h>
+#include <stdarg.h>
+}
+
+/**
+ * @namespace Unix
+ * @modifies Unix
+ */
+
+namespace modifies Unix
+{
+    /**
+    * @variable LOG_PID
+     * @type number
+     * @brief Include process ID with log messages
+     * @description Using this flag with openlog() causes the log messages it
+     *              generates to include the process ID number.
+     */
+    
+    /**
+    * @variable LOG_CONS
+     * @type number
+     * @brief Log to the system console if unable to write to syslog
+     * @description Using this flag with openlog() causes log messages to be
+     *              written to the system console if it is unable to write them
+     *              to the system logger.
+     */
+    
+    /**
+    * @variable LOG_NDELAY
+     * @type number
+     * @brief Open the syslog connection immediately
+     * @description Using this flag with openlog() causes it to open the
+     *              connection to the system logger instead of waiting until
+     *              the first message is written to the log.
+     */
+    
+    /**
+    * @variable LOG_PERROR
+     * @type number
+     * @brief Log to stderr as well as to the system log
+     * @description Using this flag with openlog() causes it to send log
+     *              messages to stderr as well as to the system log.
+     */
+    
+    /**
+    * @variable LOG_KERN
+     * @type number
+     * @brief Kernel log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they come from the system kernel. Not
+     *              recommended unless you are reimplementing klogd in Ferite.
+     */
+    
+    /**
+    * @variable LOG_USER
+     * @type number
+     * @brief User level log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they come from an ordinary user level
+     *              program (not a daemon- use LOG_DAEMON for that).
+     */
+    
+    /**
+    * @variable LOG_MAIL
+     * @type number
+     * @brief Mail system log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they come from the email subsystem.
+     */
+    
+    /**
+    * @variable LOG_DAEMON
+     * @type number
+     * @brief Daemon log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they come from any daemon which doesn't have
+     *              a more specific facility number that it can use.
+     */
+    
+    
+    /* LOG_AUTH is deprecated */
+    
+    /**
+    * @variable LOG_SYSLOG
+     * @type number
+     * @brief Internal Syslog log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they are internal messages from the Syslog
+     *              system itself. Not recommended unless you are reimplementing
+     *              the syslog daemon in Ferite.
+     */
+    
+    /**
+    * @variable LOG_LPR
+     * @type number
+     * @brief Line printer subsystem log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they are from the line printer subsystem.
+     */
+    
+    /**
+    * @variable LOG_NEWS
+     * @type number
+     * @brief News server log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they are from the news server.
+     */
+    
+    /**
+    * @variable LOG_UUCP
+     * @type number
+     * @brief UUCP subsystem log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they are from the UUCP subsystem.
+     */
+    
+    /**
+    * @variable LOG_CRON
+     * @type number
+     * @brief Cron daemon log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they are from the Cron daemon. Not
+     *              recommended unless you are reimplementing the cron daemon
+     *              in Ferite.
+     */
+    
+    /**
+    * @variable LOG_AUTHPRIV
+     * @type number
+     * @brief Authorisation/security log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they are concerning authorisation of users
+     *              or general security issues.
+     */
+    
+    /**
+    * @variable LOG_FTP
+     * @type number
+     * @brief FTP server log facility
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they are from the FTP server.
+     */
+    
+    /* 12 - 15 are reserved for system use. */
+    
+    /**
+    * @variable LOG_LOCAL0
+     * @type number
+     * @brief Local log facility 0
+     * @description Specifying this value as the facility in an openlog() call
+     *              will cause messages to be logged with a facility value
+     *              indicating that they are from the locally chosen
+     *              facility value number 0. There are seven other locally
+     *              chosen values available (LOG_LOCAL1 to LOG_LOCAL7).
+     */
+    
+    /**
+     * @function openlog
+     * @declaration function openlog( string ident, number option, number facility )
+     * @brief Open a connection to syslog facility
+     * @param string ident String that will be added to each message, usually the program name
+     * @param number option Options is an OR of the following: Unix.LOG_CONS, Unix.LOG_PID, Unix.LOG_NDELAY, Unix.LOG_PERROR
+     * @param number facility Describes what facility is logging. It can be any
+     *      one of: Unix.LOG_KERN, Unix.LOG_USER, Unix.LOG_MAIL, Unix.LOG_DAEMON,
+     *      Unix.LOG_SYSLOG, Unix.LOG_LPR, Unix.LOG_NEWS, Unix.LOG_UUCP,
+     *      Unix.LOG_CRON, Unix.LOG_AUTHPRIV, Unix.LOG_FTP, or
+     *      Unix.LOG_LOCAL0 to Unix.LOG_LOCAL7.
+     */
+    native function openlog(string ident, number option, number facility)
+    {
+        FeriteClass *cls;
+        FeriteVariable *obj;
+
+        if((cls = ferite_find_class( script, script->mainns, "Unix.SyslogStream"))) {
+            openlog(ident->data, (int)option, (int)facility);
+            obj = ferite_new_object(script, cls, NULL);
+            FE_RETURN_VAR(obj);
+        }
+    }
+
+    /**
+     * @class SyslogStream
+     * @brief This is Stream returned by Unix.openlog( ). Do not create instances of this class directly. 
+     *        
+     */
+    class SyslogStream extends Stream.Stream
+    {
+       native function constructor()
+       {
+           FeriteVariable *c = ferite_create_object_variable_with_data( script, "SyslogStream", self, FE_STATIC );
+           
+           ferite_variable_destroy( script, ferite_object_call_super(script, c, NULL) );
+           ferite_variable_destroy( script, c );
+           
+           StreamObject->file_descriptor = LOG_NOTICE;
+           StreamObject->read = ferite_object_get_function(script, self, "__read__" );
+           StreamObject->write = ferite_object_get_function(script, self, "__write__" );
+       }
+
+       /**
+        * @function info
+        * @declaration function info( string s )
+        * @brief Sends a message to syslog facility with level LOG_INFO
+        * @param string s The actual message
+        */
+       native function info( string s )
+       {
+           StreamObject->file_descriptor = LOG_INFO;
+           FE_RETURN_VAR(ferite_call_function(script, self, NULL, StreamObject->write, params));
+       }
+
+       /**
+        * @function emerg
+        * @declaration function emerg( string s )
+        * @brief Sends a message to syslog facility with level LOG_EMERG
+        * @param string s The actual message
+        */
+       native function emerg( string s )
+       {
+           StreamObject->file_descriptor = LOG_EMERG;
+           FE_RETURN_VAR(ferite_call_function(script, self, NULL, StreamObject->write, params));
+       }
+
+       /**
+        * @function alert
+        * @declaration function alert( string s )
+        * @brief Sends a message to syslog facility with level LOG_ALERT
+        * @param string s The actual message
+        */
+       native function alert( string s )
+       {
+           StreamObject->file_descriptor = LOG_ALERT;
+           FE_RETURN_VAR(ferite_call_function(script, self, NULL, StreamObject->write, params));
+       }
+
+       /**
+        * @function critical
+        * @declaration function critical( string s )
+        * @brief Sends a message to syslog facility with level LOG_CRIT
+        * @param string s The actual message
+        */
+       native function critical( string s )
+       {
+           StreamObject->file_descriptor = LOG_CRIT;
+           FE_RETURN_VAR(ferite_call_function(script, self, NULL, StreamObject->write, params));
+       }
+
+       /**
+        * @function error
+        * @declaration function error( string s )
+        * @brief Sends a message to syslog facility with level LOG_ERR
+        * @param string s The actual message
+        */
+       native function error( string s )
+       {
+           StreamObject->file_descriptor = LOG_ERR;
+           FE_RETURN_VAR(ferite_call_function(script, self, NULL, StreamObject->write, params));
+       }
+
+       /**
+        * @function warning
+        * @declaration function warning( string s )
+        * @brief Sends a message to syslog facility with level LOG_WARNING
+        * @param string s The actual message
+        */
+       native function warning( string s )
+       {
+           StreamObject->file_descriptor = LOG_WARNING;
+           FE_RETURN_VAR(ferite_call_function(script, self, NULL, StreamObject->write, params));
+       }
+
+       /**
+        * @function notice
+        * @declaration function notice( string s )
+        * @brief Sends a message to syslog facility with level LOG_NOTICE
+        * @param string s The actual message
+        */
+       native function notice( string s )
+       {
+           StreamObject->file_descriptor = LOG_NOTICE;
+           FE_RETURN_VAR(ferite_call_function(script, self, NULL, StreamObject->write, params));
+       }
+
+       /**
+        * @function debug
+        * @declaration function debug( string s )
+        * @brief Sends a message to syslog facility with level LOG_DEBUG
+        * @param string s The actual message
+        */
+       native function debug( string s )
+       {
+           StreamObject->file_descriptor = LOG_DEBUG;
+           FE_RETURN_VAR(ferite_call_function(script, self, NULL, StreamObject->write, params));
+       }
+
+       native function __write__( string s )
+       {
+           syslog(StreamObject->file_descriptor, "%s", s->data);
+       }
+
+       native function __read__( number count )
+       {
+           ferite_error( script, 0, "The syslog is write only." );
+       }
+
+       native function __close__( )
+       {
+           closelog();
+       }
+    }
+    /**
+     * @end
+     */
+}
+/**
+ * @end
+ */

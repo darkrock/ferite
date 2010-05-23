@@ -1,0 +1,112 @@
+uses "sys";
+
+/**
+ * @namespace Console
+ * @brief Provides a simple interface to the stdin, stdout, and stderr streams
+ * @requires sys
+ */
+namespace Console
+{
+    /**
+     * @variable stdout
+     * @type object
+     * @brief A Sys.StdioStream object which is connected to stdout
+     */
+    object stdout;
+
+    /**
+     * @variable stdin
+     * @type object
+     * @brief An Sys.StdioStream object which is connected to stdin
+     */
+    object stdin;
+
+    /**
+     * @variable stderr
+     * @type object
+     * @brief Sys.StdioStream object which is connected to stderr
+     */
+    object stderr;
+
+    function init( )
+    {
+        Console.stdout = Sys.stdout();
+        Console.stdin = Sys.stdin();
+        Console.stderr = Sys.stderr();
+    }
+
+    /**
+     * @function print
+     * @brief Prints a string to stdout
+     * @param void s The information to print out.
+     * @declaration function print( void s )
+     * @description You need to make sure to send a \n to the output at somepoint, otherwise 
+     *              buffering is likely to stop anything being displayed. This function can take
+     *              any type of variable and will automagically convert it into a string.
+     * @example <nl/>
+     *  <code>Console.print( "Hi!" )</code><nl/>
+     */
+    function print( void s )
+    {
+        Console.stdout.write( ""+s );
+    }
+
+    /**
+     * @function println
+     * @brief Prints a string to stdout followed by a newline
+     * @param string s The string
+     * @declaration function println( string s )
+     * @description Unlike, print, you don't need to send a \n. This function can take
+     *              any type of variable and will automagically convert it into a string.
+     * @example <nl/>
+     *  <code>Console.println( "Hi!" )</code><nl/>
+     */
+    function println( void s )
+    {
+        Console.stdout.writeln( ""+s );
+    }
+
+    /**
+     * @function readln
+     * @brief Reads a line from stdin
+     * @return The line read from stdin as a string, including the newline
+     * @declaration function readln()
+     * @example <nl/>
+     * <code><type>string</type> s = Console.readln();</code><nl/>
+     */
+    function readln( )
+    {
+        return Console.stdin.readln( );
+    }
+    
+    /**
+     * @function printErr
+     * @brief Prints a string to stderr
+     * @param void s The information to output
+     * @declaration function printErr( void s )
+     * @description This is equivalent to Console.print, but instead of sending output to standard out, it will
+     * be sent to standard error.
+     */
+    function printErr( void s )
+    {
+        Console.stderr.write( ""+s );
+    }
+
+    /**
+     * @function printlnErr
+     * @brief Print a string to stderr followed by a newline
+     * @param void s The information to output
+     * @declaration function printlnErr( void s )
+     * @description This is equivalent to Console.println, but instead of sending output to standard out, it will
+     * be sent to standard error.
+     */
+    function printlnErr( void s )
+    {
+        Console.stderr.writeln( ""+s );
+    }
+}
+/**
+ * @end
+ */
+
+Console.init();

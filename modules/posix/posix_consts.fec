@@ -1,0 +1,300 @@
+/*
+ * Copyright (C) 2001-2007 Chris Ross, Stephan Engstrom, Alex Holden et al
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "posix.lib";
+
+/**
+ * @namespace Posix
+ * @modifies Posix
+ */
+namespace modifies Posix
+{
+
+    /* These variables are created by module-init in sys.fec from the data in
+     * the two tables in there. */
+
+    /**
+     * @variable SIGHUP
+     * @type number
+     * @brief Hang Up signal
+     */
+
+    /**
+     * @variable SIGINT
+     * @type number
+     * @brief Interrupt signal
+     */
+
+    /**
+     * @variable SIGQUIT
+     * @type number
+     * @brief Quit signal
+     */
+
+    /**
+     * @variable SIGILL
+     * @type number
+     * @brief Illegal Instruction signal
+     */
+
+    /**
+     * @variable SIGTRAP
+     * @type number
+     * @brief Trap signal (used for breakpoints)
+     */
+
+    /**
+     * @variable SIGABRT
+     * @type number
+     * @brief Abort signal
+     */
+
+    /**
+     * @variable SIGBUS
+     * @type number
+     * @brief Bus error signal
+     */
+
+    /**
+     * @variable SIGFPE
+     * @type number
+     * @brief Floating Point Exception signal
+     */
+
+    /**
+     * @variable SIGKILL
+     * @type number
+     * @brief Kill signal
+     */
+
+    /**
+     * @variable SIGUSR1
+     * @type number
+     * @brief User defined signal 1
+     */
+
+    /**
+     * @variable SIGSEGV
+     * @type number
+     * @brief Segmentation Fault signal
+     */
+
+    /**
+     * @variable SIGUSR2
+     * @type number
+     * @brief User defined signal 2
+     */
+
+    /**
+     * @variable SIGPIPE
+     * @type number
+     * @brief Broken Pipe signal
+     */
+
+    /**
+     * @variable SIGALRM
+     * @type number
+     * @brief Alarm signal
+     */
+
+    /**
+     * @variable SIGTERM
+     * @type number
+     * @brief Terminate signal
+     */
+
+    /**
+     * @variable SIGSTKFLT
+     * @type number
+     * @brief Stack fault signal
+     */
+
+    /**
+     * @variable SIGCHLD
+     * @type number
+     * @brief Child terminated signal
+     */
+
+    /**
+     * @variable SIGCONT
+     * @type number
+     * @brief Continue signal
+     */
+
+    /**
+     * @variable SIGSTOP
+     * @type number
+     * @brief Stop signal
+     */
+
+    /**
+     * @variable SIGTSTP
+     * @type number
+     * @brief Terminal stop signal
+     */
+
+    /**
+     * @variable SIGTTIN
+     * @type number
+     * @brief Terminal input without a controlling terminal signal
+     */
+
+    /**
+     * @variable SIGTTOU
+     * @type number
+     * @brief Terminal output without a controlling terminal signal
+     */
+
+    /**
+     * @variable SIGURG
+     * @type number
+     * @brief Urgent data on a socket signal
+     */
+
+    /**
+     * @variable SIGXCPU
+     * @type number
+     * @brief CPU time limit exceeded signal
+     */
+
+    /**
+     * @variable SIGXFSZ
+     * @type number
+     * @brief File size limit exceeded signal
+     */
+
+    /**
+     * @variable SIGVTALRM
+     * @type number
+     * @brief Virtual alarm clock signal
+     */
+
+    /**
+     * @variable SIGPROF
+     * @type number
+     * @brief Profiling timer signal
+     */
+
+    /**
+     * @variable SIGWINCH
+     * @type number
+     * @brief Window size change signal
+     */
+
+    /**
+     * @variable SIGIO
+     * @type number
+     * @brief I/O now possible signal
+     */
+
+    /* getpriority() and setpriority() "which" argument: */
+
+    /**
+     * @variable PRIO_PROCESS
+     * @type number
+     * @brief Get/set the priority of a process
+     */
+
+    /**
+     * @variable PRIO_PGRP
+     * @type number
+     * @brief Get/set the priority of a process group
+     */
+
+    /**
+     * @variable PRIO_USER
+     * @type number
+     * @brief Get/set the priority of a user
+     */
+
+    /* setrlimit() and getrlimit() resources: */
+
+    /**
+     * @variable RLIMIT_CPU
+     * @type number
+     * @brief Resource limit on CPU time in seconds
+     */
+
+    /**
+     * @variable RLIMIT_DATA
+     * @type number
+     * @brief Resource limit on size of data segment
+     */
+
+    /**
+     * @variable RLIMIT_FSIZE
+     * @type number
+     * @brief Resource limit on file size
+     */
+
+    /**
+     * @variable RLIMIT_LOCKS
+     * @type number
+     * @brief Resource limit on number of file locks
+     */
+
+    /**
+     * @variable RLIMIT_MEMLOCK
+     * @type number
+     * @brief Resource limit on number of bytes of memory to lock into RAM
+     */
+
+    /**
+     * @variable RLIMIT_NOFILE
+     * @type number
+     * @brief Resource limit on number of open files
+     */
+
+    /**
+     * @variable RLIMIT_NPROC
+     * @type number
+     * @brief Resource limit on number of processes current UID can have
+     */
+
+    /**
+     * @variable RLIMIT_RSS
+     * @type number
+     * @brief Resource limit on maximum RSS size in pages
+     */
+
+    /**
+     * @variable RLIMIT_STACK
+     * @type number
+     * @brief Resource limit on maximum stack size in bytes
+     */
+
+    /**
+      * @variable RLIM_INFINITY
+      * @type number
+      * @brief Special resource limit value which means "no limit"
+      */
+}
+/**
+ * @end
+ */

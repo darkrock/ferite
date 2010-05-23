@@ -1,0 +1,40 @@
+uses "console";
+
+class Super {
+   static function constructor(){
+       Console.println( "Super static constructor" );
+   }
+}
+
+class SubClass {
+   static function constructor(){
+       super();
+       Console.println( "SubClass static constructor" );
+   }
+}
+       
+abstract class Test {
+}
+
+final class Bar {
+}
+
+/* Add a // to the beginning of this line to test final class'es
+
+class RealBar extends Bar {
+}
+
+//*/
+
+class RealTest extends Test {    
+}
+
+object o = null;
+
+monitor {
+    o = new Test();
+} handle {
+    Console.print( "Got error: ${err.str}" );
+}
+      
+o = new RealTest();

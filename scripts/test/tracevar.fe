@@ -1,0 +1,31 @@
+uses "console";
+uses "reflection";
+
+class TraceVar extends Variable
+{
+   string value = "TraceVar";
+   
+   function get()
+   {
+       Console.println( "get()" );
+       return .value;
+   }
+   
+   function set( void value )
+   {
+       Console.println( "set($value)" );
+       return .value = "TraceVar: $value";
+   }
+   
+   function cleanup()
+   {
+       Console.println( "cleanup()" );
+   }
+}
+
+string test, test2;
+object o = new TraceVar( test );
+
+Console.println( test );
+test = "Chris Ross";
+Console.println( test);

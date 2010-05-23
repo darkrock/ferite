@@ -1,0 +1,130 @@
+.TH ferite 1L "ferite programming language" "Yeah!" \" -*- nroff -*-
+
+.SH NAME
+ferite \- ferite programming lanugage command line tool
+
+.SH SYNOPSIS
+\fBferite [options] name_of_script [\-\- options to script]\fP
+
+.SH DESCRIPTION
+This little program allows you to run a ferite script from the command line.
+It is particularily useful for testing scripts and for writing programs that
+are not tied to another application.
+
+.PP
+To get a list of options, use 'ferite \-\-help'.
+.SH OPTIONS
+The
+.B ferite
+options are listed below.
+In keeping with the freedom-of-choice philosophy, options may be eliminated
+or default values chosen at compile-time, so options and defaults listed
+may not accurately reflect the version installed on your system.
+
+.TP
+.BI \-h, \-\-help
+Show the current for the program
+
+.TP
+.BI \-\-version
+Show the current version or the program
+
+.TP
+.BI \-\-copyright
+Show the current copyright for the program
+
+.TP
+.BI \-v, \-\-verbose
+This will cause the ferite executable to be verbose, this means that it will
+explain where abouts in the grand scheme of things it is, eg. loading a file,
+compiling it, deleting it.
+
+.TP
+.BI \-s, \-\-showargs
+This will cause the program to dump the list of arguments it is passing to
+the initialisation of the ferite engine.
+
+.TP
+.BI \-e " script" ", \-\-execute "script
+This will cause ferite to instead of loading a disk file to compile and run,
+use the string
+.I script\.
+.BR
+eg\.
+ferite -e "uses 'console'; Console.println('Hello');" - this will print out
+.B Hello
+
+.TP
+.BI \-c, \-\-compile-only
+ferite will only compile the program - this is useful for checking that you
+have written syntacically correct code
+
+.TP
+.BI \-w, \-\-warnings
+ferite will display any warnings that are accumilated whilst compiling or
+executing a script.
+
+.TP
+.BI \-I "path" ", \-\-include "path
+This will add 
+.I path
+to the list of directories that ferite searches for library
+files, this is useful if you  are say testing a library before installing it, or
+have particular paths for files [eg. a home directory].
+
+.TP
+.BI \-P "module" ", \-\-preload "module
+This will add 
+.I module
+to the list of modules that get loaded into the system before the script is
+compiled.
+
+.PP
+The following options are specific to the engine and can be used where ever
+the engine is used.
+
+.TP
+.BI \-\-fe-debug
+This will turn on internal debugging of the engine. This will (if the engine
+has been compiled with \-\-enable-debug) cause a huge amount of data to be
+outputed onto
+.I stdout\.
+The information contained within it is invaluable - tracking of function
+execution flow, all sorts of messages allowing for the very quick location of
+bugs.
+
+.TP
+.BI \-\-fe-use-classic
+ferite by default uses's it's own memory suballocator called
+.I jedi
+but there are times when it is useful to either access the system's malloc
+directly, or to track when memory is being used. If ferite is compiled with
+debugging, the classic memory manager will track memory allocations and dump
+a table at the end of the program's execution to show all allocated memory.
+This is vital for tracking memory leaks.
+.I WARNING:
+This mode will cause ferite's speed to drop immensily - it's only useful for
+debugging the engine.
+
+.TP
+.BI \-\-fe-show-mem-use
+ferite keeps internal counters of memory useage, use this to see at the end
+of a programs execution how much memory is still allocated, or has been
+allocated.
+
+.TP
+.BI \-\-fe-use-mm-with-pcre
+Tell ferite to use it's own memory manager with the pcre regular
+expression library
+
+.SH BUGS
+Of course! What software project would be without bugs? Please Please, email
+bug reports to ferite-devel@lists.sourceforge.net \- thanks. 
+
+.SH AUTHOR
+ferite is designed and implemented by Chris Ross <chris@darkrock.co.uk>
+
+.SH URL(s)
+ferite Home Page -- http://www.ferite.org/
+.br
+Author's Home Page -- http://www.darkrock.co.uk/

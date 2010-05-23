@@ -1,0 +1,20 @@
+#!/usr/bin/env ferite
+
+/* Run "nc -u localhost 6666", type something in, and press enter. */
+
+uses "console", "network", "sys", "string";
+
+string s;
+object sock = Network.UDP.bind(Network.ANY4, 6666);
+
+s = sock.readln();
+Console.println("Received datagram: \"" + s + "\"");
+Console.println("remoteip = " + sock.remoteip);
+Console.println("remoteport = " + sock.remoteport);
+
+// This doesn't work wih nc
+sock = Network.UDP.connect(sock.remoteip, String.toNumber(sock.remoteport));
+while(sock and 1) {
+	Sys.sleep(1);
+	sock.write("Ping!\n");
+}

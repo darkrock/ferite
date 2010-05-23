@@ -1,0 +1,160 @@
+uses "regexp";
+
+class HTMLDocumentFilter extends DocumentFilter {
+    
+    string title;
+    number sectionDepth = 0;
+    array toc;
+    array numbers;
+    
+    function documentStart() {
+        .numbers = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ];
+        return '<hr class="documentStart" />';
+    }
+    function documentEnd() {
+        return '<hr class="documentEnd" />';
+    }
+    
+    function sectionStart( string id ) {
+        .sectionDepth++;
+        if( id != '' ) 
+            return "<a name=\"$id\"></a>";
+        return "";
+    }
+    function sectionEnd( string id ) {
+        .numbers[.sectionDepth + 1] = 0;
+        .sectionDepth--;
+        if( .sectionDepth == 0 )
+        {
+            .toc[] = "";
+            return '</blockquote> <hr class="sectionSplitter" />';
+        }
+        return '</blockquote>';
+    }
+    
+    /* private */ function generateNumber() {        
+        string output = "";
+        if( .sectionDepth > 0 )
+        {
+            number i = 0;
+            .numbers[.sectionDepth]++;
+            for( i = 1; i <= .sectionDepth; i++ )
+                output += "" + .numbers[i] + ( i == .sectionDepth ? "" : "." );
+        }
+        return output;
+    }
+    
+    function title( string title, string id ) {
+        number size = .sectionDepth;
+        string sid = .generateNumber();
+        string ctitle = '';
+        
+        if( id != "" )
+            ctitle = id;
+        else {
+            ctitle = String.toLower( "$sid-" + (title - " ") );
+            ctitle = Regexp.replaceAll( '[^A-Za-z0-9_-]', ctitle, '' );
+        }
+        
+        if( size > 3 )
+            size = 3;
+        else if( size == 0 )
+            size = 1;
+        
+        if( .sectionDepth > 0 )
+        {
+            .toc[] = .__indent( "<span style=\"color:#fff;\">____</span>", .sectionDepth  - 1) + "<a href=\"#$ctitle\">$sid. $title</a>";
+            return "<a name=\"$ctitle\"></a><h$size class=\"sectionTitle\">$sid. $title<a href=\"#toc\"><img border=\"0\" src=\"" + ( "http-int.png" ) + "\" /></a></h$size>" +
+                  '<blockquote class="section">';
+        }
+        .title = title;
+        return "";
+    }
+    function externalLink( string title, string target ) {
+        return " <a href=\"$target\">$title<img border=\"0\" src=\"" + ( "http.png" ) + "\" /></a> ";
+    }
+    function internalLink( string title, void target ) {
+        if( Array.keyExists( .tagIDMap, '' + target )  ) {
+            return " <a href=\"#$target\"><b>$title</b><img border=\"0\" src=\"" + ( "http-int.png" ) + "\" /></a> ";        
+        }
+        return " <b>$title</b> ";
+    }
+    function image( string image ){
+        return "<img src=\"$image\" align=\"center\" />";
+    }
+    function newLine() {
+        return '<br />';
+    }
+    function paragraph( string para ) {
+        return "<p class=\"para\">$para</p>";
+    }
+    function normalText( string text ) {
+		text = Regexp.replaceAll( '<', text, '&lt;' );
+		text = Regexp.replaceAll( '>', text, '&gt;' );
+        return text;
+    }
+    function strongText( string text ) {
+        return "<strong class=\"strong\">$text</strong>";
+    }
+    function emphasisText( string text ) {
+        return "<i class=\"emphasis\">$text</i>";
+    }
+    function monospaceText( string text ) {
+        return "<tt class=\"monospace\">$text</tt>";
+    }
+    function codeText( string code, string lines ) {
+		string actualCode = String.trim(Regexp.replaceAll("\t", code, "&nbsp;&nbsp;&nbsp;&nbsp;"), " \n");
+		array  actualLines = Regexp.split("(\r\n|\n|\r)", actualCode);
+		if( lines != 'off' ) {
+			string actualLineNumbers = '';
+			actualLines.eachWithIndex() using ( line, index ) {
+				actualLineNumbers += '' + (index + 1) + '<br />';
+			};
+			return '<table width="100%" cellspacing=0 cellpadding=0><tr><td align="right" width="50"><pre class="code-linesleft">' + actualLineNumbers + '</pre></td><td><pre class="code-linesright">' + actualCode + '</pre></td></tr></table>';
+		} else
+        	return '<pre class="code">' + actualCode + '</pre>';
+    }
+    function quoteText( string code ) {
+        return '<blockquote class="quote">' + String.trim( code, " \n" ) + '</blockquote>';
+    }
+    function colourText( string text, string fg, string bg ) {
+        return "<span style=\"" + 
+        ( fg == "" ? "" : "color: $fg;" ) +
+        ( bg == "" ? "" : "background-color: $bg;" ) +
+        "\">$text</span>";        
+    }
+    function strikeText( string text ) {
+        return '<strike class="strike">' + text + '</strike>';
+    }
+    function underlineText( string text ) {
+        return "<u class=\"underline\">$text</u>";
+    }
+    
+    function rule() {
+        return '<hr class="ruler" />';
+    }
+    
+    function listStart() {
+        return '<ul class="list">';
+    }
+    function listEnd() {
+        return '</ul>';
+    }
+    function listItemStart() {
+        return '<li class="listItem"><p class="listItemParagraph">';
+    }
+    function listItemEnd() {
+        return '</p></li>';
+    }
+    
+    function convertFromDocumentToType( string doc ) {
+        object document = .generateDocumentTree( doc );        
+        string walkedDocument = .walkDocumentTree( document );
+        return "<h1 class=\"documentTitle\">${.title}</h1><a name=\"toc\" />" +
+               "<h3 class=\"tocTitle\">Table of Contents</h3>" +
+               '<blockquote class="toc">' + 
+                   Array.join( .toc, "<br />" ) + 
+               "</blockquote>" + 
+               walkedDocument;
+    }    
+}

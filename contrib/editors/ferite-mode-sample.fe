@@ -1,0 +1,111 @@
+#!/bin/env ferite
+/*
+ * this example tries to include every ferite feature so that i
+ * can validate the syntax highlighting for ferite-mode
+ */
+
+// the importing of extra functionality
+uses "console" , "array";
+
+namespace modifies Array {
+    function myEach(array a) {
+	if (recipient() != null) {
+	    number size = Array.size(a);
+	    for (number i = 0; i < size; i++) {
+		void val = deliver(a[i]);
+		if (val = false or val == null) {
+		    break;
+		}
+	    }
+	}
+    }
+}
+
+class Sam {
+    public function input(object o) {
+	return;
+    }
+    function Version() {
+	Console.println(version);
+    }
+    private string hiddenValley;
+    protected number federalWitness;
+    static final string version = "1.0.1";
+}
+class modifies Sam {
+    rename input oldInput;
+    public function input() {
+	return self.oldInput;
+    }
+    function newName() {
+	return;
+    }
+    alias oldName newName;
+}
+class Dog extends Sam {
+    function constructor() {
+	super();
+    }
+    function Version() {
+	super.Version();
+	Version();
+    }
+}
+
+/*
+ * try out protocols
+ */
+abstract class Protocol {
+    function sendRequest(string req) {
+	return;
+    }
+    function receiveRequest() {
+	return;
+    }
+}
+class HTTP extends Protocol {
+}
+
+protocol EventHandler {
+    function respondsToEvent(string event);
+    function handleEvent(string event, array data);
+}
+class EventEngine {
+    function registerEventHandler(object eventh) {
+	if (eventh.getClass().conformsToProtocol(EventHandler)) {
+	    return true;
+	}
+	return false;
+    }
+}
+class KeystrokeEvent implements EventHandler {
+    function respondsToEvent(string event) {
+	return true;
+    }
+    function handleEvent(string event, array data) {
+	return;
+    }
+}
+class Keystroke implements EventHandler, LogClient {
+}
+class SomeClass extends AnotherClass implements SomeProtocol {
+}
+
+
+// declaration of a function
+function nTimes( number multiplier ) {
+    return closure(base) {
+	return base * multiplier;
+    }
+}
+function processArgument( string argument ) {
+    Console.println( "Argument: " + argument );
+}
+
+void v = include( "someScript.fe" );
+
+// the startup code
+Array.each( argv ) using ( argument ) {
+    processArgument( argument );
+};
+

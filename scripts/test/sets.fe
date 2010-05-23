@@ -1,0 +1,41 @@
+#!/usr/bin/env ferite
+
+uses "console", "array";
+
+string key;
+number n;
+array set1;
+array set2;
+array out;
+set1["fred"] = 1;
+set1["barney"] = 1;
+set1["wilma"] = 1;
+set1["bambam"] = 1;
+set2["pebbles"] = 2;
+set2["fred"] = 2;
+set2["dino"] = 2;
+set2["wilma"] = 2;
+
+Console.println("set 1:");
+Array.map( set1 ) using ( key, n ) {
+    Console.println(key + " = " + n);
+};
+Console.println("\nset 2:");
+Array.map( set2 ) using ( key, n ) {
+    Console.println(key + " = " + n);
+};
+Console.println("\nUnion:");
+out = Array.union(set1, set2);
+Array.map( out ) using ( key, n ) {
+    Console.println(key + " = " + n);
+};
+Console.println("\nIntersect:");
+out = Array.intersect(set1, set2);
+Array.map( out ) using ( key, n ) {
+    Console.println(key + " = " + n);
+};
+Console.println("\nSubtract set2 from set1:");
+out = Array.subtract(set1, set2);
+Array.map( out ) using ( key, n ) {
+    Console.println(key + " = " + n);
+};

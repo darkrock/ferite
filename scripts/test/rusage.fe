@@ -1,0 +1,22 @@
+#!/usr/bin/env ferite
+
+uses "console", "posix";
+
+object rusage = new Posix.Rusage(false);
+
+Console.println("rusage.utime = " + rusage.utime);
+Console.println("rusage.stime = " + rusage.stime);
+Console.println("rusage.maxrss = " + rusage.maxrss);
+Console.println("rusage.ixrss = " + rusage.ixrss);
+Console.println("rusage.idrss = " + rusage.idrss);
+Console.println("rusage.isrss = " + rusage.isrss);
+Console.println("rusage.minflt = " + rusage.minflt);
+Console.println("rusage.majflt = " + rusage.majflt);
+Console.println("rusage.nswap = " + rusage.nswap);
+Console.println("rusage.inblock = " + rusage.inblock);
+Console.println("rusage.oublock = " + rusage.oublock);
+Console.println("rusage.msgsnd = " + rusage.msgsnd);
+Console.println("rusage.msgrcv = " + rusage.msgrcv);
+Console.println("rusage.nsignals = " + rusage.nsignals);
+Console.println("rusage.nvcsw = " + rusage.nvcsw);
+Console.println("rusage.nivcsw = " + rusage.nivcsw);

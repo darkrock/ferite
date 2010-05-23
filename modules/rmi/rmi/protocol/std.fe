@@ -1,0 +1,367 @@
+uses "regexp";
+
+class RMIStandardProtocol extends RMIProtocolLayer
+{
+   function encodeAttributeGetHeader( string id, string serviceName )
+   {
+       return "[$id,$serviceName]:get:attribute";
+   }
+
+   function encodeAttributeSetHeader( string id, string serviceName )
+   {
+       return "[$id,$serviceName]:set:attribute";
+   }
+
+   function encodeAttributeName( string name )
+   {
+       return ":$name";
+   }
+
+   function encodeAttributeFooter()
+   {
+       return "";
+   }
+
+   function encodeMethodCallHeader( string id, string serviceName )
+   {
+       return "[$id,$serviceName]:get:method";
+   }
+
+   function encodeMethodCallName( string name )
+   {
+       return ":$name";
+   }
+
+   function encodeMethodCallArgumentsStart( number size )
+   {
+       return ":plist($size,";
+   }
+
+   function encodeMethodCallArgument( void variable )
+   {
+       return .encodeVariable( variable ) + ",";
+   }
+
+   function encodeMethodCallArgumentsEnd()
+   {
+       return ")";
+   }
+
+   function encodeMethodCallFooter()
+   {
+       return "";
+   }
+
+   function encodeReturn( string id, string service, void value )
+   {
+       return "[$id,$service]:return${.encodeVariable(value)}";
+   }
+
+   function encodeError( string id, string service, string message, number value )
+   {
+       array a = [ message, value ];
+       return "[$id,$service]:error${.encodeVariable(a)}";
+   }
+
+	function encodeVariable( void value )
+	{
+		string str = "";
+		void v;
+
+		if( value isa void )
+			return ":void()";
+		else if( value isa number )
+			return ":number($value)";
+		else if( value isa string )
+		{
+			str = String.base64encode(value);
+			return ":string(${String.length(str)},\"$str\")";
+		}
+		else if( value isa array )
+		{
+			str = ":array(${Array.size(value)},";
+			if( Array.size(value) > 0 ) {
+				Array.each( value ) using ( v ) {
+					str += .encodeVariable( v ) + ",";
+				};
+				str = str[..-2];
+			}
+			str += ")";
+			return str;
+		}
+		else if( value isa object )
+		{
+			// Create a service if needs be this needs to be done so that methods
+			// can be called on objects we pass to the rmi service
+			if( not RMI.Private.serviceExists( value.hash() ) )
+				RMI.Private.createService( value.hash(), value );
+			return ":object(${value.hash()})";
+		}
+		else if( value isa boolean )
+			return ":boolean(" + (value ? "true" : "false") + ")";
+		return ":unknown()";
+	}
+
+   function decodeString( string value )
+   {
+       string tmp = value[8..-3];
+       object match = Regexp.match( '(\d+),"(.*)', tmp );
+	   string base64 = match.capture(1);
+	   number length = match.capture(0).toNumber();
+	   if( base64.length() != length ) {
+		  Sys.error( "String Base64 Length is incorrect: Got ${base64.length()}, Wanted $length", 0 );
+	   }
+       return String.base64decode( base64 );
+   }
+
+   function decodeNumber( string value )
+   {
+       return String.toNumber( value[8..-2] );
+   }
+	function decodeBoolean( string value ) 
+	{
+		object match = Regexp.match( ':boolean\((.*?)\)', value );
+		switch( match.capture(0) ) {
+			case 'true':
+				return true;
+			case 'false':
+				return false;
+		}
+	}
+
+   function decodeArray( string value )
+   {
+       object match;
+       string tmp = value[7..-2], v = "";
+       number count = 0, i = 0, depth = 0, started = false, escaped = false, inString = false;
+       array rval = [];
+
+       if( String.length(value) < 9 )
+         return rval;
+
+       match = Regexp.match( '(\d+),(.*)', tmp );
+       count = String.toNumber( match.capture(0) );
+       tmp = match.capture(1);
+
+       while( tmp != "" )
+       {
+           escaped = false;
+           started = false;
+           inString = false;
+           depth = 0;
+           i = 0;
+
+           while( true )
+           {
+               if( tmp[i] == "\\" && not escaped )
+               {
+                   escaped = true;
+                   i++;
+               }
+
+               if( tmp[i] == "(" && not inString )
+               {
+                   if( not started )
+                     started = true;
+                   depth++;
+               }
+               if( tmp[i] == ")" && not inString )
+                 depth--;
+               if( tmp[i] == "\"" && not escaped )
+                 inString = not inString;
+               if( depth == 0 && started )
+                 break;
+
+               if( escaped )
+                 escaped = false;
+
+               i++;
+           }
+           v = tmp[..i];
+
+           rval[] = .decodeVariable( v );
+
+           if( i < (String.length(tmp) - 2) )
+             tmp = tmp[i+2..];
+           else
+             tmp = "";
+       }
+
+       return rval;
+   }
+
+   function decodeObject( string value )
+   {
+       string service = value[8..-2];
+       return new RMIRemoteObject( self, service );
+   }
+
+   function decodeVariable( string value )
+   {
+       if( value != "" )
+       {
+           switch( value[1..4] )
+           {
+             case "stri":
+               return .decodeString( value );
+             case "numb":
+               return .decodeNumber( value );
+             case "arra":
+               return .decodeArray( value );
+             case "obje":
+               return .decodeObject( value );
+			 case "bool":
+			   return .decodeBoolean( value );	
+           }
+       }
+   }
+
+   function decodeAttribute( string value )
+   {
+       return Regexp.match( ':attribute:(.*)', value ).capture(0);
+   }
+
+   function decodeSetAttribute( string value )
+   {
+       object o = Regexp.match( ':attribute:([^:]+)(:.*)', value );
+       return [ o.capture(0), .decodeVariable( o.capture(1) ) ];
+   }
+
+   function decodeMethodCall( string value )
+   {
+       object o = Regexp.match( ':method:([^:]+)(:.+)', value );
+       return [ o.capture(0), .decodeArray( o.capture(1) ) ];
+   }
+
+   function decodeReturn( string value )
+   {
+       return .decodeVariable( value );
+   }
+
+   function decodeError( string error )
+   {
+       return .decodeVariable( error );
+   }
+
+   function waitForReply( string _id, string _service ) {
+	   
+       RMI.debug( "WaitForReply: ${_id} for service ${_service}" );
+       while( RMI.serverRunning )
+       {
+           array methodinfo, errorreply, attrinfo;
+           string reply, id, service, type, message;
+           object serviceobj = null, servicewrapper = null, method = null, match = null;
+           void attr;
+
+           reply = .translation.receive();
+           RMI.debug( "Reply: '$reply'" );
+           
+           if( reply == "" )
+			   break;
+		   
+           match = Regexp.match( '^\[([^,]+),([^\]]+)\]:([^:]+)(:.*)', reply );
+
+		   id = match.capture(0);
+		   service = match.capture(1);
+		   type = match.capture(2);
+	       message = match.capture(3);
+
+           if( id == _id && service == _service ) /* Check to see if we have a reply */
+           {
+               RMI.debug( 'Checking for Reply' );
+               switch( type )
+               {
+                 case "return":
+                   return .decodeReturn( message );
+                 case "error":
+                   errorreply = .decodeError( message );
+                   Sys.error( errorreply[0] + "\n", errorreply[1] );
+                   return;
+               }
+           }
+           else /* We dont have a reply */
+           {
+               RMI.debug( "Using service: $service" );
+               
+               serviceobj = RMI.getService( service );
+               if( serviceobj == null )
+               {
+                   .translation.send( .encodeError( id, service, "Error: No such service '$service'", RMI.Error.NOSERVICE ) );
+                   continue;
+               }
+
+               servicewrapper = serviceobj.getWrapper();
+
+               RMI.debug( "For Type: $type (Message '$message')" );
+               switch( type )
+               {
+                 case "get":
+                   if( Regexp.match('^:attribute',message) )
+                   {
+                       monitor {
+                           attr = servicewrapper.getVariable( .decodeAttribute( message ) );
+                       }
+                       handle
+                       {
+                           /* No attribute */
+                           .translation.send( .encodeError( id, service, "Error: No Such Attribute '${.decodeAttribute( message )}'", RMI.Error.NOATTRIBUTE ) );
+                       }
+                       else
+                       {
+                           /* We have it, return the encoded value */
+                           .translation.send( .encodeReturn( id, service, attr ) );
+                       }
+                   }
+                   else if( Regexp.match('^:method',message) )
+                   {
+                       monitor {
+                           methodinfo = .decodeMethodCall( message );
+                           method = servicewrapper.getFunction( methodinfo[0] );
+                       }
+                       handle {
+                           .translation.send( .encodeError( id, service, "Error: No Such Method '${methodinfo[0]}'", RMI.Error.NOMETHOD ) );
+                       }
+					   monitor {
+						   attr = method.execWithArray( methodinfo[1] );
+					   }
+					   handle {
+						   if( method == null )
+							   .translation.send( .encodeError( id, service, "Error: Bad Method Call '${methodinfo[0]}' - No Such Method", RMI.Error.BADMETHOD));
+						   else
+							   .translation.send( .encodeError( id, service, "Error: Bad Method Call '${methodinfo[0]}': ${err.str}", RMI.Error.BADMETHOD ) );
+					   }
+					   else {
+						   .translation.send( .encodeReturn( id, service, attr ) );
+					   }
+                   }
+                   break;
+                 case "set":
+                   if( Regexp.match('^:attribute', message) )
+                   {
+                       monitor
+                       {
+                           attrinfo = .decodeSetAttribute( message );
+                           servicewrapper.setVariable( attrinfo[0], attrinfo[1] );
+                       }
+                       handle
+                       {
+                           /* No attribute */
+                           .translation.send( .encodeError( id, service, "Error: No Such Attribute '${attrinfo[0]}'", RMI.Error.NOATTRIBUTE ) );
+                       }
+                       else
+                       {
+                           /* We have it, return the encoded value */
+                           .translation.send( .encodeReturn( id, service, attrinfo[1] ) );
+                       }
+                   }
+                   break;
+               }
+           }
+       }
+
+       RMI.debug( "Remote connection closed! Exiting Thread!" );
+	   .translation.cleanup();
+   }
+}
+
+RMI.registerProtocolLayer( "std", "RMIStandardProtocol" );

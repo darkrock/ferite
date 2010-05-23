@@ -1,0 +1,101 @@
+uses "array", "console", "regexp";
+
+function highlight_variable( string &value, string keyword ) {
+    value = Regexp.replaceAll( keyword, value, "<type>$keyword</type>" );
+}
+function highlight_keyword( string &value, string keyword ) {
+    value = Regexp.replaceAll( keyword, value, "<keyword>$keyword</keyword>" );
+}
+
+string input = Sys.openfile( argv[0], Sys.O_RDONLY ).toString();
+object capture_comments = new Regexp( '(/\*(.*?)\*/)', 'gs' );
+
+array variables = [ 
+    "false",
+    "null",
+    "true",
+    "number",
+    "string",
+    "array",
+    "void",
+    "object" ];
+array keywords = [ 
+    "class",
+    "attribute_missing",
+    "module-unregister",
+    "module-register",
+    "method_missing",
+    "module-deinit",
+    "module-header",
+    "module-flags",
+    "module-init",
+    "implements",
+    "constructor",
+    "destructor",
+    "instanceof",
+    "recipient",
+    "protected",
+    "namespace",
+    "arguments",
+    "protocol",
+    "continue",
+    "abstract",
+    "function",
+    "modifies",
+    "private", 
+    "deliver",
+    "closure",
+    "default",
+    "foreach",
+    "extends",
+    "include",
+    "return",
+    "switch",
+    "public", 
+    "atomic",
+    "delete",
+    "static",
+    "global",
+    "rename",
+    "native",
+    "alias",
+    "break",
+    "super",
+    "final",
+    "monitor",
+    "using",
+    "while",
+    "uses",
+    "case",
+    "else",
+    "eval",
+    "self",
+    "argv",
+    "fix",
+    "for",
+    "new",
+    "and",
+    "not",
+    "isa",
+    "or",
+    "do",
+    "if" ];
+
+// Place tags
+input = Regexp.replaceAll( "&",  input, "&amp;" );
+input = Regexp.replaceAll( "<",  input, "&lt;" );
+input = Regexp.replaceAll( ">",  input, "&gt;" );
+input = Regexp.replaceAll( '(    |\t)', input, '<tab/>' );
+input = Regexp.replaceAll( "\n",  input, "<nl/>\n" );
+input = capture_comments.replaceAll( input, '<i>\1</i>' );
+
+// Keywords
+Array.each( keywords ) using ( keyword ) {
+    highlight_keyword( input, keyword );
+};
+// Variables
+Array.each( variables ) using ( variable ) {
+    highlight_variable( input, variable );
+};
+
+Console.println( " * @example <nl/><code>\n$input</code><nl/>" );

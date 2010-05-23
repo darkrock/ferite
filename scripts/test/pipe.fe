@@ -1,0 +1,26 @@
+#!/usr/bin/env ferite
+
+uses "console", "posix", "sys";
+
+object pipe = new Posix.Pipe();
+number pid = Posix.fork();
+string s;
+
+Console.println( "If this test works, you should see:" );
+Console.println( "Parent said: \"Hello Child\n\"" );
+Console.println( "To terminate press ctrl+c" );
+Console.println( "\n---------------------------------------------\n" );
+if(pid == -1) Console.printlnErr("Fork failed: " + err.str);
+else if(pid == 0) {
+	pipe.in.close();
+	while(1) {
+		s = pipe.out.readln();
+		Console.println("Parent said: \"" + s + "\"");
+	}
+} else {
+	pipe.out.close();
+	while(1) {
+		pipe.in.println("Hello Child");
+		Sys.sleep(1);
+	}
+}

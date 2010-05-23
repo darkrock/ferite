@@ -1,0 +1,40 @@
+uses "console";
+
+protocol Test {
+
+	function test( string s );
+
+	function notest( string s );
+}
+
+class TestI implements Test { 
+	function test( string s ) 
+		Console.println( "III!!!!" );
+
+	function notest( string s )
+		Console.println( "NO TEST HERE" );
+}
+
+class TestII {
+
+}
+
+object t = new TestI();
+
+Console.println( "Should be true" );
+if( t.getClass().conformsToProtocol( Test ) )
+	Console.println( "YES WE ARE TRUE" );
+else 
+	Console.println( "NO WE ARE NOT TRUE :(" );
+
+Console.println( "Shouldn't be true" );
+if( TestII.conformsToProtocol( Test ) )
+	Console.println( "Eeek. We are true" );
+else
+	Console.println( "WE ARE FALSE! CORRECT" );
+
+monitor {
+	object o = new Test();
+} handle {
+	Console.println( "Couldn't instantiate protocol - this is correct" );
+}

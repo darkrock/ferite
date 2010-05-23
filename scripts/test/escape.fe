@@ -1,0 +1,37 @@
+#!/usr/bin/env ferite
+
+uses "console", "string";
+
+/* \x0b is \v which the Ferite parser doesn't support for some reason: */
+string test = "\a\b\f\n\r\t\x0b\\\?\'\"";
+string s = String.escape(test);
+Console.println("The next two lines should match:");
+Console.println("\\a\\b\\f\\n\\r\\t\\v\\\\\\?\\'\\\"");
+Console.println(s);
+s = String.unescape(s);
+if(s != test) Console.println("Error: unescaped result doesn't match");
+else Console.println("Unescaped result matches OK");
+
+s = String.unescape('\0\x0');
+if(String.length(s) == 2) Console.println("unescape handles nulls OK");
+else Console.println("Error: unescape doesn't handle nulls properly");
+
+if(String.unescape('\x2a') == "*" && String.unescape('\x7') == "\a")
+	Console.println("unescape handles hex OK");
+else Console.println("Error: unescape doesn't handle hex properly");
+
+if(String.unescape('\7') == "\a" && String.unescape('\52') == "*" &&
+					String.unescape('\170') == "x") {
+	Console.println("unescape handles octal OK");
+} else Console.println("Error: unescape doesn't handle octal properly");
+
+if(String.unescape('\z') == "\z")
+	Console.println("unescape handles invalid escapes OK");
+else Console.println("Error: unescape doesn't handle invalid escapes properly");
+
+if(String.unescape("hello\\") == "hello\\") {
+	Console.println("unescape handles backslash at end of line OK");
+} else {
+	Console.println("Error: unescape doesn't handle backslash at end of " +
+							"line properly");
+}

@@ -1,0 +1,23 @@
+uses "reflection";
+
+class RMILocalVariable extends Variable
+{
+   object rmiobject;
+   string attrname;
+
+   function setRMIObject( object obj, string attrname )
+   {
+       .rmiobject = obj;
+       .attrname = attrname;
+   }
+   
+   function get()
+   {
+       return .rmiobject.attribute_missing( .attrname );
+   }
+   
+   function set( void value )
+   {
+       return .rmiobject.attribute_set( .attrname, value );
+   }
+}

@@ -1,0 +1,21 @@
+----------------------------------------------------------------------------
+What is aphex?
+----------------------------------------------------------------------------
+aphex is a library to absrtact certain things and move them out of the core
+ferite engine, and expeand with more convinience apis, currently this is:
+
+  loading of files - allowing for search paths so you can ask aphex to load
+                     a relative file and it'll search paths for you
+  
+  directory reading - functions that allow you to read the contents of a
+                      directory
+					  
+  configuration reading/writing
+  
+Eventually it'll allow sandboxing of the ferite engine
+
+----------------------------------------------------------------------------
+Why?
+----------------------------------------------------------------------------
+Once aphex is stable - to port the core engine to a new os you just need to
+port aphex and triton.

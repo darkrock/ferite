@@ -1,0 +1,456 @@
+/*
+ * Copyright (C) 2001-2007 Chris Ross, Stephan Engstrom, Alex Holden et al
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "stream";
+uses "date.lib";
+
+module-header {
+#include "../../config.h"
+#include "util_date.h"
+
+#ifdef WIN32
+	char *strptime (const char *buf, const char *format, struct tm *timeptr);
+#endif
+}
+
+/**
+ * @class Date
+ * @brief Provides a time object with which information can be gathered
+ * @description Do not create instances of this class directly, use Date.localDate(), 
+                Date.date(), or Date.parse()
+ */
+class Date
+{
+   number tm_sec;
+   number tm_min;
+   number tm_hour;
+   number tm_mday;
+   number tm_mon;
+   number tm_year;
+   number tm_wday;
+   number tm_yday;
+   number tm_isdst;
+   number tm_gmtoff;
+   string tm_zone;
+   native function constructor( )
+   {
+       struct FeTm *Tm = NULL;
+       struct tm *tm = NULL;
+       self->odata = Tm = fmalloc( sizeof( struct FeTm ) );
+       Tm->tm_sec    = ferite_object_get_var(script,self,"tm_sec");
+       Tm->tm_min    = ferite_object_get_var(script,self,"tm_min");
+       Tm->tm_hour   = ferite_object_get_var(script,self,"tm_hour");
+       Tm->tm_mday   = ferite_object_get_var(script,self,"tm_mday");
+       Tm->tm_mon    = ferite_object_get_var(script,self,"tm_mon");
+       Tm->tm_year   = ferite_object_get_var(script,self,"tm_year");
+       Tm->tm_wday   = ferite_object_get_var(script,self,"tm_wday");
+       Tm->tm_yday   = ferite_object_get_var(script,self,"tm_yday");
+       Tm->tm_isdst  = ferite_object_get_var(script,self,"tm_isdst");
+       Tm->tm_zone  = ferite_object_get_var(script,self,"tm_zone");
+       Tm->tm_gmtoff  = ferite_object_get_var(script,self,"tm_gmtoff");
+       tm = fcalloc( 1, sizeof(struct tm) );
+       memset( tm, '\0', sizeof(struct tm) );
+       system_sync_to_FeTm( Tm, tm );
+       ffree( tm );
+   }
+   native function destructor( )
+   {
+       if( self->odata )
+         ffree( self->odata );
+   }
+   native function __RegisterFromPointer__( object tm ) : boolean
+   {
+       if(!tm->odata || strcmp( tm->name, "struct::tm" ) != 0)
+       {
+           FE_RETURN_FALSE;
+       }
+       system_sync_to_FeTm( self->odata, tm->odata );
+       FE_RETURN_TRUE;
+   }
+   
+   /**
+    * @function now
+    * @static
+    * @declaration function now( )
+    * @brief Get the current time as a long
+    * @return The time represented as a long
+    */
+   static native function now() : number {
+       FE_RETURN_LONG( time(NULL) );
+   }
+   /**
+	* @function GMTnow
+	* @static
+	* @declaration function GMTnow()
+	* @brief Get the current GMT time as a long 
+	* @return The time as a number
+	*/
+	static function GMTnow() {
+		return Date.now() - Date.timezone();
+	}
+	
+   /**
+    * @function time
+    * @declaration function time( )
+    * @brief Get the time of the instance object in long format
+    * @return The time represented as a long
+    */
+   native function time( ) : number
+   {
+       struct tm tm;
+       time_t t;
+       system_sync_to_tm( self->odata, &tm );
+       t = mktime( &tm );
+       FE_RETURN_LONG( t );
+   }
+
+   /**
+    * @function toString
+    * @declaration function toString( )
+    * @brief Get the time as a string
+    * @return The time represented as a string
+    * @description The string returned is in the form of "Wed Jun 30 21:49:08 1993\n"
+    */
+   native function toString( ) : string
+   {
+       FeriteVariable *v;
+       struct tm tm;
+       system_sync_to_tm( self->odata, &tm );
+       v = fe_new_str_static( "asctime", asctime( &tm ), 0 , FE_CHARSET_DEFAULT );
+       FE_RETURN_VAR( v );
+   }
+   /**
+    * @function format
+    * @declaration function format( string fmt )
+    * @brief Generate a string from the time based upon formating supplied
+    * @param string fmt The format of the time
+    * @return The string
+    * @description The format is a string with the following delimiters in it:<nl/><nl/>
+    *        %a     The abbreviated weekday name according to the  cur­
+    *               rent locale.
+    * <nl/><nl/>
+    *        %A     The  full  weekday  name  according  to the current
+    *               locale.
+    * <nl/><nl/>
+    *        %b     The abbreviated month name according to the current
+    *               locale.
+    * <nl/><nl/>
+    *        %B     The  full  month  name  according  to  the  current
+    *               locale.
+    * <nl/><nl/>
+    *        %c     The preferred date and time representation for  the
+    *               current locale.
+    * <nl/><nl/>
+    *        %C     The century number (year/100) as a 2-digit integer.
+    *               (SU)
+    * <nl/><nl/>
+    *        %d     The day of the month as a decimal number (range  01
+    *               to 31).
+    * <nl/><nl/>
+    *        %D     Equivalent  to  %m/%d/%y.  (Yecch  -  for Americans
+    *               only.  Americans should note that  in  other  coun­
+    *               tries %d/%m/%y is rather common. This means that in
+    *               international context this format is ambiguous  and
+    *               should not be used.) (SU)
+    * <nl/><nl/>
+    *        %e     Like  %d, the day of the month as a decimal number,
+    *               but a leading zero is replaced by a space. (SU)
+    * <nl/><nl/>
+    *        %E     Modifier: use alternative format, see below. (SU)
+    * <nl/><nl/>
+    *        %F     Equivalent to %Y-%m-%d (the ISO 8601 date  format).
+    *               (C99)
+    * <nl/><nl/>
+    *        %G     The ISO 8601 year with century as a decimal number.
+    *               The 4-digit year corresponding to the ISO week num­
+    *               ber  (see  %V).  This has the same format and value
+    *               as %y, except that if the ISO week  number  belongs
+    *               to  the  previous  or  next year, that year is used
+    *               instead. (TZ)
+    * <nl/><nl/>
+    *        %g     Like %G, but without century, i.e., with a  2-digit
+    *               year (00-99). (TZ)
+    * <nl/><nl/>
+    *        %h     Equivalent to %b. (SU)
+    * <nl/><nl/>
+    *        %H     The  hour as a decimal number using a 24-hour clock
+    *               (range 00 to 23).
+    * <nl/><nl/>
+    *        %I     The hour as a decimal number using a 12-hour  clock
+    *               (range 01 to 12).
+    * <nl/><nl/>
+    *        %j     The  day of the year as a decimal number (range 001
+    *               to 366).
+    * <nl/><nl/>
+    *        %k     The hour (24-hour clock) as a decimal number (range
+    *               0  to  23);  single digits are preceded by a blank.
+    *               (See also %H.) (TZ)
+    * <nl/><nl/>
+    *        %l     The hour (12-hour clock) as a decimal number (range
+    *               1  to  12);  single digits are preceded by a blank.
+    *               (See also %I.) (TZ)
+    * <nl/><nl/>
+    *        %m     The month as a decimal number (range 01 to 12).
+    * <nl/><nl/>
+    *        %M     The minute as a decimal number (range 00 to 59).
+    * <nl/><nl/>
+    *        %n     A newline character. (SU)
+    * <nl/><nl/>
+    *        %O     Modifier: use alternative format, see below. (SU)
+    * <nl/><nl/>
+    *        %p     Either AM' or PM' according  to  the  given  time
+    *               value, or the corresponding strings for the current
+    *               locale.  Noon is treated as pm'  and  midnight  as
+    *               am'.
+    * <nl/><nl/>
+    *        %P     Like  %p but in lowercase: am' or pm' or a corre­
+    *               sponding string for the current locale. (GNU)
+    * <nl/><nl/>
+    *        %r     The time in a.m. or p.m. notation.   In  the  POSIX
+    *               locale this is equivalent to %I:%M:%S %p'. (SU)
+    * <nl/><nl/>
+    *        %R     The  time  in  24-hour notation (%H:%M). (SU) For a
+    *               version including the seconds, see %T below.
+    * <nl/><nl/>
+    *        %s     The number of seconds since the Epoch, i.e.,  since
+    *               1970-01-01 00:00:00 UTC. (TZ)
+    * <nl/><nl/>
+    *        %S     The second as a decimal number (range 00 to 61).
+    * <nl/><nl/>
+    *        %t     A tab character. (SU)
+    * <nl/><nl/>
+    *        %T     The time in 24-hour notation (%H:%M:%S). (SU)
+    * <nl/><nl/>
+    *        %u     The  day  of  the  week as a decimal, range 1 to 7,
+    *               Monday being 1.  See also %w. (SU)
+    * <nl/><nl/>
+    *        %U     The week number of the current year  as  a  decimal
+    *               number,  range  00  to  53, starting with the first
+    *               Sunday as the first day of week 01. See also %V and
+    *               %W.
+    * <nl/><nl/>
+    *        %V     The  ISO  8601:1988 week number of the current year
+    *               as a decimal number, range 01 to 53, where  week  1
+    *               is  the  first week that has at least 4 days in the
+    *               current year, and with Monday as the first  day  of
+    *               the week. See also %U and %W. (SU)
+    * <nl/><nl/>
+    *        %w     The  day  of  the  week as a decimal, range 0 to 6,
+    *               Sunday being 0.  See also %u.
+    * <nl/><nl/>
+    *        %W     The week number of the current year  as  a  decimal
+    *               number,  range  00  to  53, starting with the first
+    *               Monday as the first day of week 01.
+    * <nl/><nl/>
+    *        %x     The preferred date representation for  the  current
+    *               locale without the time.
+    * <nl/><nl/>
+    *        %X     The  preferred  time representation for the current
+    *               locale without the date.
+    * <nl/><nl/>
+    *        %y     The year as a  decimal  number  without  a  century
+    *               (range 00 to 99).
+    * <nl/><nl/>
+    *        %Y     The year as a decimal number including the century.
+    * <nl/><nl/>
+    *        %z     The time-zone as hour offset from GMT.  Required to
+    *               emit  RFC822-conformant  dates (using "%a, %d %b %Y
+    *               %H:%M:%S %z"). (GNU)
+    * <nl/><nl/>
+    *        %Z     The time zone or name or abbreviation.
+    * <nl/><nl/>
+    *        %+     The date and time in date(1) format. (TZ)
+    * <nl/><nl/>
+    *        %%     A literal %' character.
+    */
+   native function format( string fmt ) : string
+   {
+       struct tm tm;
+       char *str = NULL;
+       int length;
+       FeriteVariable *v = NULL;
+       length = ((fmt->length * 2) < 100) ? 100 : fmt->length * 2;
+       str = fmalloc( length );
+       memset( &tm, '\0', sizeof(struct tm) );
+       system_sync_to_tm( self->odata, &tm );
+       strftime( str, length, fmt->data, &tm );
+       v = fe_new_str_static( "strftime", str, 0, FE_CHARSET_DEFAULT );
+       ffree( str );
+       FE_RETURN_VAR( v );
+   }
+
+   /**
+    * @function date
+    * @static
+    * @declaration static function date( number time )
+    * @brief Convert a long representation of time to an Date
+    * @param number time The time to use.
+    * @return A Date object on success, null otherwise
+    * @description To get the current timestamp, use Date.now()
+    */
+   static native function date( number time ) : Date
+   {
+       struct tm *tm;
+       time_t t;
+       t = (time_t)time;
+       tm = gmtime( &t );
+       FE_RETURN_VAR( system_call_tm( script, tm ) );
+   }
+   /**
+    * @function localDate
+    * @static
+    * @declaration static function localDate( number timestamp )
+    * @brief Convert a long representation expressed relative to the environment specified timezone
+    * @param number timestamp The time to convert
+    * @return A Date object on success, null otherwise
+    * @description This takes note of daylight saving and other locale specific issues. It assumes that
+    *              the time is in UTC and takes into accout the timezone the environment is in. To get
+                   the current timestamp, use Date.now()
+    */
+   static native function localDate( number timestamp ) : Date
+   {
+       struct tm *tm = NULL;
+       time_t t;
+       t = (time_t)timestamp;
+       tm = localtime( &t );
+       FE_RETURN_VAR( system_call_tm( script, tm ) );
+   }
+   /**
+    * @function parse
+    * @static
+    * @declaration static function parse( string str, string fmt )
+    * @brief Convert a string based upon a given format to a Date object
+    * @param string str The string to convert
+    * @param string fmt The format of the string - see Date.format for codes
+    * @return A Date object on success, null otherwise
+    */
+   static native function parse( string str, string fmt ) : Date
+   {
+       time_t s = time(NULL);
+       struct tm tm = *(gmtime(&s));
+       strptime( str->data, fmt->data, &tm );
+       FE_RETURN_VAR( system_call_tm( script, &tm ) );
+   }
+   /**
+    * @function timezone
+    * @static
+    * @declaration static function timezone( )
+    * @brief Get the seconds West of GMT
+    * @return The number of seconds
+    */
+   static native function timezone( ) : number
+   {
+#if !defined(USING_SOLARIS) && !defined(USING_CYGWIN) && !defined(USING_MINGW)
+       time_t t = time(NULL);
+       struct tm *tm = NULL;
+       tm = localtime(&t);
+       FE_RETURN_LONG( tm->tm_gmtoff );
+#else
+       FE_RETURN_LONG( 0 );
+#endif
+   }
+   
+}
+/**
+ * @end
+ */
+
+/**
+* @class Alarm
+ * @brief Provide a means for setting an alarm
+ */
+class Alarm
+{
+    /**
+    * @function constructor
+     * @declaration function constructor( string functionName, number interval, number recurring )
+     * @brief The constructor
+     * @param string functionName The name of the function to call when the alarm goes off
+     * @param number interval The interval in seconds
+     * @param number recurring Whether the alarm re-occurs
+     */
+    native function constructor( string functionName, number interval, number recurring )
+    {
+#ifndef WIN32
+        FeriteFunction  *func;
+        AlarmData *alrm;
+        func = ferite_function_get( script, functionName->data );
+        self->odata = alrm = fmalloc(sizeof(AlarmData));
+        alrm->script = script;
+        alrm->function = func;
+        alrm->interval = (long)interval;
+        alrm->recurring = (long)recurring;
+        alrm->timeleft = 0;
+        currentAlarm = alrm;
+#else
+		FE_RETURN_NULL_OBJECT;
+#endif
+    }
+    native function destructor( )
+    {
+#ifndef WIN32
+        alarm( 0 );
+		if( self->odata )
+	        ffree( self->odata );
+#endif
+    }
+    /**
+    * @function start
+     * @declaration function start( )
+     * @brief Start the alarm
+     */
+    native function start( ) : undefined
+    {
+#ifndef WIN32
+        AlarmData *alrm = self->odata;
+        if( signal( SIGALRM, timer_sig_alarm ) == SIG_ERR )
+        {
+            ferite_error( script, 0, "Couldn't set up alarm signal for timer.");
+        }
+        else
+            alarm( alrm->interval );
+#endif
+    }
+    /**
+    * @function stop
+     * @declaration function stop( )
+     * @brief Stop the alarm
+     */
+    native function stop( ) : undefined
+    {
+#ifndef WIN32
+        AlarmData *alrm = self->odata;
+        alarm(0);
+        alrm->timeleft = 0;
+#endif
+    }
+}
+/**
+* @end
+ */

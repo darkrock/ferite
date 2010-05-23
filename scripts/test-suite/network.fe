@@ -1,0 +1,238 @@
+uses "network","test","sys","console","array","thread";
+
+global {
+    number testport = 3783;
+}
+
+class NetworkTestThread extends Thread {
+    
+    atomic number running;
+    atomic number success;
+    number action;
+    void   ns;
+    
+    function constructor( void ns, number action ) {
+        super();
+        .ns = ns;
+        .action = action;
+        .success = 99;
+    }
+    
+    function start() {
+        .success = 99;
+        .running = false;
+        super.start();
+    }
+    
+    function run() {        
+        switch( .action ) {
+            case 1: /* connect */
+            {
+                object o = null;                
+                .sleep(1000);
+                o = .ns.connect("127.0.0.1",testport);
+                if( o == null )
+                    .success = 11;
+                else
+                {
+                    .success = Test.SUCCESS;
+                    o.close();
+                }
+                break;
+            }
+            case 2: /* bind, & accept */
+            {
+                object o = .ns.bind(Network.ANY4,testport);
+                if( o == null )
+                    .success = 12;
+                else
+                {
+                    object p = null;
+                    if( o instanceof Network.TCP.Stream )
+                    {
+                        o.listen(5);
+                        p = o.accept();
+                    }
+                    else
+                        p = o;
+                    while( .running == false ) ;
+                    if( p == null )
+                        .success = 13;
+                    else
+                    {
+                        string s = p.readln();
+                        if( s == "TEST?\n" )
+                        {
+                            .success = Test.SUCCESS;
+                            p.writeln("YES THIS IS");
+                        }
+                        .running = false;
+                        .sleep(500);
+                        p.close();
+                        o.close();
+                    }
+                }
+                break;
+            }
+        }        
+    }    
+}
+global {
+    number NetworkTCPTestValue = -1;
+    number NetworkUDPTestValue = -1;
+}
+function RunNetworkTest( void ns )
+{
+    object o = new NetworkTestThread(ns, 2);
+    object p = null;
+    string s = "";
+    
+    o.start();
+    Sys.sleep(2);
+    if( o.success != 99 )
+    {
+        Console.println( err.str );
+        return o.success;
+    }
+    
+    p = ns.connect("127.0.0.1",testport);
+    if( p == null )
+        return 1;
+        
+    p.writeln("TEST?");
+    o.running = true;
+    
+    while( o.running == true );
+    s = p.readln();
+    if( s != "YES THIS IS\n" )
+        return 2;
+    
+    p = ns.connect("NO-HOST-SHOULD-HAVE-THIS-NAME",testport);
+    if( p != null )
+        return 3;
+    
+    return Test.SUCCESS;
+}    
+function RunNetworkTCPTest()
+{
+    if( NetworkTCPTestValue == -1 )
+        NetworkTCPTestValue = RunNetworkTest(Network.TCP);
+    return NetworkTCPTestValue;
+}
+function RunNetworkUDPTest()
+{
+    if( NetworkUDPTestValue == -1 )
+        NetworkUDPTestValue = RunNetworkTest(Network.UDP);
+    return NetworkUDPTestValue;
+}
+class NetworkTest extends Test 
+{
+    function getServiceByName() {
+        object o = Network.getServiceByName("ssh","tcp");
+        if( o == null )
+            return 1;
+        if( o.name != "ssh" )
+            return 2;
+        if( o.port != 22 )
+            return 3;
+        if( o.proto != "tcp" )
+            return 4;
+        return Test.SUCCESS;        
+    }
+    function getServiceByPort() {
+        object o = Network.getServiceByPort(22,"tcp");
+        if( o == null )
+            return 1;
+        if( o.name != "ssh" )
+            return 2;
+        if( o.port != 22 )
+            return 3;
+        if( o.proto != "tcp" )
+            return 4;
+        return Test.SUCCESS;
+    }
+    function getHostByName() {
+        object o = Network.getHostByName("localhost",true);
+        if( o == null )
+            return 1;
+        if( o.host == "" )
+            return 2;
+        if( Array.size(o.reversenames) != Array.size(o.addresses) or Array.size(o.addresses) != Array.size(o.types) )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function getHostname() {
+        string s = Network.getHostname();
+        if( s == "" )
+            return 1;
+        return Test.SUCCESS;
+    }
+}
+class NetworkTCPTest extends Test
+{
+    function connect() {
+        return RunNetworkTCPTest();
+    }
+    function bind() {
+        return RunNetworkTCPTest(); 
+    }
+}    
+class NetworkUDPTest extends Test
+{
+    function connect() {
+        return RunNetworkUDPTest();
+    }
+    function bind() {
+        return RunNetworkUDPTest(); 
+    }
+}    
+class NetworkHostTest extends Test
+{
+    function toString() {
+        object o = Network.getHostByName("localhost",true);
+        if( o.toString() == "" )
+            return 1;
+        return Test.SUCCESS;
+    }    
+}
+class NetworkServiceTest extends Test
+{
+    function toString() {
+        object o = Network.getServiceByName("ssh","");
+        if( o.toString() == "" )
+            return 1;
+        return Test.SUCCESS;
+    }
+}
+class NetworkTCPStreamTest extends Test
+{
+    function listen() {
+        return RunNetworkTCPTest();
+    }
+    function accept() {
+        return RunNetworkTCPTest();
+    }
+}
+class NetworkUDPStreamTest extends Test
+{
+    function __read__() { return Test.IGNORE; }
+    function __close__() { return Test.IGNORE; }
+    function __write__() { return Test.IGNORE; }    
+}
+
+object o = new NetworkTest();
+object p = new NetworkHostTest();
+object q = new NetworkServiceTest();
+object r = new NetworkTCPStreamTest();
+object s = new NetworkUDPStreamTest();
+object t = new NetworkTCPTest();
+object u = new NetworkUDPTest();
+
+return 
+o.run('Network') + 
+p.run('Network.Host') + 
+q.run('Network.Service') + 
+r.run('Network.TCP.Stream') + 
+s.run('Network.UDP.Stream') +
+t.run('Network.TCP') +
+u.run('Network.UDP');

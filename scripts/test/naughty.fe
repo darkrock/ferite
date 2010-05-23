@@ -1,0 +1,15 @@
+uses "console", "string", "array", "number";
+
+array a = [ "hi"=>"There" ];
+number n = 2;
+string t = "Hi";
+
+Console.println( "Length: " + t.length() );
+Console.println( "Length: " + "Hi".length() );
+Console.println( "Length: " + "This is naughty".length() );
+Console.println( "Keys: " + a.keys() );
+Console.println( "Keys: " + (["hi"=>"There"]).keys() );
+Console.println( "Round: " + (2.7).round() );
+Console.println( "Atan2: " + (2.7).atan2(2) );
+Console.println( "Pow: " + n.pow(10) );
+Console.println( "Pow: " + 2.pow(10) );

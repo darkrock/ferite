@@ -1,0 +1,19 @@
+#!/usr/bin/env ferite
+
+uses "string", "array", "console";
+
+number num;
+number a, b, c, d, e, f, x = 0;
+if( Array.size( argv ) > 0 )
+    num = String.toLong( argv[0] );
+else
+    num = 1;
+
+for( a = 0; a < num; a++ )
+  for( b = 0; b < num; b++ )
+    for( c = 0; c < num; c++ )
+      for( d = 0; d < num; d++ )
+        for( e = 0; e < num; e++ )
+          for( f = 0; f < num; f++ )
+            x++;
+Console.println( "" + x );

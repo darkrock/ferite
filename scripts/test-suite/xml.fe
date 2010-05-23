@@ -1,0 +1,831 @@
+uses "xml", "test", "filesystem", "sys", "console", "regexp", "array";
+
+class XMLTest extends Test {    
+}
+class XMLElementTest extends Test {
+    function addSibling() { 
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.addSibling( 'markup', 'markup-content' ) != null )
+            return 3;
+        
+        if( e.getFirstChild().addSibling( 'markup', 'markup-content' ) == null )
+            return 4;
+        
+        return Test.SUCCESS;
+    }
+    function addCDATASection() { 
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.addCDATASection( 'markup-content' ) == null )
+            return 3;
+        
+        if( not Regexp.match( '<!\[CDATA\[markup-content\]\]>', o.toString() ) )
+            return 4;
+
+        return Test.SUCCESS;
+    }
+    function addComment() {         
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.addComment( 'markup-content' ) == null )
+            return 3;
+        
+        if( not Regexp.match( '<!--markup-content-->', o.toString() ) )
+            return 4;
+        
+        return Test.SUCCESS;
+    }
+    function addNextSibling() {         
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+                
+        if( e.addNextSibling( 'markup', 'markup-content' ) != null )
+            return 3;
+        
+        if( e.getFirstChild().addNextSibling( 'markup', 'markup-content' ) == null )
+            return 4;
+        
+        if( not Regexp.match( '<body/><markup>markup-content</markup>', o.toString() ) )
+            return 5;
+        
+        return Test.SUCCESS;
+    }    
+    function addPreviousSibling() {        
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.addPreviousSibling( 'markup', 'markup-content' ) != null )
+            return 3;
+        
+        if( e.getFirstChild().addPreviousSibling( 'markup', 'markup-content' ) == null )
+            return 4;
+        
+        if( not Regexp.match( '<markup>markup-content</markup><body/>', o.toString() ) )
+            return 5;
+
+        return Test.SUCCESS;
+    }
+    function addPI() { 
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.addPI( 'markup', 'ferite' ) == null )
+            return 3;
+        
+        if( not Regexp.match( '<\?markup ferite\?>', o.toString() ) )
+            return 4;
+        
+        return Test.SUCCESS;        
+    }
+    function addChild() { 
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.addChild( 'markup', 'ferite' ) == null )
+            return 3;
+        
+        if( not Regexp.match( '<markup>ferite</markup>', o.toString() ) )
+            return 4;
+        
+        return Test.SUCCESS;   
+    }    
+    function getParent() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        c = e.getFirstChild();
+        if( c.getElementName() != 'body' )
+            return 3;
+        
+        if( c.getParent().getElementName() != e.getElementName() )
+            return 4;
+        
+        return Test.SUCCESS;   
+    }
+    function getAttributes() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        array attributes;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html version="1" author="Chris Ross"><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        attributes = e.getAttributes();
+        if( Array.size(attributes) == 0 )
+            return 3;
+        
+        if( attributes['version'] != '1' )
+            return 4;
+        if( attributes['author'] != 'Chris Ross' )
+            return 5;
+        
+        return Test.SUCCESS;    
+    }
+    function getLastChild() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.getLastChild().getElementName() != 'last' )
+            return 3;
+        
+        return Test.SUCCESS;  
+    }
+    function getFirstChild() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        array attributes;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.getFirstChild().getElementName() != 'first' )
+            return 3;
+        
+        return Test.SUCCESS;  
+    }
+    function getNextSibling() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        array attributes;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.getFirstChild().getNextSibling().getElementName() != 'middle' )
+            return 3;
+        
+        return Test.SUCCESS;  
+    }
+    function getPreviousSibling() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        array attributes;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.getLastChild().getPreviousSibling().getElementName() != 'middle' )
+            return 3;
+        
+        return Test.SUCCESS; 
+    }
+    function getChildren() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        array children;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        children = e.getChildren();
+        if( Array.size(children) != 3 )
+            return 3;
+        
+        if( children[1].getElementName() != 'middle' )
+            return 4;
+        
+        return Test.SUCCESS;         
+    }
+    function getElementData() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( (c = e.addChild( 'markup', 'ferite' )) == null )
+            return 3;
+        
+        if( c.getElementData() != 'ferite' )
+            return 4;
+        
+        return Test.SUCCESS;           
+    }
+    function getElementsByTagName() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        array children;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last><middle/></last></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        children = e.getElementsByTagName('middle');
+        if( Array.size(children) != 2 )
+            return 3;
+        
+        if( children[1].getElementName() != 'middle' )
+            return 4;
+        
+        return Test.SUCCESS; 
+    }
+    function getElementName() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last><middle/></last></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e.getElementName() != 'html' )
+            return 2;
+        
+        return Test.SUCCESS;
+    }
+    function getNamespace() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        array ns;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last><middle/></last></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == 'html' )
+            return 2;
+        
+        ns = e.getNamespace();
+        if( Array.size(ns) > 0 )
+            return 3;
+        
+        return Test.SUCCESS;
+    }
+    function getAttributeByName() {  
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html version="1" author="Chris Ross"><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.getAttributeByName('version') != '1' )
+            return 3;
+        if( e.getAttributeByName('author') != 'Chris Ross' )
+            return 4;
+        
+        return Test.SUCCESS;  
+    }
+    function hasChildren() {   
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html version="1" author="Chris Ross"><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( not e.hasChildren()  )
+            return 3;
+        if( e.getFirstChild().hasChildren() )
+            return 4;
+        
+        return Test.SUCCESS;  
+    }
+    function hasAttribute() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html version="1" author="Chris Ross"><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( not e.hasAttribute('version')  )
+            return 3;
+        if( e.hasAttribute('not-here-buddy') )
+            return 4;
+        
+        return Test.SUCCESS; 
+    }
+    function hasAttributes() {   
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html version="1" author="Chris Ross"><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( not e.hasAttributes()  )
+            return 3;
+        if( e.getFirstChild().hasAttributes() )
+            return 4;
+        
+        return Test.SUCCESS;  
+    }
+    function mergeAsPreviousSibling() {  
+        object o = new XML.TreeParser();
+        object p = new XML.TreeParser();
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><body><content1/><content3/></body>') )
+            return 1;
+        if( not p.parseChunk('<?xml version="1.0" ?><content2/>') )
+            return 2;
+        
+        if( not o.getDocumentElement().getFirstChild().mergeAsPreviousSibling(p.getDocumentElement()) )
+            return 3;
+        
+        if( not Regexp.match( '<body><content2/><content1/><content3/></body>', o.toString() ) )
+            return 4;
+        return Test.SUCCESS;
+    }
+    function mergeAsChild() {
+        object o = new XML.TreeParser();
+        object p = new XML.TreeParser();
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><body><content1/><content3/></body>') )
+            return 1;
+        if( not p.parseChunk('<?xml version="1.0" ?><content2/>') )
+            return 2;
+        
+        if( not o.getDocumentElement().mergeAsChild(p.getDocumentElement()) )
+            return 3;
+        
+        if( not Regexp.match( '<body><content1/><content3/><content2/></body>', o.toString() ) )
+            return 4;
+        return Test.SUCCESS;        
+    }
+    function mergeAsNextSibling() {  
+        object o = new XML.TreeParser();
+        object p = new XML.TreeParser();
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><body><content1/><content3/></body>') )
+            return 1;
+        if( not p.parseChunk('<?xml version="1.0" ?><content2/>') )
+            return 2;
+        
+        if( not o.getDocumentElement().getFirstChild().mergeAsNextSibling(p.getDocumentElement()) )
+            return 3;
+        
+        if( not Regexp.match( '<body><content1/><content2/><content3/></body>', o.toString() ) )
+            return 4;
+        return Test.SUCCESS;
+    }
+    function mergeAsSibling() {
+        object o = new XML.TreeParser();
+        object p = new XML.TreeParser();
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><body><content1/><content3/></body>') )
+            return 1;
+        if( not p.parseChunk('<?xml version="1.0" ?><content2/>') )
+            return 2;
+        
+        if( not o.getDocumentElement().getFirstChild().mergeAsSibling(p.getDocumentElement()) )
+            return 3;
+        
+        if( not Regexp.match( '<body><content1/><content3/><content2/></body>', o.toString() ) )
+            return 4;
+        return Test.SUCCESS;
+    }
+    function removeAttribute() {  
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html version="1" author="Chris Ross"><body></body></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( not e.hasAttribute('version')  )
+            return 3;
+        e.removeAttribute('version');
+        if( e.hasAttribute('version')  )
+            return 4;
+        
+        return Test.SUCCESS; 
+    }
+    function removeSelf() {        
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        e.getFirstChild().removeSelf();
+        
+        if( e.hasChildren() )
+            return 4;
+        
+        return Test.SUCCESS; 
+    }
+    function removeElementsByTagName() {
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last><middle/></last></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.removeElementsByTagName('middle') != 2 )
+            return 3;
+        
+        if( not Regexp.match( '<first/><last/>', o.toString() ) )
+            return 4;
+        
+        return Test.SUCCESS; 
+    }
+    function removeChildren() {
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last><middle/></last></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.removeChildren() == 0 )
+            return 3;
+        
+        if( e.hasChildren() )
+            return 4;
+        
+        if( Regexp.match( '<first/>', o.toString() ) )
+            return 5;
+        
+        return Test.SUCCESS; 
+    }
+    function removeChildWithName() {
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last><middle/></last></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.removeChildWithName('last') == 0 )
+            return 3;
+        
+        if( not e.hasChildren() )
+            return 4;
+        
+        if( Regexp.match( '<last>', o.toString() ) )
+            return 5;
+        
+        return Test.SUCCESS; 
+    }
+    function setElementData() {
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        e.setElementData('ferite-test-was-here');
+        
+        if( not Regexp.match( '<html>ferite-test-was-here</html>', o.toString() ) )
+            return 5;
+        
+        return Test.SUCCESS; 
+    }
+    function setElementName() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        e.setElementName('xml');
+        
+        if( not Regexp.match( '<xml><first/></xml>', o.toString() ) )
+            return 5;
+        
+        return Test.SUCCESS; 
+    }
+    function setAttribute() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        e.setAttribute('version', '1.0');
+        if( not Regexp.match( '<html version="1.0"/>', o.toString() ) )
+            return 5;
+        
+        return Test.SUCCESS; 
+    }
+    function toString() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( Regexp.match( '<html>', e.getFirstChild().toString() ) )
+            return 5;
+        
+        return Test.SUCCESS; 
+    }
+}
+class TestSaxParser extends XML.SAXParser {
+    number count = 6;
+    function startElement( string name, array attributes ) 
+        .count--;
+    function endElement( string name ) 
+        .count--;
+    function characters( string chars ) 
+        .count--;
+    function processingInstruction( string name, string value )
+        .count--;
+}
+class XMLSAXParserTest extends Test {
+    function parseChunk() {  
+        object o = new TestSaxParser();
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body/>string<?ferite value?></html>') )
+            return 6;
+        
+        return o.count; 
+    }
+    function parseFile() {
+        object o = new TestSaxParser();
+        
+        File.create( 'test.xml' ) using ( file ) {
+            file.writeln('<?xml version="1.0" ?><html><body/>string<?ferite value?></html>');
+        };
+        
+        if( not o.parseFile('test.xml') )
+            return 1;
+        
+        File.remove('test.xml');        
+        return o.count; 
+    }    
+}
+class XMLTreeParserTest extends Test {
+    function getDocumentElement() { 
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        return Test.SUCCESS; 
+    }
+    function parseChunk() {  
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        return Test.SUCCESS; 
+    }
+    function parseFile() {
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        File.create( 'test.xml' ) using ( file ) {
+            file.writeln('<?xml version="1.0" ?><html><body/></html>');
+        };
+        
+        if( not o.parseFile('test.xml') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        File.remove('test.xml');        
+        return Test.SUCCESS; 
+    }    
+    function saveToFile() { 
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><body/></html>') )
+            return 1;
+        
+        o.saveToFile('test.xml');
+        
+        if(Regexp.replaceAll('\s',File.open('test.xml').toString(),'') != Regexp.replaceAll('\s',o.toString(),'') )
+            return 3;
+        
+        File.remove('test.xml');        
+        return Test.SUCCESS; 
+    }
+    function toString() { return .saveToFile(); }
+    function keepBlanks() {
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        o.keepBlanks(false);
+        if( not o.parseChunk('<?xml version="1.0" ?><html> <body/></html>') )
+            return 1;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 2;
+        
+        if( e.getElementData() == ' ' )
+            return 3;
+        
+        o.keepBlanks(true);
+        if( not o.parseChunk('<?xml version="1.0" ?><html> <body/></html>') )
+            return 4;
+        
+        e = o.getDocumentElement();
+        if( e == null )
+            return 5;
+        
+        if( e.getElementData() != ' ' )
+            return 6;
+
+        return Test.SUCCESS; 
+    }
+    function validation() {  
+        object o = new XML.TreeParser();
+        object e = null;
+        
+        o.validation(true);
+        monitor {
+            o.parseChunk('<?xml version="1.0" ?><html> <body/></html>');
+        } handle {         
+            return Test.SUCCESS;     
+        }
+        return 1;
+    }
+    function xpathArray() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        array children;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last><middle/></last></html>') )
+            return 1;
+        
+        children = o.xpathArray('//middle');
+        if( Array.size(children) != 2 )
+            return 2;
+        
+        return Test.SUCCESS; 
+    }
+    function xpathNode() { 
+        object o = new XML.TreeParser();
+        object e = null, c = null;
+        object children;
+        
+        if( not o.parseChunk('<?xml version="1.0" ?><html><first/><middle/><last><middle/></last></html>') )
+            return 1;
+        
+        children = o.xpathNode('/html/first');
+        if( children == null )
+            return 2;
+        
+        if( o.xpathNode('/html/non-existant') )
+            return 3;
+        
+        return Test.SUCCESS; 
+    }
+}
+
+object o = new XMLTest();
+object p = new XMLElementTest();
+object q = new XMLSAXParserTest();
+object r = new XMLTreeParserTest();
+
+return 
+o.run('XML') +
+p.run('XML.Element') +
+r.run('XML.TreeParser') +
+q.run('XML.SAXParser')
+;

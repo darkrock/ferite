@@ -1,0 +1,289 @@
+namespace modifies Farm {
+
+	class Yard extends XML.TreeParser {
+
+		static array phaseActions;
+		static function registerAction( string name, void klass ) {
+			.phaseActions[String.toLower(name)] = klass;
+		}
+
+		static function walkPhaseAction( object element ) {
+
+			object action = null;
+			string name = String.toLower(element.getElementName());
+
+			if( Array.keyExists( .phaseActions, name ) ) {
+				void klass = .phaseActions[name];
+				action = new klass( element );
+			} else if( name != "text" and name != "comment" ) {
+				Farm.displayAction('warning', "Unsupported action type: ${element.getElementName()}");
+			}
+			return action;
+		}
+
+		static function walkFileDescripton( object element ) {
+			array filelist = [];
+			array attributes = element.getAttributes();
+
+			switch( element.getElementName() ) {
+				case 'file':
+					filelist[] = Farm.expandStringProperties( attributes['name'] );
+					break;
+				case 'fileset': {
+					string directory = String.postTrim( attributes['dir'], '/' );
+					object r = new Regexp((attributes['match'] ? attributes['match'] : '.*\..*'));
+					if( r != null ) {
+						if( attributes['recursive'] == 'true' ) {
+							string current = Directory.getCurrent();
+							Directory.walk( Farm.expandStringProperties(directory) ) using ( file ) {
+								if( r.match(file) ) {
+									filelist[] = file;
+								}
+							};
+						} else {
+							Directory.open( Farm.expandStringProperties(directory) ) using ( file ) {
+								if( r.match(file) ) {
+									filelist[] = "$directory/$file";
+								}
+							};
+						}
+					}
+					break;
+				}
+				case "text": // Ignore text
+				case "comment":
+					break;
+				default:
+					Farm.displayAction('warning', "Unsupported file description: ${element.getElementName()}");
+			}
+			return filelist;
+		}
+
+		static function walkStringValue( object element ) {
+			array attributes = element.getAttributes();
+			string str = "";
+
+			switch( element.getElementName() ) {
+				case 'line':
+				{
+					Array.each( element.getChildren() ) using ( child ) {
+						str += .walkStringValue(child);
+					};
+					break;
+				}
+				case 'text':
+					str = Farm.expandStringProperties(element.getElementData());
+					break;
+				case 'program-output':
+				{
+					array programs = String.toArray(attributes['program'], ',');
+					Array.each( programs ) using ( program ) {
+						string path = Farm.locateBinary( program, Farm.searchPaths() );
+						if( path != "" ) {
+							str = Farm.programOutput( program, Farm.expandStringProperties(attributes['arguments']) );
+							return false;
+						}
+					};
+					break;
+				}
+				default:
+					Farm.displayAction('warning', "Unsupported property value type: ${element.getElementName()}");
+			}
+			return String.trim(str, "\n\t\r ");
+		}
+
+		static function walkTargetDirectives( object target, object element ) {
+			array attributes = element.getAttributes();
+			string name = element.getElementName();
+			switch( name ) {
+				case 'text':
+				case "comment":
+					break;
+				case 'list': {
+					array filelist = [];
+					Array.each( element.getChildren() ) using ( child ) {
+						array a = Farm.Yard.walkFileDescripton( child );
+						Array.each( a ) using ( file ) {
+							filelist[] = file;
+						};
+					};
+					target.addFiles( attributes['type'], filelist );
+					break;
+				}
+				case 'property':
+				case 'set-property':
+				case 'add-property':
+				{
+					string flags = "";
+					string type = "";
+					string value = "";
+					string platform = "";
+
+					if( not Array.keyExists(attributes, 'platform') or attributes['platform'] == Farm.platform )
+					{
+						if( not Array.keyExists(attributes,'type') ) {
+
+							Farm.displayAction('error', "No type specified for for property '${attributes['id']}'" );
+							return false;
+
+						} else {
+
+							type = "${attributes['type']}";
+
+							// If we are generating flags
+							if( Array.keyExists(attributes,'value') ) {
+								// We have a straight laced value
+								value = Farm.expandStringProperties(attributes['value']);
+								if( element.hasChildren() ) {
+									Farm.displayAction('warning', "Children of property ${attributes['id']} ignored");
+								}
+							} else {
+								// We have a set of children
+								array children = element.getChildren();
+								Array.each( children ) using ( child ) {
+									string v = Farm.Yard.walkStringValue( child );
+									if( v !=  "" )
+										value += (value == "" ? "" : " ") + v;
+								};
+							}
+
+							if( value == "" ) {
+								Farm.displayAction('warning', "No Property value for $type");
+								return false;
+							}
+
+							if( name == 'add-property' )
+								target.addProperty( type, value );
+							else
+								target.setProperty( type, value );
+						}
+					}
+					break;
+				}
+				default:
+					Farm.displayAction('warning', "Unsupported target directive type: ${element.getElementName()}");
+					return false;
+			}
+			return true;
+		}
+
+		static array targetTypes;
+		static function registerTargetType( string name, void klass ) {
+			.targetTypes[String.toLower(name)] = klass;
+		}
+
+		function walk( object element, object target ) {
+			if( element != null ) {
+				array attributes = element.getAttributes();
+				string name = element.getElementName();
+				switch( name ) {
+					case 'yard':
+						.walk( element.getFirstChild(), null );
+						break;
+					case 'include':
+					{
+						include( "${Farm.toplevelDirectory}/${attributes['file']}" );
+						break;
+					}
+					case 'property':
+					case 'set-property':
+					case 'add-property':
+					{
+						string flags = "";
+						string type = "";
+						string value = "";
+						string platform = "";
+
+						if( not Array.keyExists(attributes, 'platform') or attributes['platform'] == Farm.platform )
+						{
+							if( not Array.keyExists(attributes, 'id') ) {
+
+								Farm.displayAction('error', 'A property tag *must* contain an id attribute outside of a target');
+								Sys.exit(1);
+
+							} else {
+								// If we are generating flags
+								if( Array.keyExists(attributes,'value') ) {
+									// We have a straight laced value
+									value = Farm.expandStringProperties(attributes['value']);
+									if( element.hasChildren() ) {
+										Farm.displayAction('warning', "Children of property ${attributes['id']} ignored");
+									}
+								} else {
+									// We have a set of children
+									array children = element.getChildren();
+									Array.each( children ) using ( child ) {
+										string v = Farm.Yard.walkStringValue( child );
+										if( v !=  "" )
+											value += (value == "" ? "" : " ") + v;
+									};
+								}
+
+								if( name == 'add-property' )
+									Farm.global_properties[attributes['id']] += ' ' + value;
+								else
+									Farm.global_properties[attributes['id']] = value;
+							}
+						}
+						break;
+					}
+					case 'phase':
+					{
+						object phase = new Farm.Phase(attributes['id']);
+						Array.each( element.getChildren() ) using ( child ) {
+							object o = Farm.Yard.walkPhaseAction( child );
+							if( o != null )
+								phase.addAction( o );
+						};
+						Farm.phases[phase.id] = phase;
+						if( Array.keyExists(attributes,'depends') )
+							phase.dependancy = attributes['depends'];
+						break;
+					}
+					case 'text':
+					case 'comment':
+						break;
+					default:
+					{
+						string name = element.getElementName();
+						if( target == null ) {
+							if( Array.keyExists(Farm.Yard.targetTypes,name) ) {
+								void klass = Farm.Yard.targetTypes[name];
+								object t = new klass(attributes['id']);
+								if( t != null ) {
+									if( not Array.each( element.getChildren() ) using ( child ) {
+										return Farm.Yard.walkTargetDirectives( t, child );
+									} ) {
+										Farm.displayAction('error',"Unable to create target '$name:${attributes['id']}'");
+										Sys.exit(1);
+									} else {
+										if( attributes.keyExists('package') and attributes['package'].toLower() == 'no' ) {
+											t.package = false;
+										}
+										Farm.addTarget( t.uid, t );
+									}
+								} else {
+									Farm.displayAction('error',"Unable to create target '$name:${attributes['id']}'");
+									Sys.exit(1);
+								}
+							} else {
+								Farm.displayAction('error',"Unknown target type '${element.getElementName()}'");
+								Sys.exit(1);
+							}
+						} else {
+							Farm.displayAction('error',"Unknown target directive tag '${element.getElementName()}'");
+							Sys.exit(1);
+						}
+					}
+				}
+
+				.walk( element.getNextSibling(), target );
+			}
+		}
+
+		function loadYard( string file ) {
+			.parseFile( file );
+			.walk( .getDocumentElement(), null );
+		}
+	}
+}

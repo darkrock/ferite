@@ -1,0 +1,20 @@
+// An example of foreach using closures
+
+uses "array", "console";
+
+array a = [];
+a["Hello"] = 1;
+a["There"] = 2;
+a["From"] = 3;
+a["Chris"] = "Boo Har";
+
+Array.each( a ) using ( value ) {
+	Console.println( "Value: '$value'" );
+};
+
+Array.map( a ) using ( key, value ) {
+	Console.println( "Key: $key => '$value'" );
+	if( key == "There" )
+		return false;
+};
+

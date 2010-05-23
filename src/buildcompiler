@@ -1,0 +1,26 @@
+#!/bin/sh
+
+DIE=0
+
+(flex --version) < /dev/null > /dev/null 2>&1 || {
+  echo
+  echo "You must have flex installed to build the ferite scanner."
+  echo "Download the appropriate package for your distribution."
+  DIE=1
+}
+
+(bison --version) < /dev/null > /dev/null 2>&1 || {
+  echo
+  echo "You must have bison installed to build the ferite parser."
+  echo "Download the appropriate package for your distribution,"
+  echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
+  echo
+  DIE=1
+}
+
+if test "$DIE" -eq 1; then
+  exit 1
+fi
+	
+./buildparser
+./buildscanner

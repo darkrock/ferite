@@ -1,0 +1,328 @@
+uses "array", "console";
+
+class DocumentBlock {
+    array contents;
+    array attributes;
+    string tag;
+    string id;
+    
+    function constructor( string tag, array attrs ) {
+        .tag = tag;
+        .attributes = attrs;
+        .id = ( Array.keyExists( attrs, 'id' ) ? attrs['id'] : '' );
+    }    
+}
+
+class DocumentFilter extends XML.TreeParser {
+    
+    string type;
+    object document;
+    array  tagStack;
+    array  tagIDMap;
+    number indent;
+    number stripwhitespace;
+    number blockdepth;
+    
+    static function constructor() {
+        DocUtils.registerFilter( self );
+    }
+    
+    static function getType() 
+        return "DOC";
+    
+    function __indent( string ext, number amount ) {
+        string ret = "";
+        number i = 0;
+
+        for( i = 0; i < amount; i++ )
+            ret += ext;
+        return ret;
+    }
+    
+    function startDocument() {
+        .document = new DocumentBlock( "xml", [] );
+        .indent = 0;
+        
+        .stripwhitespace = true;
+        .blockdepth = 0;
+        Array.push( .tagStack, .document );
+    }
+    
+    function endDocument()
+        ;
+    
+    function startElement( string name, array attrs ) {
+        object o = new DocumentBlock( name, attrs );
+        object t = Array.last( .tagStack );
+        
+        t.contents[] = o;
+        Array.push( .tagStack, o );
+        
+        if( Array.keyExists( attrs, 'id' ) ) {
+            .tagIDMap[attrs['id']] = o;
+        }
+        
+        switch( name ) {
+            case "code":
+                .blockdepth++;
+                .stripwhitespace = false;
+                break;
+        }
+    }
+    
+    function endElement( string name ) {        
+        switch( name ) {
+            case "code":
+                .blockdepth--;
+                if( .blockdepth == 0 )
+                    .stripwhitespace = true;
+                break;
+        }
+        Array.pop( .tagStack );
+    }
+    
+    function characters( string chars ) {
+        string str = String.trim( chars, " \t\r\n" );
+        object t = Array.last( .tagStack );
+        
+        if( t.tag == "para" || t.tag == "quote" )
+        {
+            chars -= "\n";
+            if( chars[0] == " " ) // We do some line maintenence within a paragraph
+            {
+                void last = Array.last(t.contents);
+                chars = ( last isa object and last.tag == "newline" ? "" : " ") + String.trim( chars, " \t\r\n" ) + 
+                    ( chars[String.length(chars)-1] == " " ? " " : "" );
+            }
+        }
+        
+        if( !.stripwhitespace || !(str == "" && .stripwhitespace) )
+        {
+            t.contents[] = chars;
+        }
+    }
+    
+    function comment( string chars )
+        ;
+    
+    function cdata( string chars ) {
+    }
+    
+    function pi( string name, string value )
+        ;
+
+    /* private */ function walkXMLElementObject( object o ) {
+        .startElement( o.getElementName(), o.getAttributes() );
+        Array.each( o.getChildren() ) using ( child ) {
+            string name = child.getElementName();
+            if( name == "text" or name == "" )	{
+				string s = child.getElementData();
+                .characters( s );
+			}
+			else
+                .walkXMLElementObject( child );            
+        };
+        .endElement( o.getElementName() );
+    }
+    
+    /* protected */ function generateDocumentTree( string doc ) {
+        .document = null; 
+        .parseChunk( doc );
+        {
+            object root = .getDocumentElement();
+            .startDocument();
+            .walkXMLElementObject( root );
+            .endDocument();
+        }
+        return .document;
+    }
+    
+    //
+    // Walking the tree
+    //
+    function documentStart() {
+        return "";
+    }
+    function documentEnd() {
+        return "";
+    }
+    
+    function sectionStart( string id ) {
+        return "";
+    }
+    function sectionEnd( string id ) {
+        return "";
+    }
+    
+    function title( string title, string id ) {
+        return title;
+    }
+    function externalLink( string title, string target ) {
+        return "external link '$title' to '$target'";
+    }
+    function internalLink( string title, string target ) {
+        return "interal link '$title' to '$target'";
+    }
+    function image( string image ){
+        return "image '$image'";
+    }
+    function newLine() {
+        return "\n";
+    }
+    
+    function paragraph( string para ) {
+        return "\n$para\n";
+    }
+    function normalText( string text ) {
+        return text;
+    }
+    function strongText( string text ) {
+        return "$text";
+    }
+    function emphasisText( string text ) {
+        return "$text";
+    }
+    function monospaceText( string text ) {
+        return "$text";
+    }
+    function codeText( string code, string lines ) {
+        return "code: $code";
+    }
+    function quoteText( string code ) {
+        return "quote: $code";
+    }
+    
+    function colourText( string text, string fg, string bg ) {
+        return text;        
+    }
+    function strikeText( string text ) {
+        return text;
+    }
+    function underlineText( string text ) {
+        return text;
+    }
+    function rule() {
+        return "-----";
+    }
+    
+    function listStart() {
+        return "";
+    }
+    function listEnd() {
+        return "";
+    }
+    function listItemStart() {
+        return "->";
+    }
+    function listItemEnd() {
+        return "";
+    }
+    
+    function __convertArray( array contents ){
+        string output = "";
+        number i = 0;
+        
+        for( i = 0; i < Array.size( contents ); i++ )
+        {
+            if( contents[i] isa string )
+                output += .normalText( contents[i] );
+            else
+                output += .walkDocumentTree( contents[i] );
+        }
+        return output;
+    }
+    
+    /* protected */ function walkDocumentTree( object document ) {
+        string output = "";
+        string tag = document.tag;
+        
+        switch( tag ) {
+            case "xml":
+                output += .walkDocumentTree( document.contents[0] );
+                break;
+            case "document":
+                output += .documentStart();
+                if( Array.size( document.contents ) > 1 )
+                    output += .__convertArray( document.contents );
+                output += .documentEnd();
+                break;
+            case "section":
+                output += .sectionStart( document.id );
+                if( Array.size( document.contents ) > 1 )
+                    output += .__convertArray( document.contents );
+                output += .sectionEnd( document.id );
+                break;
+            case "title":
+                output += .title( .__convertArray( document.contents ), document.id );
+                break;
+            case "para":
+                output += .paragraph( .__convertArray( document.contents ) );
+                break;
+            case "strong":
+                output += .strongText( .__convertArray( document.contents ) );
+                break;
+            case "emphasis":
+                output += .emphasisText( .__convertArray( document.contents ) );
+                break;
+            case "monospace":
+                output += .monospaceText( .__convertArray( document.contents ) );
+                break;
+            case "code":
+                output += .codeText( .__convertArray( document.contents ), 
+ 									 ( not document.attributes.keyExists('lines') ? "on" : document.attributes['lines']));
+                break;
+            case "quote":
+                output += .quoteText( .__convertArray( document.contents ) );
+                break;
+            case "strike":
+                output += .strikeText( .__convertArray( document.contents ) );
+                break;
+            case "underline":
+                output += .underlineText( .__convertArray( document.contents ) );
+                break;
+            case "colour":
+                output += .colourText( .__convertArray( document.contents ), 
+                                       ( not document.attributes.keyExists("foreground") ? "" : document.attributes["foreground"] ),
+                                       ( not document.attributes.keyExists("background") ? "" : document.attributes["background"] ) );
+                break;
+            case "newline":
+                output += .newLine();
+                break;
+            case "rule":
+                output += .rule();
+                break;
+            case "external-link":
+                output += .externalLink( .__convertArray( document.contents ), document.attributes["target"] );
+                break;
+            case "link":
+                output += .internalLink( .__convertArray( document.contents ), document.attributes["target"] );
+                break;
+            case "image":
+                output += .image( document.attributes["source"] );
+                break;                    
+            case "list":
+                output += .listStart();
+                if( Array.size( document.contents ) > 1 )
+                    output += .__convertArray( document.contents );
+                output += .listEnd();
+                break;
+            case "list-item":
+                output += .listItemStart();
+                output += .__convertArray( document.contents );
+                output += .listItemEnd();
+                break;
+            default:
+                output += .__convertArray( document.contents );
+        }
+        
+        return output;
+    }
+    
+    function convertFromTypeToDocument( string raw ) {
+        return raw;
+    }
+    
+    function convertFromDocumentToType( string doc ) {
+        return doc;
+    }
+}

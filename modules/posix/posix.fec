@@ -1,0 +1,1790 @@
+/*
+ * Copyright (C) 2001-2007 Chris Ross, Stephan Engstrom, Alex Holden et al
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "stream";
+uses "posix.lib";
+uses "posix_consts.fec";
+
+module-header {
+#include "util_posix.h"
+#include "util_signal.h"
+#include "util_user.h"
+#include "../stream/util_stream.h"
+}
+
+module-register {
+    ferite_signal_init();
+}
+
+module-unregister {
+    ferite_signal_deinit();
+}
+
+module-deinit {
+    ferite_signal_remove_script( script );
+}
+
+module-init {
+    int i;
+    FeriteVariable *fv;
+    FeriteNamespace *Sysns;
+
+#include "consts.h"
+
+    Sysns = ferite_register_namespace(script, "Posix", script->mainns);
+    for(i = 0; *constant_names[i]; i++) {
+        fv = ferite_create_number_long_variable(script, constant_names[i], constant_values[i], FE_STATIC);
+        MARK_VARIABLE_AS_FINALSET(fv);
+        ferite_register_ns_variable(script, Sysns, constant_names[i], fv);
+    }
+}
+
+/**
+ * @namespace Posix
+ */
+namespace modifies Posix
+{
+	/**
+     * @class ProcessStream
+     * @brief This class provides a means for reading or writing to another process
+     * @description Do not create instances of this class directly. The way to talk to another process
+     *              is to use the Posix.openprocess function which will create an instance and return it
+     *              for you. For methods that are availible for use please see Stream.StdioStream
+     * @extends Stream.Stream
+     */
+    class ProcessStream extends Stream.Stream
+    {
+        native function constructor( object fd ) {
+            FeriteVariable *c = ferite_create_object_variable_with_data( script, "StdioStream", self, FE_STATIC );           
+            ferite_variable_destroy( script, ferite_object_call_super( script, c, NULL ) );
+            ferite_variable_destroy( script, c );
+           
+            StreamObject->file_pointer = fd->odata;
+            StreamObject->read = ferite_object_get_function( script, self, "__read__" );
+            StreamObject->write = ferite_object_get_function( script, self, "__write__" );
+        }        
+        native function __read__( number c ) : string {
+            FeriteVariable *in;
+            char *p;
+            struct Stream *Stream = self->odata;
+            in = fe_new_str_static("fgets", NULL, (int)c, FE_CHARSET_DEFAULT );
+            p = fgets( FE_STR2PTR(in), (int)c, Stream->file_pointer );
+            if( p == NULL )
+                ferite_str_set( script, VAS(in), "", 0, FE_CHARSET_DEFAULT );
+            else
+                FE_STRLEN(in) = strlen(p);
+            
+            FE_RETURN_VAR( in );
+        }
+        native function __write__( string s ) : number {
+            int ret;
+            struct Stream *Stream = self->odata;
+            ret = fwrite( s->data, 1, s->length, Stream->file_pointer );
+            FE_RETURN_LONG( ret );
+        }        
+        native function __close__( ) : undefined {
+            if( StreamObject->file_pointer )
+                pclose( StreamObject->file_pointer );
+			STREAM_RESET(StreamObject);
+        }		
+		native function eos() : boolean {
+            if( feof(((FILE*)StreamObject->file_pointer)) && StreamObject->input_buffer.length == 0 ) {
+                FE_RETURN_TRUE;
+            }
+            FE_RETURN_FALSE;
+		}
+    }
+    /**
+     * @end
+     */
+    /**
+     * @class Stat
+     * @brief Provides functions to interrogate the information returned after a Posix.stat or Posix.lstat
+     *        call
+     */
+    class Stat
+    {
+       /**
+        * @variable st_dev
+        * @type number
+        * @brief The device id
+        */
+       public number st_dev;
+       /**
+        * @variable st_ino
+        * @type number
+        * @brief The inode
+        */
+       public number st_ino;
+       /**
+        * @variable st_mode
+        * @type number
+        * @brief The files protection modes
+        */
+       public number st_mode;
+       /**
+        * @variable st_nlink
+        * @type number
+        * @brief The number of hardlinks
+        */
+       public number st_nlink;
+       /**
+        * @variable st_uid
+        * @type number
+        * @brief The user id of the owner
+        */
+       public number st_uid;
+       /**
+        * @variable st_gid
+        * @type number
+        * @brief The group id of owner
+        */
+       public number st_gid;
+       /**
+        * @variable st_rdev
+        * @type number
+        * @brief The device type
+        */
+       public number st_rdev;
+       /**
+        * @variable st_size
+        * @type number
+        * @brief The total size in bytes
+        */
+       public number st_size;
+       /**
+        * @variable st_blksize
+        * @type number
+        * @brief The blocksize for filesystem I/O
+        */
+       public number st_blksize;
+       /**
+        * @variable st_blocks
+        * @type number
+        * @brief The number of blocks allocated
+        */
+       public number st_blocks;
+       /**
+        * @variable st_atime
+        * @type number
+        * @brief The time of last access
+        */
+       public number st_atime;
+       /**
+        * @variable st_mtime
+        * @type number
+        * @brief The time of the last modification
+        */
+       public number st_mtime;
+       /**
+        * @variable st_ctime
+        * @type number
+        * @brief The time of the last change
+        */
+       public number st_ctime;
+
+       /**
+        * @function constructor
+        * @declaration function constructor( object stat )
+        * @brief The constructor
+        * @description Do not instantiate this a copy of this class directly - use the Posix.stat and Posix.lstat functions
+        */
+       native function constructor( object stat )
+       {
+           struct stat *in;
+           FeriteVariable *v;
+           if(!stat->odata || strcmp( stat->name, "struct::stat" ) != 0)
+             FE_RETURN_VOID;
+           in = self->odata = stat->odata;
+           v = ferite_object_get_var(script,self,"st_dev");
+           VAI(v) = in->st_dev;
+           v = ferite_object_get_var(script,self,"st_ino");
+           VAI(v) = in->st_ino;
+           v = ferite_object_get_var(script,self,"st_mode");
+           VAI(v) = in->st_mode;
+           v = ferite_object_get_var(script,self,"st_nlink");
+           VAI(v) = in->st_nlink;
+           v = ferite_object_get_var(script,self,"st_uid");
+           VAI(v) = in->st_uid;
+           v = ferite_object_get_var(script,self,"st_gid");
+           VAI(v) = in->st_gid;
+           v = ferite_object_get_var(script,self,"st_rdev");
+           VAI(v) = in->st_rdev;
+           v = ferite_object_get_var(script,self,"st_size");
+           VAI(v) = in->st_size;
+           v = ferite_object_get_var(script,self,"st_blksize");
+           VAI(v) = in->st_blksize;
+           v = ferite_object_get_var(script,self,"st_blocks");
+           VAI(v) = in->st_blocks;
+           v = ferite_object_get_var(script,self,"st_atime");
+           VAI(v) = in->st_atime;
+           v = ferite_object_get_var(script,self,"st_mtime");
+           VAI(v) = in->st_mtime;
+           v = ferite_object_get_var(script,self,"st_ctime");
+           VAI(v) = in->st_ctime;
+
+       }
+       native function destructor( )
+       {
+           if( self->odata )
+             ffree( self->odata );
+       }
+       /**
+        * @function isDirectory
+        * @declaration function isDirectory( )
+        * @brief Check to see if the file is a directory
+        * @return 'true' if it is, 'false' otherwise
+        */
+       native function isDirectory( ) : boolean
+       {
+			if( S_ISDIR(SelfStat->st_mode) ) {
+				FE_RETURN_TRUE;
+			}
+			FE_RETURN_FALSE;
+       }
+       /**
+        * @function isCharDevice
+        * @declaration function isCharDevice( )
+        * @brief Check to see if the file is a character device
+        * @return 'true' if it is, 'false' otherwise
+        */
+       native function isCharDevice( ) : boolean
+       {
+           FE_RETURN_BOOL( S_ISCHR(SelfStat->st_mode) );
+       }
+       /**
+        * @function isRegularFile
+        * @declaration function isRegularFile( )
+        * @brief Check to see if the file is a regular file
+        * @return 'true' if it is, 'false' otherwise
+        */
+       native function isRegularFile( ) : boolean
+       {
+           FE_RETURN_BOOL( S_ISREG(SelfStat->st_mode) );
+       }
+       /**
+        * @function isBlockDevice
+        * @declaration function isBlockDevice( )
+        * @brief Check to see if the file is a block device
+        * @return 'true' if it is, 'false' otherwise
+        */
+       native function isBlockDevice( ) : boolean
+       {
+           FE_RETURN_BOOL( S_ISBLK(SelfStat->st_mode) );
+       }
+       /**
+        * @function isFifo
+        * @declaration function isFifo( )
+        * @brief Check to see if the file is a fifo
+        * @return 'true' if it is, 'false' otherwise
+        */
+       native function isFifo( ) : boolean
+       {
+           FE_RETURN_BOOL( S_ISFIFO(SelfStat->st_mode) );
+       }
+       /**
+        * @function isLink
+        * @declaration function isLink( )
+        * @brief Check to see if the file is a link
+        * @return 'true' if it is, 'false' otherwise
+        */
+       native function isLink( ) : boolean
+       {
+           FE_RETURN_BOOL( S_ISLNK(SelfStat->st_mode) );
+       }
+       /**
+        * @function isSocket
+        * @declaration function isSocket( )
+        * @brief Check to see if the file is a socket
+        * @return 'true' if it is, 'false' otherwise
+        */
+       native function isSocket( ) : boolean
+       {
+           FE_RETURN_BOOL( S_ISSOCK(SelfStat->st_mode) );
+       }
+       /**
+        * @function isSticky
+        * @declaration function isSticky( )
+        * @brief Check to see if the file has the sticky bit set in it's modes
+        * @return 'true' if it is, 'false' otherwise
+        */
+       native function isSticky( ) : boolean
+       {
+           FE_RETURN_BOOL( SelfStat->st_mode & S_ISVTX );
+       }
+       /**
+        * @function isSuid
+        * @declaration function isSuid( )
+        * @brief Check to see if the file has the suid bit set in it's modes
+        * @return 'true' if it is, 'false' otherwise
+        */
+       native function isSuid( ) : boolean
+       {
+           FE_RETURN_BOOL( SelfStat->st_mode & S_ISUID );
+       }
+       /**
+        * @function isSgid
+        * @declaration function isSgid( )
+        * @brief Check to see if the file has the sgid bit set in it's modes
+        * @return 'true' if it is, 'false' otherwise
+        */
+       native function isSgid( ) : boolean
+       {
+           FE_RETURN_BOOL( SelfStat->st_mode & S_ISGID );
+       }
+
+       /**
+        * @function getSize
+        * @declaration function getSize( )
+        * @brief Get the size of the file
+        * @return The size of the file
+        */
+       native function getSize( ) : number
+       {
+           FE_RETURN_LONG( SelfStat->st_size );
+       }
+       /**
+        * @function getInode
+        * @declaration function getInode( )
+        * @brief Get the inode the file is attached to
+        * @return The inode id
+        */
+       native function getInode( ) : number
+       {
+           FE_RETURN_LONG( SelfStat->st_ino );
+       }
+       /**
+        * @function getOwnerID
+        * @declaration function getOwnerID( )
+        * @brief Get the id of the owner
+        * @return The id
+        */
+       native function getOwnerID( ) : number
+       {
+           FE_RETURN_LONG( SelfStat->st_uid );
+       }
+       /**
+        * @function getGroupID
+        * @declaration function getGroupID( )
+        * @brief Get the id of the group
+        * @return The id
+        */
+       native function getGroupID( ) : number
+       {
+           FE_RETURN_LONG( SelfStat->st_gid );
+       }
+       /**
+        * @function getAccessTime
+        * @declaration function getAccessTime( )
+        * @brief Get the time when the file was last accessed
+        * @return The time as a number
+        */
+       native function getAccessTime( ) : number
+       {
+           FE_RETURN_LONG( SelfStat->st_atime );
+       }
+       /**
+        * @function getChangedTime
+        * @declaration function getChangedTime( )
+        * @brief Get the time when the file was last changed
+        * @return The time as a number
+        */
+       native function getChangedTime( ) : number
+       {
+           FE_RETURN_LONG( SelfStat->st_ctime );
+       }
+       /**
+        * @function getModifiedTime
+        * @declaration function getModifiedTime( )
+        * @brief Get the time when the file was last modified
+        * @return The time as a number
+        */
+       native function getModifiedTime( ) : number
+       {
+           FE_RETURN_LONG( SelfStat->st_mtime );
+       }
+       /**
+        * @function getBlockSize
+        * @declaration function getBlockSize( )
+        * @brief Get the blocksize for filesystem I/O
+        * @return The blocksize
+        */
+       native function getBlockSize( ) : number
+       {
+           FE_RETURN_LONG( SelfStat->st_blksize );
+       }
+       /**
+        * @function getBlockCount
+        * @declaration function getBlockCounr( )
+        * @brief Get the number of allocated blocks for the file
+        * @return The number of blocks
+        */
+       native function getBlockCount( ) : number
+       {
+           FE_RETURN_LONG( SelfStat->st_blocks );
+       }
+       /**
+        * @function getLinkCount
+        * @declaration function getLinkCount( )
+        * @brief Get the number of hardlinks to the file
+        * @return The number of links
+        */
+       native function getLinkCount( ) : number
+       {
+           FE_RETURN_LONG( SelfStat->st_nlink );
+       }
+    }
+    /**
+     * @end
+     */
+
+    /**
+     * @class Uname
+     * @brief This class provides various system information
+     * @description An instance of this class has a number of string variables
+     *              which give various information about the computer system
+     *              the program is running on. Some of the variables may not be
+     *              meaningful on some systems. They are: sysname - the name
+     *              of the operating system (eg. "Linux"); release - the
+     *              release level of the operating system; version - the
+     *              version level of this release of the operating system;
+     *              machine - the hardware type (eg. "i386"); nodename - the
+     *              hostname of the system. Note that on some systems nodename
+     *              isn't guaranteed to provide the system hostname or may
+     *              be limited to 8 characters. Network.getHostname() is a
+     *              more portable way to obtain the system hostname.
+     */
+    class Uname
+    {
+       string sysname;
+       string release;
+       string version;
+       string machine;
+       string nodename;
+
+       native function constructor()
+       {
+           FeriteVariable *fv;
+           struct utsname u;
+
+           uname(&u);
+           fv = ferite_create_string_variable_from_ptr(script, "sysname",
+                                                       u.sysname, 0, FE_CHARSET_DEFAULT, FE_STATIC);
+           ferite_object_set_var(script, self, "sysname", fv);
+           fv = ferite_create_string_variable_from_ptr(script, "release",
+                                                       u.release, 0, FE_CHARSET_DEFAULT, FE_STATIC);
+           ferite_object_set_var(script, self, "release", fv);
+           fv = ferite_create_string_variable_from_ptr(script, "version",
+                                                       u.version, 0, FE_CHARSET_DEFAULT, FE_STATIC);
+           ferite_object_set_var(script, self, "version", fv);
+           fv = ferite_create_string_variable_from_ptr(script, "machine",
+                                                       u.machine, 0, FE_CHARSET_DEFAULT, FE_STATIC);
+           ferite_object_set_var(script, self, "machine", fv);
+           fv = ferite_create_string_variable_from_ptr(script, "nodename",
+                                                       u.nodename, 0, FE_CHARSET_DEFAULT, FE_STATIC);
+           ferite_object_set_var(script, self, "nodename", fv);
+       }
+    }
+    /**
+     * @end
+     */
+
+    /**
+     * @class Pipe
+     * @brief This class provides a means for talking to a forked child process
+     * @description An instance of this class has two variables, in and out,
+     *              which are both instances of the Stream.StdioStream class.
+     *              Data written into the in stream comes out of the out
+     *              stream. The converse is not true- pipes are one way only.
+     *              Pipes are typically used for forked child processes to
+     *              communicate with their parents or vice versa. After
+     *              creating a pipe and forking, one process should become
+     *              the reader and the other should become the writer, and
+     *              each process should call the close() method on the end
+     *              which it is not using.
+     */
+    class Pipe
+    {
+       object in;
+       object out;
+
+       native function constructor()
+       {
+           FeriteVariable *sin, *sout;
+           int fds[2];
+           FILE *in, *out;
+           if(pipe(fds) == -1) FE_RETURN_NULL_OBJECT;
+           if(!(out = fdopen(fds[0], "r")))
+           {
+               close(fds[0]);
+               close(fds[1]);
+               FE_RETURN_NULL_OBJECT;
+           }
+           if(!(in = fdopen(fds[1], "w")))
+           {
+               fclose(out);
+               close(fds[1]);
+               FE_RETURN_NULL_OBJECT;
+           }
+           setvbuf(in, NULL, _IONBF, 0);
+           sin = system_create_stream_object(script, "Stream.StdioStream", in);
+           sout = system_create_stream_object(script, "Stream.StdioStream", out);
+           ferite_object_set_var(script, self, "in", sin);
+           ferite_object_set_var(script, self, "out", sout);
+       }
+    }
+    /**
+     * @end
+     */
+
+    /**
+     * @function access
+     * @declaration function access(string pathname, string modes)
+     * @brief Tests the accessibility of the specified path
+     * @param string pathname The location of the file or directory to test
+     * @param string modes The list of different access modes to test for
+     * @return true if all the tests passed, false if any of them failed
+     * @description Use this function to check if the current process is
+     *              allowed to read, write to, or execute the specified path,
+     *              or merely to check for its existance. Which tests to
+     *              perform is controlled by the modes string, which is a
+     *              list of one or more of the following letters: r = test for
+     *              read access; w = test for write access; x = test for
+     *              execute access; f = test for existance. Any other letters
+     *              in the mode string are ignored. On success (ie. all of
+     *              the tests passed), true is returned. On failure of at least
+     *              one of the tests, false is returned.
+     */
+    native function access(string pathname, string modes) : boolean
+    {
+        int i;
+        int mode = 0;
+
+        for(i = 0; i < modes->length; i++)
+        {
+            switch(modes->data[i])
+            {
+              case 'r':
+                mode |= R_OK;
+                break;
+              case 'w':
+                mode |= W_OK;
+                break;
+              case 'x':
+                mode |= X_OK;
+                break;
+              case 'f':
+                mode |= F_OK;
+                break;
+            }
+        }
+
+        if(access(pathname->data, mode) == -1)
+        {
+            ferite_set_error( script, errno, "%s", strerror(errno) );
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function umask
+     * @declaration function umask(number mask)
+     * @brief sets the umask to mask & 0777
+     * @param number mask The value to set the umask to
+     * @return The previous umask value
+     * @description This function sets the umask and returns the old value.
+     *              The umask value is used when calculating the file
+     *              permissions which are used when creating a new file.
+     */
+    native function umask(number mask) : number
+    {
+        FE_RETURN_LONG(umask((mode_t)mask));
+    }
+
+    /**
+     * @function mkfifo
+     * @declaration function mkfifo(string filename, number mode)
+     * @brief creates a FIFO special file
+     * @param string filename The name of the FIFO to create
+     * @param number mode The file permissions to give the FIFO
+     * @return True on success or false on failure
+     * @description This function creates a kind of special file called a FIFO,
+     *              which is commonly used for inter-process communication.
+     *              The mode argument is an ordinary octal file permissions
+     *              map (eg. 0666).
+     */
+    native function mkfifo(string filename, number mode) : boolean
+    {
+        if(mkfifo(filename->data, (mode_t)mode) == -1)
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function openprocess
+     * @declaration function openprocess( string cmd, string modes )
+     * @brief Open a process for communication using pipes
+     * @param string cmd The command to execute
+     * @param mstring modes The modes to use
+     * @description This allows for one way communication with another process, either the ability to
+     *              read the process's output, or write to it's input. The modes are either "r" for
+     *              reading or "w" for writing.
+     * @return A ProcessStream object on success, null otherwise
+     */
+    native function openprocess( string cmd, string modes ) : Posix.ProcessStream
+    {
+        FILE *process = popen( cmd->data, modes->data );
+        if( process == NULL ) {
+            ferite_set_error( script, errno, "%s", strerror(errno) );
+            FE_RETURN_NULL_OBJECT;
+        }
+        FE_RETURN_VAR( system_create_stream_object( script, "Posix.ProcessStream", process ) );
+    }
+
+    /**
+     * @function hardlink
+     * @declaration function hardlink( string oldpath, string newpath )
+     * @brief Create a hardlink from one location to another
+     * @param string oldpath The current location
+     * @param string newpath The place to create the hardlink
+     * @return 'true' on success, 'false' otherwise and err.str will be set with the error
+     * @description This is equivelent to the ln command used with just the two arguments
+     */
+    native function hardlink( string oldpath, string newpath ) : boolean
+    {
+        if( link( oldpath->data, newpath->data ) == -1 )
+        {
+            ferite_set_error( script, errno, "%s", strerror(errno) );
+            FE_RETURN_FALSE;
+        }
+        FE_RETURN_TRUE;
+    }
+    /**
+     * @function softlink
+     * @declaration function softlink( string oldpath, string newpath )
+     * @brief Create a hardlink from one location to another
+     * @param string oldpath The current location
+     * @param string newpath The place to create the softlink
+     * @return 'true' on success, 'false' otherwise and err.str will be set with the error
+     * @description This is equivalent to the ln command passed with the flag '-s' and used with the two arguments
+     */
+    native function softlink( string oldpath, string newpath ) : boolean
+    {
+        if( symlink( oldpath->data, newpath->data ) == -1 )
+        {
+            ferite_set_error( script, errno, "%s", strerror( errno ) );
+            FE_RETURN_FALSE;
+        }
+        FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function chroot
+     * @declaration function chroot(string path)
+     * @brief Changes the root directory to the specified path
+     * @param string path The path to change the root directory to
+     * @return True on success and false on failure
+     * @description This function changes the root directory of the current
+     *              process to the specified path. Note that you must be root
+     *              in order to call this function, it does not  automatically
+     *              change the working directory to the new root directory, and
+     *              that the root user can easily break out of the new root.
+     *              If you are doing the chroot for security reasons, it is
+     *              usual to setuid() to a different user straight after the
+     *              chroot() in order to make it much harder to escape from
+     *              the chroot jail. Returns false if the call fails.
+     */
+    native function chroot(string path) : boolean
+    {
+        if(chroot(path->data) == -1)
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function chmod
+     * @declaration function chmod(string filename, number mode)
+     * @brief Changes the permission bits of the specified file
+     * @param string filename The name of the file to change the permissions of
+     * @param number mode The permission bits to give the file
+     * @return True on success and false on failure
+     * @description This function attempts to change the permission flags of
+     *              the specified file to the specified value. If the file is
+     *              a symbolic link, it changes the permissions of the file
+     *              the link points to rather than the link itself. On failure,
+     *              false is returned and err.str is set. The permissions flags
+     *              are typically specified as a three digit octal number (eg.
+     *              0666).
+     */
+    native function chmod(string filename, number mode) : boolean
+    {
+        if(chmod(filename->data, (mode_t)mode) == -1)
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function chown
+     * @declaration function chown(string filename, number uid, number gid)
+     * @brief Changes the owner and/or the group ID of the specified file
+     * @param string filename The name of the file to change the owner/group of
+     * @param number uid The ID of the new owner of the file or -1
+     * @param number gid The ID of the new group of the file or -1
+     * @return True on success and false on failure
+     * @description This function attempts to change the owner and/or the group
+     *              of the specified file. Only root can change the owner of
+     *              a file, but the owner of a file can change its group to any
+     *              group of which they are a member. If -1 is specified for
+     *              either the user ID or the group ID, chown does not attempt
+     *              to change that parameter. If the call fails, it returns
+     *              false and sets err.str.
+     */
+    native function chown(string filename, number uid, number gid) : boolean
+    {
+        if(chown(filename->data, (uid_t)uid, (gid_t)gid) == -1)
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function utime
+     * @declaration function utime(string filename, number atime, number mtime)
+     * @brief Sets the access and modification times of the specified file
+     * @param string filename The name of the file to change the times of
+     * @param number atime The last access time of the file
+     * @param number mtime The last change time of the file
+     * @return True on success and false on failure
+     * @description This function attempts to set the last access time and the
+     *              last modification time of the specified file. The times are
+     *              in standard Unix format (ie. the number of seconds since
+     *              00:00 on the 1st January 1970). If the atime and mtime
+     *              parameters are omitted, the access and modification times
+     *              are set to the current system time.
+     */
+    native function utime(string filename, number atime, number mtime) : boolean
+    {
+        struct utimbuf ut;
+
+        ut.actime = (time_t)atime;
+        ut.modtime = (time_t)mtime;
+
+        if(utime(filename->data, &ut) == -1)
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+    }
+    native function utime(string filename) : boolean
+    {
+        if(utime(filename->data, NULL) == -1)
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function stat
+     * @declaration function stat( string filename )
+     * @brief Gather information about a specified file
+     * @param string filename The filename to look at
+     * @return Returns a Posix.Stat object on success, null otherwise
+     */
+    native function stat( string filename ) : Posix.Stat
+    {
+        struct stat *in;
+
+        in = fmalloc( sizeof( struct stat ) );
+        if( stat( filename->data, in ) == -1 )
+        {
+            ferite_set_error( script, errno, "%s", strerror( errno ) );
+            FE_RETURN_NULL_OBJECT;
+        }
+        FE_RETURN_VAR( system_call_stat( script, in ) );
+    }
+
+    /**
+     * @function lstat
+     * @declaration function lstat( string filename )
+     * @brief Gather information about a specified file
+     * @param string filename The filename to look at
+     * @return Returns a Posix.Stat object on success, null otherwise
+     * @description Almost identical to Posix.stat except for the fact that, if the file being pointed to
+     *              by filename happens to be a symlink, the information about the symlink will be
+     *              returned, unlike the file the link points to in the case of Posix.stat().
+     */
+    native function lstat( string filename ) : Posix.Stat
+    {
+        struct stat *in;
+
+        in = fmalloc( sizeof( struct stat ) );
+        if( lstat( filename->data, in ) == -1 )
+        {
+            ferite_set_error( script, errno, "%s", strerror( errno ) );
+            FE_RETURN_NULL_OBJECT;
+        }
+        FE_RETURN_VAR( system_call_stat( script, in ) );
+    }
+
+/*==== More POSIX mappings */
+    /**
+     * @function fork
+     * @declaration function fork( )
+     * @brief Causes the process to fork a child
+     * @description Forks a child process from the current running process.
+     *              If the fork succeeds it returns the PID of the child
+     *              process (always a non-zero positive integer) to the
+     *              parent and 0 to the child. If the fork fails, it
+     *              returns -1 to the parent.
+     */
+    native function fork( ) : number
+    {
+        pid_t pid;
+        if( ( pid  = fork() ) == -1 )
+          ferite_set_error( script, errno, "%s", strerror(errno) );
+        FE_RETURN_LONG( pid );
+    }
+
+    /**
+     * @function waitpid
+     * @declaration function waitpid( )
+     * @brief Waits for a child process to terminate
+     * @param number pid The ID of the process to wait for or 0 to wait for any
+     *                   child process
+     * @param number nohang Forces waitpid() to return immediately if set to
+     *                      true
+     * @return The PID of the process which terminated or 0 if nohang was
+     *         true and there were no children waiting to be reaped
+     * @description If you fork child processes, when they exit you must reap
+     *              them by calling waitpid() or they will stay in the process
+     *              table in the zombie state. You can call waitpid() with a
+     *              specific PID and it will wait for that process to terminate,
+     *              or you can call it with the value 0 and it will wait for
+     *              any child processes to terminate. If the nohang argument
+     *              is set to "true", waitpid() will return immediately even
+     *              if there are no children waiting to be reaped. If an error
+     *              occurs, -1 is returned.
+     */
+    native function waitpid(number pid, number nohang) : number
+    {
+        int rpid = waitpid((pid_t) pid, NULL, (int)nohang ? WNOHANG : 0);
+        if(rpid == -1) ferite_set_error(script, errno, "%s", strerror(errno));
+        FE_RETURN_LONG(rpid);
+    }
+
+/*==== User/group handling ====*/
+
+    /**
+     * @function getuid
+     * @declaration function getuid( )
+     * @brief Get the real user id of the running process
+     * @return The real user id
+     */
+    native function getuid( ) : number
+    {
+        FE_RETURN_LONG( getuid() );
+    }
+
+    /**
+     * @function geteuid
+     * @declaration function geteuid( )
+     * @brief Get the effective user id of the running process
+     * @return The effective user id
+     */
+    native function geteuid( ) : number
+    {
+        FE_RETURN_LONG( geteuid() );
+    }
+
+    /**
+     * @function setuid
+     * @declaration function setuid(number uid)
+     * @brief Sets the effective user ID
+     * @param number uid The ID to set the effective UID to
+     * @return true on success or false on failure
+     * @description This function attempts to set the effective user ID to
+     *              the specified value. If called by root, it also sets the
+     *              real and saved IDs, allowing root processes to become
+     *              an ordinary user in a way that prevents them from returning
+     *              to the root ID later. Returns false and sets err.str on
+     *              failure.
+     */
+    native function setuid(number uid) : boolean
+    {
+        if(setuid((uid_t)uid) == -1)
+        {
+            ferite_set_error( script, errno, "%s", strerror(errno) );
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function getgid
+     * @declaration function getgid( )
+     * @brief Get the real group id of the running process
+     * @return The real group id
+     */
+    native function getgid( ) : number
+    {
+        FE_RETURN_LONG( getgid() );
+    }
+
+    /**
+     * @function getegid
+     * @declaration function getegid( )
+     * @brief Get the effective group id of the running process
+     * @return The effective group id
+     */
+    native function getegid( ) : number
+    {
+        FE_RETURN_LONG( getegid() );
+    }
+
+    /**
+     * @function setgid
+     * @declaration function setgid(number gid)
+     * @brief Sets the effective group ID
+     * @param number gid The ID to set the effective GID to
+     * @return true on success or false on failure
+     * @description This function attempts to set the effective group ID to
+     *              the specified value. If called by root, it also sets the
+     *              real and saved IDs, allowing root processes to become
+     *              an ordinary user in a way that prevents them from returning
+     *              to the root ID later. Returns false and sets err.str on
+     *              failure.
+     */
+    native function setgid(number gid) : boolean
+    {
+        if(setgid((gid_t)gid) == -1)
+        {
+            ferite_set_error( script, errno, "%s", strerror(errno) );
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function userInfo
+     * @declaration function userInfo( number uid )
+     * @brief Get a Posix.User object with the information about the user
+     * @param number uid The user id - can be obtained using Posix.getuid()
+     * @return A user object
+     */
+    function userInfo( number uid )
+    {
+        return new Posix.User( uid );
+    }
+
+    class Group
+    {
+       number gid;
+       string name;
+    }
+
+    /**
+     * @class User
+     * @brief Class to wrap the information about a user
+     */
+    class User
+    {
+       final string pw_name;
+       final string pw_passwd;
+       final number pw_uid;
+       final number pw_gid;
+       final string pw_gecos;
+       final string pw_dir;
+       final string pw_shell;
+       final array groups;
+
+       /**
+        * @function constructor
+        * @declaration function constructor( number uid )
+        * @brief The constructor
+        * @param number uid The user id to get information about
+        */
+       native function constructor( number uid )
+       {
+           struct passwd *pw;
+           pw = getpwuid((uid_t)uid);
+           system_sync_pwent_to_self( script, self, pw );
+       }
+       /**
+        * @function name
+        * @declaration function name()
+        * @brief Get the username of the user
+        * @return The username
+        */
+       function name( )
+       {
+           return self.pw_name;
+       }
+       /**
+        * @function password
+        * @declaration function password()
+        * @brief Get the encrypted password of the user
+        * @return The password
+        */
+       function password( )
+       {
+           return self.pw_passwd;
+       }
+       /**
+        * @function uid
+        * @declaration function uid()
+        * @brief Get the uid of the user
+        * @return The uid
+        */
+       function uid( )
+       {
+           return self.pw_uid;
+       }
+       /**
+        * @function gid
+        * @declaration function gid()
+        * @brief Get the group id of the user
+        * @return The group id
+        */
+       function gid( )
+       {
+           return self.pw_gid;
+       }
+       /**
+        * @function realname
+        * @declaration function realname()
+        * @brief Get the real name of the user
+        * @return The real name
+        */
+       function realname( )
+       {
+           return self.pw_gecos;
+       }
+       /**
+        * @function home
+        * @declaration function home()
+        * @brief Get the home directory of the user
+        * @return The directory
+        */
+       function home( )
+       {
+           return self.pw_dir;
+       }
+       /**
+        * @function shell
+        * @declaration function shell()
+        * @brief Get the shell of the user
+        * @return The shell
+        */
+       function shell( )
+       {
+           return self.pw_shell;
+       }
+    }
+    /**
+     * @end
+     */
+    /*==== End User/group handling ====*/
+
+    /*==== Process handling ====*/
+
+    /**
+     * @function getpid
+     * @declaration function getpid()
+     * @brief Get the process ID of the running process
+     * @return The process ID
+     */
+    native function getpid() : number
+    {
+        FE_RETURN_LONG(getpid());
+    }
+
+    /**
+     * @function getppid
+     * @declaration function getppid()
+     * @brief Get the process ID of the parent of the running process
+     * @return The process ID of the parent
+     */
+    native function getppid() : number
+    {
+        FE_RETURN_LONG(getppid());
+    }
+
+    /**
+     * @function setsid
+     * @declaration function setsid()
+     * @brief Creates a new session
+     * @return The ID of the new session or -1 on error
+     * @description This function attempts to create a new session and a new
+     *              process group, and makes the caller the leader of the
+     *              process group. It also detaches the caller from any
+     *              controlling TTYs. On error, -1 is returned and err.str
+     *              is set.
+     */
+    native function setsid() : number
+    {
+        pid_t ret;
+        if((ret = setsid()) == -1)
+          ferite_set_error(script, errno, "%s", strerror(errno));
+        FE_RETURN_LONG(ret);
+    }
+
+    /**
+     * @function kill
+     * @declaration function kill(number pid, number sig)
+     * @brief sends the specified signal to the specified process(es)
+     * @param number pid the ID to send the signal to
+     * @param number sig the number of the signal to senda
+     * @return true on success or false on failure
+     * @description This function sends the specified signal to the specified
+     *              process ID, or to every process except init if pid is -1,
+     *              or if pid is less than -1 to every process in the process
+     *              group -pid (if it exists). The values for sig are
+     *              available as constants in the Sys class beginning with SIG.
+     *              Returns false and sets err.str on failure.
+     */
+    native function kill(number pid, number sig) : boolean
+    {
+        if(kill((pid_t)pid, (int)sig))
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function registerSigHandler
+     * @declaration function registerSigHandler(number sig, string func, object o)
+     * @brief registers the specified function as a signal handler
+     * @param number sign The signal number to handle
+     * @param string func The name of the handler function
+     * @param object o An object to pass to the handler (may be null)
+     * @return true on success or false on failure
+     * @description This function registers the specified function as a signal
+     *              handler. The signal handler must have the prototype
+     *              function handler(number sig, object o). It will be passed
+     *              the number of the signal and the object which was specified
+     *              in the call to registerSighandler(). If the signal
+     *              already had a handler, it will be replaced by the new one.
+     *              Returns true on success or false on failure.
+     */
+    native function registerSigHandler(number sig, string func, object o) : undefined
+    {
+        set_signal_action(script, (int)sig, SIG_IGN);
+        if( o != NULL )
+          ferite_signal_register_object_handler( script, o, func->data, (int)sig );
+        else
+          ferite_signal_register_function_handler( script, func->data, (int)sig );
+        set_signal_action(script, (int)sig, ferite_signal_handler);
+    }
+
+    /**
+     * @function resetSigAction
+     * @declaration function resetSigAction(number sig)
+     * @brief Resets the specified signal to the default action
+     * @param number sig The number of the signal to reset the action of
+     * @return true on success or false on failure
+     * @description This function resets the action of the specified signal
+     *              to the OS default (typically it will either be ignored
+     *              or cause the process to be killed).
+     */
+    native function resetSigAction(number sig) : boolean
+    {
+        if(set_signal_action(script, (int)sig, SIG_DFL) == -1) FE_RETURN_FALSE;
+
+        ferite_signal_unregister_handler(script, (int)sig);
+
+        FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function ignoreSignal
+     * @declaration function ignoreSignal(number sig)
+     * @brief Causes the specified signal to be ignored
+     * @param number sig The number of the signal to ignore
+     * @return true on success or false on failure
+     * @description Many signals have a default action which causes the
+     *              process to exit. This function will cause the specified
+     *              signal to be ignored instead. It can also be used to
+     *              unregister a signal handler function.
+     */
+    native function ignoreSignal(number sig) : boolean
+    {
+        if(set_signal_action(script, (int)sig, SIG_IGN) == -1) FE_RETURN_FALSE;
+
+        ferite_signal_unregister_handler(script, (int)sig);
+
+        FE_RETURN_TRUE;
+    }
+
+    /**
+     * @function getPriority
+     * @declaration function getPriority(number which, number who)
+     * @brief Get the scheduling priority
+     * @param number which Posix.PRIO_PROCESS, Posix.PRIO_PGRP, or Posix.PRIO_USER
+     * @param number who Process ID, process group ID, or user ID
+     * @return The requested priority
+     * @description This function returns the scheduler priority of the
+     *              specified process, process group, or user (set the which
+     *              argument to Posix.PRIO_PROCESS, Posix.PRIO_PGRP, or
+     *              Posix.PRIO_USER to choose which one). The who argument can
+     *              be either the ID of the specified process, process group
+     *              or user, or it can be 0 which is taken to mean the
+     *              calling process, the process group of the calling process,
+     *              or the real user ID of the calling process. The return
+     *              value is typically in the range -20 to 19 (lower numbers
+     *              are a higher priority). Because -1 is a valid return
+     *              value, the only way to tell if an error occured is to check
+     *              the value of err.num if the return value is -1. It will be
+     *              0 if no error occured (ie. the priority really is -1), and
+     *              a number greater than 0 if an error occured. When requesting
+     *              the priority of a process group, the highest priority in
+     *              the group will be returned.
+     */
+    native function getPriority(number which, number who) : number
+    {
+#ifdef HAVE_GETPRIORITY
+        int i;
+
+        switch((int)which)
+        {
+          default:
+          case 0:
+            i = PRIO_PROCESS;
+            break;
+          case 1:
+            i = PRIO_PGRP;
+            break;
+          case 2:
+            i = PRIO_USER;
+            break;
+        }
+        errno = 0;
+        if((i = getpriority(i, (int)who)) == -1)
+          ferite_set_error(script, errno, "%s", strerror(errno));
+        FE_RETURN_LONG(i);
+#else
+        ferite_set_error(script, EINVAL, "getpriority() is not supported by "
+                         "this OS");
+        FE_RETURN_LONG(-1);
+#endif
+    }
+
+    /**
+     * @function setPriority
+     * @declaration function setPriority(number which, number who, number prio)
+     * @brief Set the scheduling priority
+     * @param number which Posix.PRIO_PROCESS, Posix.PRIO_PGRP, or Posix.PRIO_USER
+     * @param number who Process ID, process group ID, or user ID
+     * @param number prio The priority to set
+     * @return True on success or false on failure
+     * @description This function attempts to set the scheduler priority of the
+     *              specified process, process group, or user (set the which
+     *              argument to Posix.PRIO_PROCESS, Posix.PRIO_PGRP, or
+     *              Posix.PRIO_USER to choose which one). The who argument can
+     *              be either the ID of the specified process, process group
+     *              or user, or it can be 0 which is taken to mean the
+     *              calling process, the process group of the calling process,
+     *              or the real user ID of the calling process. The priority
+     *              is an integer typically in the range -20 to 19, with lower
+     *              numbers being higher priority. The default priority is 0.
+     *              Note than only root is allowed to set priorities higher
+     *              than 0. Returns false and sets err.str on failure.
+     */
+    native function setPriority(number which, number who, number prio) : boolean
+    {
+#ifdef HAVE_SETPRIORITY
+        int i;
+
+        switch((int)which)
+        {
+          default:
+          case 0:
+            i = PRIO_PROCESS;
+            break;
+          case 1:
+            i = PRIO_PGRP;
+            break;
+          case 2:
+            i = PRIO_USER;
+            break;
+        }
+        errno = 0;
+        if(setpriority(i, (int)who, (int)prio) == -1)
+        {
+            ferite_set_error(script, errno, "%s", strerror(errno));
+            FE_RETURN_FALSE;
+        }
+        else FE_RETURN_TRUE;
+#else
+        ferite_set_error(script, EINVAL, "setpriority() is not supported by "
+                         "this OS");
+        FE_RETURN_FALSE;
+#endif
+    }
+
+    /**
+     * @class Rusage
+     * @brief Get the resource usage of this process or all dead child processes
+     * @description This class provides a means for finding the resource usage
+     *        of either the current process or all terminated child processes.
+     *        Call the constructor with true as the argument to retrieve the
+     *        values for the child processes instead of the current process.
+     *        The variables in an instance of this class (which are all of
+     *        type number) are: utime (seconds of CPU time spent in user
+     *        space); stime (seconds of CPU time spent in the kernel);
+     *        maxrss (maximum RSS in kilobytes); ixrss (see man getrusage);
+     *        idrss (see man getrusage); isrss (see man getrusage); minflt
+     *        (number of page faults which didn't require I/O); majflt
+     *        (number of page faults which did require I/O); nswap (number
+     *        of times completely swapped out); inblock (number of blocks
+     *        system read from disk); oublock (number of blocks wrote to
+     *        disk); msgsnd (number of IPC messages sent); msgrcv (number of
+     *        IPC messages received); nsignals (number of signals received);
+     *        nvcsw (number of voluntary context switches); nivcsw (number of
+     *        involuntary context switches).
+     */
+    class Rusage
+    {
+       number utime;
+       number stime;
+       number maxrss;
+       number ixrss;
+       number idrss;
+       number isrss;
+       number minflt;
+       number majflt;
+       number nswap;
+       number inblock;
+       number oublock;
+       number msgsnd;
+       number msgrcv;
+       number nsignals;
+       number nvcsw;
+       number nivcsw;
+
+       native function constructor(number getchild)
+       {
+           FeriteVariable *fv;
+           struct rusage r;
+
+           if((int)getchild) getrusage(RUSAGE_CHILDREN, &r);
+           else getrusage(RUSAGE_SELF, &r);
+
+           fv = ferite_object_get_var(script, self, "utime");
+           F_VAR_TYPE(fv) = F_VAR_DOUBLE;
+           VAF(fv) = r.ru_utime.tv_sec + (double)((double)r.ru_utime.tv_usec /
+                                                  1000000);
+           fv = ferite_object_get_var(script, self, "stime");
+           F_VAR_TYPE(fv) = F_VAR_DOUBLE;
+           VAF(fv) = r.ru_stime.tv_sec + (double)((double)r.ru_stime.tv_usec /
+                                                  1000000);
+           fv = ferite_object_get_var(script, self, "maxrss");
+           VAI(fv) = r.ru_maxrss;
+           fv = ferite_object_get_var(script, self, "ixrss");
+           VAI(fv) = r.ru_ixrss;
+           fv = ferite_object_get_var(script, self, "idrss");
+           VAI(fv) = r.ru_idrss;
+           fv = ferite_object_get_var(script, self, "isrss");
+           VAI(fv) = r.ru_isrss;
+           fv = ferite_object_get_var(script, self, "minflt");
+           VAI(fv) = r.ru_minflt;
+           fv = ferite_object_get_var(script, self, "majflt");
+           VAI(fv) = r.ru_majflt;
+           fv = ferite_object_get_var(script, self, "nswap");
+           VAI(fv) = r.ru_nswap;
+           fv = ferite_object_get_var(script, self, "inblock");
+           VAI(fv) = r.ru_inblock;
+           fv = ferite_object_get_var(script, self, "oublock");
+           VAI(fv) = r.ru_oublock;
+           fv = ferite_object_get_var(script, self, "msgsnd");
+           VAI(fv) = r.ru_msgsnd;
+           fv = ferite_object_get_var(script, self, "msgrcv");
+           VAI(fv) = r.ru_msgrcv;
+           fv = ferite_object_get_var(script, self, "nsignals");
+           VAI(fv) = r.ru_nsignals;
+           fv = ferite_object_get_var(script, self, "nvcsw");
+           VAI(fv) = r.ru_nvcsw;
+           fv = ferite_object_get_var(script, self, "nivcsw");
+           VAI(fv) = r.ru_nivcsw;
+       }
+    }
+    /**
+     * @end
+     */
+
+    /**
+     * @class Rlimit
+     * @brief Allows you to get and set resource limits
+     * @description This class retrieves the specified resource limits when it
+     *              is created and places them in two variables, current and max.
+     *              Current is the current limit of a resource and max is
+     *              the hard kernel limit which cur is not allowed to exceed.
+     *              The resources you can request are Posix.RLIMIT_CPU (seconds
+     *              of processor time); Posix.RLIMIT_DATA (maximum size of
+     *              data segment); Posix.RLIMIT_FSIZE (maximum file size);
+     *              Posix.RLIMIT_LOCKS (maximum number of locked files);
+     *              Posix.RLIMIT_MEMLOCK (maximum bytes of memory that can be
+     *              locked into RAM); Posix.RLIMIT_NOFILE (maximum number of
+     *              files that can be opened); Posix.RLIMIT_NPROC
+     *              (maximum number of processes that can be created by the
+     *              real user ID of the calling process); Posix.RLIMIT_RSS
+     *              (maximum RSS size in pages); Posix.RLIMIT_STACK
+     *              (maximum size of the stack in bytes). The set() method
+     *              attempts to set the resource limit (presumably after
+     *              modifying current and/or max). On failure, it returns false
+     *              and sets err.str.
+     */
+    class Rlimit
+    {
+        /** @variable resource @type number @brief The resource this limit represents. */
+        number resource;
+        /** @variable current @type number @brief The current value for the resource. (-1 for Infinity)*/
+        number current;
+        /** @variable max @type number @brief The maximum value the resource can be. (-1 for Infinity)*/
+        number max;
+        
+        /**
+         * @function constructor
+         * @brief Create an instance of an Rlimit object
+         * @declaration function constructor( number resource )
+         * @param number resource The resource to query
+         */
+        native function constructor(number resource)
+        {
+           struct rlimit rl;
+           FeriteVariable *fv;
+
+           if(getrlimit((int)resource, &rl) == -1)
+           {
+               ferite_set_error(script, errno, "%s", strerror(errno));
+               FE_RETURN_NULL_OBJECT;
+           }
+
+           fv = ferite_object_get_var(script, self, "resource");
+           VAI(fv) = (int)resource;
+           fv = ferite_object_get_var(script, self, "current");
+           VAI(fv) = rl.rlim_cur;
+           fv = ferite_object_get_var(script, self, "max");
+           VAI(fv) = rl.rlim_max;
+       }
+
+       /**
+        * @function set
+        * @declaration function set
+        * @brief With the given resource, set the current values within the object.
+        * @return true on success, false otherwise
+        * @description if you wish to make either value set to infinite, make sure that
+                       either current or max are set to -1.
+        */
+       native function set() : boolean
+       {
+           int res;
+           struct rlimit rl;
+           FeriteVariable *fv;
+
+           fv = ferite_object_get_var(script, self, "resource");
+           res = VAI(fv);
+           fv = ferite_object_get_var(script, self, "current");
+           rl.rlim_cur = VAI(fv);
+           if(rl.rlim_cur == -1) rl.rlim_cur = RLIM_INFINITY;
+           fv = ferite_object_get_var(script, self, "max");
+           rl.rlim_max = VAI(fv);
+           if(rl.rlim_max == -1) rl.rlim_max = RLIM_INFINITY;
+
+           if(setrlimit(res, &rl) == -1)
+           {
+               ferite_set_error(script, errno, "%s", strerror(errno));
+               FE_RETURN_FALSE;
+           }
+           else FE_RETURN_TRUE;
+       }
+    }
+    /**
+     * @end
+     */
+
+    /**
+     * @function exec
+     * @declaration function exec(string filename, array argv, array env)
+     * @brief Starts a new program, replacing the current one
+     * @param string filename The name of the file to execute
+     * @array argv The argument array to pass to the new program
+     * @array env The environment array to give the new program
+     * @returns False on failure, never returns on success
+     * @description This function attempts to execute the specified filename.
+     *              The system path is not searched for the file. By convention,
+     *              the first string in the argv array is the name of the
+     *              program without the path to it. To use the current
+     *              environment instead of creating a new one, you can use
+     *              Sys.env.toArray() to retrieve it.
+     */
+    native function exec(string filename, array args, array env) : boolean
+    {
+        int i;
+        FeriteVariable *fv;
+        char **cargv, **cenv;
+
+        if(!(cargv = fcalloc(args->size + 1, sizeof(char *))))
+          FE_RETURN_FALSE;
+        
+        if(!(cenv = fcalloc(env->size + 1, sizeof(char *))))
+        {
+            ffree(cargv);
+            FE_RETURN_FALSE;
+        }
+
+        for(i = 0; i < args->size; i++)
+        {
+            fv = ferite_uarray_get_index(script, args, i);
+            if(F_VAR_TYPE(fv) != F_VAR_STR)
+            {
+                ferite_set_error(script, 0, "argv[%d] not a string", i);
+                goto execfailed;
+            }
+            if(!(cargv[i] = fstrdup(VAS(fv)->data))) goto execfailed;
+        }
+
+        for(i = 0; i < env->size; i++)
+        {
+            fv = ferite_uarray_get_index(script, env, i);
+            if(F_VAR_TYPE(fv) != F_VAR_STR)
+            {
+                ferite_set_error(script, 0, "env[%d] not a string", i);
+                goto execfailed;
+            }
+            if(fv->vname[0] == 0)
+            {
+                ferite_set_error(script, 0, "env[%d] doesn't have a key", i);
+                goto execfailed;
+            }
+            if(!(cenv[i] = fmalloc(strlen(VAS(fv)->data) +
+                                   strlen(fv->vname) + 2)))
+            {
+                goto execfailed;
+            }
+            sprintf(cenv[i], "%s=%s", fv->vname, VAS(fv)->data);
+        }
+
+        execve(filename->data, cargv, cenv);
+
+	    /* If we get to here, execve() failed because it shouldn't return. */
+        ferite_set_error(script, errno, "%s", strerror(errno));
+
+        execfailed:
+        for(i = 0; cargv[i]; i++) ffree(cargv[i]);
+        ffree(cargv);
+        for(i = 0; cenv[i]; i++) ffree(cenv[i]);
+        ffree(cenv);
+        FE_RETURN_FALSE;
+    }
+
+    /*==== End process handling ====*/
+
+    /**
+     * @class SelectResult
+     * @brief Returned by Posix.select()
+     * @description An instance of this class is returned by the function
+     *              Posix.select(). It contains three arrays (read, write, and
+     *              except), and a number (timeout). The arrays contain
+     *              references to the objects (if any) which caused the
+     *              Posix.select() call to finish, and timeout contains a number
+     *              specifying the number of seconds left before the call was
+     *              due to time out (it will be 0 if the select() finished
+     *              because of a timeout).
+     */
+    class SelectResult  
+    {   
+        /**
+         * @variable read
+         * @type array
+         * @brief An array containing objects that have the read flag set.
+         */
+       array read;
+        /**
+         * @variable write
+         * @type array
+         * @brief An array containing objects that have the write flag set.
+         */
+        array write;
+        /**
+         * @variable except
+         * @type array
+         * @brief An array containing objects that have the except flag set.
+         */
+        array except;
+        /**
+         * @variable timeout
+         * @type number
+         * @brief A number specifying the number of seconds left before the call was due to time out.
+         */
+        number timeout;
+    }
+    /** @end */
+    
+    /**
+     * @function select
+     * @declaration function select(array read, array write, array except, number timeout)
+     * @param array read An array of objects to monitor for read availability
+     * @param array write An array of objects to monitor for write availability
+     * @param array except An array of objects to monitor for exeptional events
+     * @param number timeout The number of seconds before it times out
+     * @return An object of the class SelectResult or null on failure
+     * @description The select() function forms the core of many Unix programs.
+     *              It allows you to monitor many different file and socket
+     *              descriptors at once and also to wait for accurate periods
+     *              of time. It takes three arrays of objects as arguments.
+     *              All of the objects in the arrays must have a getDescriptor()
+     *              method which returns a file descriptor that can be passed
+     *              the underlying OS select() call (all the standard classes
+     *              you might want to use with select() already have that
+     *              method). The arrays are read, write, and except. They
+     *              monitor for read availability, write availability, and
+     *              exceptional events respectively. The fourth argument,
+     *              timeout, is the number of seconds (may be floating point,
+     *              eg. 1.5) to wait for one or more of the file descriptors to
+     *              do become ready before timing out and returning anyway. If
+     *              timeout is 0, select() will wait forever for activity. If
+     *              timeout is a negative number, select() will not wait at all
+     *              (useful for checking if any of the files need servicing
+     *              without waiting). If select() fails, it returns null. If it
+     *              succeeds, it returns an instance of the SelectResult class,
+     *              which contains four variables corresponding to the
+     *              arguments to select(). The arrays contain lists of the
+     *              objects which are ready to be read, written to, or had
+     *              something exceptional happen on them. The timeout variable
+     *              contains the time remaining until the select() would have
+     *              timed out (will be 0 if the call did time out).
+     */
+    native function select(array read, array write, array except, number timeout) : Posix.SelectResult
+    {
+        int selectret;
+        FeriteClass *cls;
+        fd_set rfds, wfds, efds;
+        FeriteVariable *fv, *obj;
+        struct timeval tv, endtime, newtime, *tvp;
+
+        if(timeout < 0) 
+			tvp = NULL;
+        else if(timeout > 0)
+        {
+            tv.tv_sec = (long)timeout;
+            tv.tv_usec = (long)((timeout - tv.tv_sec) * 1000000);
+            tvp = &tv;
+            gettimeofday(&endtime, NULL);
+            endtime.tv_usec += tv.tv_usec;
+            endtime.tv_sec += tv.tv_sec;
+            if(endtime.tv_usec >= 1000000)
+            {
+                endtime.tv_usec -= 1000000;
+                endtime.tv_sec++;
+            }
+        }
+        else
+        {
+            tv.tv_usec = 0;
+            tv.tv_sec = 0;
+            tvp = &tv;
+        }
+
+        do
+        {
+            if(make_fd_set(script, read, &rfds) == -1 ||
+               make_fd_set(script, write, &wfds) == -1 ||
+               make_fd_set(script, except, &efds) == -1)
+            {
+                FE_RETURN_NULL_OBJECT;
+            }
+            selectret = select(FD_SETSIZE, &rfds, &wfds, &efds, tvp);
+            if(tvp && timeout)
+            {
+                gettimeofday(&newtime, NULL);
+                if(newtime.tv_sec > endtime.tv_sec || (newtime.tv_sec ==
+                                                       endtime.tv_sec && newtime.tv_usec >= endtime.tv_usec))
+                {
+                    tv.tv_sec = 0;
+                    tv.tv_usec = 0;
+                }
+                else
+                {
+                    tv.tv_sec = endtime.tv_sec - newtime.tv_sec;
+                    tv.tv_usec = endtime.tv_usec - newtime.tv_usec;
+                    if(tv.tv_usec < 0)
+                    {
+                        tv.tv_sec--;
+                        tv.tv_usec += 1000000;
+                    }
+                }
+            }
+        }
+        while(selectret == -1 && errno == EINTR);
+
+        if(!(cls = ferite_find_class(script, script->mainns, "Posix.SelectResult"))) {
+            FE_RETURN_NULL_OBJECT;
+        }
+
+        if(!(obj = ferite_new_object(script, cls, NULL))) {
+            FE_RETURN_NULL_OBJECT;
+        }
+
+        if(selectret && tvp && (tv.tv_usec > 0 || tv.tv_sec > 0))
+        {
+            fv = ferite_object_get_var(script, VAO(obj), "timeout");
+            F_VAR_TYPE(fv) = F_VAR_DOUBLE;
+            VAF(fv) = tv.tv_sec + (double)((double)tv.tv_usec / 1000000);
+        }
+
+        if(selectret)
+        {
+            update_SelectResult(script, VAO(obj), read, "read", &rfds);
+            update_SelectResult(script, VAO(obj), write, "write", &wfds);
+            update_SelectResult(script, VAO(obj), except, "except", &efds);
+        }
+
+        FE_RETURN_VAR(obj);
+    }
+}
+/**
+ * @end
+ */

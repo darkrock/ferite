@@ -1,0 +1,31 @@
+#!/usr/bin/env ferite
+
+/*
+ * Chris Ross <chris@ferite.org>
+ */
+
+uses "test", "console";
+
+class ConsoleTest extends Test {
+    function init() {
+        return Test.IGNORE;
+    }
+    function print() {
+        return Test.IGNORE;
+    }
+    function println() {
+        return Test.IGNORE;
+    }
+    function printlnErr() {
+        return Test.IGNORE;
+    }
+    function printErr() {
+        return Test.IGNORE;
+    }
+    function readln() {
+        return Test.IGNORE;
+    }
+}
+
+object o = new ConsoleTest();
+return o.run("Console");

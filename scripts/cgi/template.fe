@@ -1,0 +1,117 @@
+/*
+ * Copyright (C) 2000-2001 Chris Ross and Evan Webb
+ * Copyright (C) 1999-2000 Chris Ross
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies of the Software, its documentation and marketing & publicity
+ * materials, and acknowledgment shall be given in the documentation, materials
+ * and software packages that this Software was used.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+uses "array", "sys";
+
+class DynamicContent
+{
+   function getContent()
+   {
+       return "";
+   }
+}
+
+class Template extends DynamicContent
+{
+
+   array  content_static;
+   array  content_dynamic;
+   string output;
+   string filename, fileContent;
+   number changed;
+
+   function constructor( string file )
+   {
+       .output = "";
+       .changed = true;
+       if( file != "" )
+       {
+           .openFile( file );
+       }
+   }
+
+   // open the template
+   function openFile( string filename )
+   {
+       object file;
+
+       if( filename != "" )
+       {
+           .fileContent = "";
+           file = Sys.openfile( filename, 0 );
+           if( file != null )
+           {
+               .fileContent = file.toString();
+               file.close();
+               .changed = true;
+               return;
+           }
+       }
+       .content = "<b>WARNING:</b> Unable to open template `$filename'<br>";
+   }
+
+   // add static content
+   function addStaticContent( string name, string content )
+   {
+       .content_static[name] = content;
+   }
+
+   // add dyanic content (eg. another template)
+   function addDynamicContent( string name, object content )
+   {
+       .content_dynamic[name] = content;
+   }
+
+   // generate the content
+   function getContent()
+   {
+       array keys = Array.keys( .content_static );
+       number i = 0;
+       string key = "", content = "";
+       string pageOutput = .fileContent;
+       object	tempReg;
+
+       // sort out the static content
+       for( i = 0; i < Array.size(keys); i++ )
+       {
+           key = keys[i];
+           content = .content_static[keys[i]]; // get the content
+		tempReg = new Regexp( '{' + key + '}', 'gs' );
+		tempReg.replaceAll( pageOutput, content );
+       }
+
+       // get the dynamic content
+       keys = Array.keys( .content_dynamic );
+       for( i = 0; i < Array.size(keys); i++ )
+       {
+           key = keys[i];
+           if( .content_dynamic[key] != null )
+             content = .content_dynamic[key].getContent();
+           else
+             content = "(null)";
+		tempReg = new Regexp( '{' + key + '}', 'gs' );
+		tempReg.replaceAll( pageOutput, content );
+       }
+       return pageOutput;
+   }
+}

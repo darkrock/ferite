@@ -1,0 +1,2220 @@
+/*
+ * Copyright (C) 20011126  Pete Vassoff <pfv@grex.org> (A complete rewrite of Chris' implementation.)
+ * Copyright (C) 1999-2007 Chris Ross
+ * Copyright (c) 2002-2007 Alex Holden
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "string.lib";
+uses "array"; /* array is needed by sprintf() */
+uses "regexp";
+
+module-header
+{
+
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+
+#ifdef VCWIN32
+# include <snprintf.h>
+#endif
+	
+}
+
+/**
+ * @namespace String
+ * @brief Provides a set of functions to manipulate strings
+ */
+namespace String
+{
+
+	/**
+	 * @function length
+	 * @declaration function length( string str )
+	 * @brief Finds the length of a string
+	 * @param string str The string
+	 * @return The number of characters in the string
+	 */
+	native function length( string str ) : number
+	{
+		FE_RETURN_LONG( str->length );
+	}
+
+	/**
+	 * @function toDouble
+	 * @declaration function toDouble( string str )
+	 * @brief Converts a string to a number stored internally as a double
+	 * @param string str The string
+	 * @return The number
+	 * @description This function converts the specified string to a number,
+	 *			  which will be internally represented as a double. Note
+	 *			  that it does not perform any error checking at all. Use
+	 *			  String.toNumber() instead on new projects.
+	 */
+	native function toDouble( string str ) : float
+	{
+		double value;
+		value = atof( str->data );
+		FE_RETURN_DOUBLE( value );
+	}
+
+	/**
+	 * @function toLong
+	 * @declaration function toLong( string str )
+	 * @brief Converts a string to a number stored internally as a long
+	 * @param string str The string
+	 * @return The number
+	 * @description This function converts the specified string to a number,
+	 *			  which will be internally represented as a long. Note that
+	 *			  it does not perform any error checking at all. Use
+	 *			  String.toNumber(), and if necessary round it to an integer
+	 *			  instead on new projects.
+	 */
+	native function toLong( string str ) : integer
+	{
+		long value;
+		value = atol( str->data );
+		FE_RETURN_LONG( value );
+	}
+
+	/**
+	 * @function toHex
+	 * @declaration function toHex( string s )
+	 * @brief Interprets a string as a number and converts it to a hexadecimal string representation of it
+	 * @param string s The input string
+	 * @return A string containing the hex representation of the input string
+	 * @description This function performs a similar function to the standard
+	 *			  Unix utility, hexdump. It is useful for converting a block
+	 *			  of binary data into a printable hexadecimal string.
+	 */
+	native function toHex(string s) : string
+	{
+		int i;
+		char *p;
+		FeriteString *str;
+		if(!(str = ferite_str_new(script, NULL, s->length * 2, FE_CHARSET_DEFAULT)))
+		{
+			FE_RETURN_NULL_OBJECT;
+		}
+		p = str->data;
+		for(i = 0; i < s->length; i++)
+		{
+			sprintf(p, "%.2x", (unsigned char)s->data[i]);
+			p += 2;
+		}
+		FE_RETURN_STR(str, FE_TRUE);
+	}
+
+	/**
+	 * @function numberToByte
+	 * @declaration function numberToByte( number n )
+	 * @brief Converts a number to a character in a string of length one
+	 * @param number n The number
+	 * @return A single character string
+	 * @description Converts the ASCII number n into a character and returns it
+	 *			  as a string one character long. The number should be a
+	 *			  positive integer less than 255. If it is not, a zero
+	 *			  length string will be returned.
+	 * @example <nl/><code>
+	 <type>string</type> space = String.numberToByte(32); &raquo; space = " "</code><nl/>	 
+	 */
+	native function numberToByte(number n) : string
+	{
+		char c = 0;
+		FeriteString *str = NULL;
+
+		if((long)n < 0 || (long)n > 255)
+		{
+			str = ferite_str_new(script, NULL, 0, FE_CHARSET_DEFAULT);
+			FE_RETURN_STR(str, FE_TRUE);
+		}
+		else c = (unsigned char)n;
+
+		if(!(str = ferite_str_new(script, &c, 1, FE_CHARSET_DEFAULT)))
+		{
+			FE_RETURN_NULL_OBJECT;
+		}
+		FE_RETURN_STR(str, FE_TRUE);
+	}
+
+	/**
+	 * @function byteToNumber
+	 * @declaration function byteToNumber( string s )
+	 * @brief Converts the first character of a string to a number
+	 * @param string s The string containing the character to convert
+	 * @return An integer number in the range 0 to 255 or -1 on error.
+	 * @description This function converts the first character of the specified
+	 *			  string into its numerical equivalent.
+	 * @example <nl/><code>
+	 <type>number</type> space = String.numberToByte(" "); &raquo; space = 32</code><nl/>
+	 */
+	native function byteToNumber(string s) : number
+	{
+		if(s->length == 0)
+		{
+			FE_RETURN_LONG(-1);
+		}
+		else
+		{
+			unsigned char c = s->data[0];
+			long r = 0 + c;
+			FE_RETURN_LONG(r);
+		}
+	}
+
+	/**
+	 * @function index
+	 * @declaration function index( string a, string b )
+	 * @brief Finds the first occurance of string b in string a
+	 * @param string a The string to search through
+	 * @param string b The string to search for
+	 * @return The index number of the substring if found, or -1 if not found
+	 * @example <nl/><code>
+	 <type>number</type> space = String.index("Hello W<keyword>or</keyword>ld", "W<keyword>or</span>ld"); &raquo; space = 6</code><nl/>
+	 */
+	native function index( string a, string b ) : number
+	{
+		FE_RETURN_LONG( ferite_find_string( a->data, b->data ) );
+	}
+
+	/**
+	 * @function isNumber
+	 * @declaration function isNumber( string s )
+	 * @brief Checks whether a string represents a valid number
+	 * @param string s The string
+	 * @return True if the string represents a valid number, false if it doesn't
+	 * @description This function is used to discover whether String.toNumber()
+	 *			  will fail when called with a particular string or not. A
+	 *			  string which causes isNumber() to return true won't
+	 *			  necessarily work with String.toDouble() or String.toLong()
+	 *			  because String.toNumber() copes with many cases which the
+	 *			  above functions do not. An alternative to calling this
+	 *			  function before String.toNumber() is to check err.number
+	 *			  for failure after the String.toNumber() call.
+	 * @example <nl/><code>
+	 <type>number</type> space = 0;<nl/>
+	 <keyword>if</keyword>( String.isNumber("32") ) {<nl/>
+		 <tab/>space = String.toNumber("32");<nl/>
+	 } &raquo; space = 32</code><nl/>
+	 */
+	native function isNumber(string s) : boolean
+	{
+		char *ep;
+
+		errno = 0;
+		if(s->length == 0) FE_RETURN_FALSE;
+		strtod(s->data, &ep);
+		if(errno == ERANGE || *ep != 0)
+		{
+			FE_RETURN_FALSE;
+		}
+		else
+		{
+			FE_RETURN_TRUE;
+		}
+	}
+
+	/**
+	 * @function toNumber
+	 * @declaration function toNumber( string s )
+	 * @brief Converts a string to a number
+	 * @param string s The string
+	 * @return The number
+	 * @description This function attempts to convert a string to a number.
+	 *			  If the number is too large to be represented by a double,
+	 *			  (note that this requires a very large number indeed) it
+	 *			  returns HUGE_VAL or -HUGE_VAL and sets err.number to
+	 *			  ERANGE. The actual value of HUGE_VAL depends on your C
+	 *			  library (on some systems it is a special value which means
+	 *			  infinity). If the string doesn't represent a valid number,
+	 *			  0 is returned and err.number is set to Sys.EINVAL. If the
+	 *			  conversion is successful, the result is returned as a
+	 *			  number and err.number is set to 0. Note that this function
+	 *			  is much more powerful and not significantly slower than
+	 *			  String.toLong() and String.toDouble(), so it should always
+	 *			  be used in preference to them in new projects.
+	 * @example <nl/><code>
+	 <type>number</type> space = 0;<nl/>
+	 <keyword>if</keyword>( String.isNumber("32") ) {<nl/>
+		 <tab/>space = String.toNumber("32");<nl/>
+	 } &raquo; space = 32</code><nl/>
+	 */
+	native function toNumber(string s) : number
+	{
+		long l;
+		double d = 0.0;
+		char *ep;
+
+		if(s->length)
+		{
+			errno = 0;
+			l = strtol(s->data, &ep, 0);
+			if(errno != ERANGE && *ep == 0) FE_RETURN_LONG(l);
+			errno = 0;
+			d = strtod(s->data, &ep);
+			if(errno == ERANGE)
+			{
+				ferite_set_error(script, errno, "%s", strerror(errno));
+				FE_RETURN_DOUBLE(d);
+			}
+		}
+
+		if(!s->length || *ep != 0)
+		{
+			ferite_set_error(script, EINVAL, "String does not represent a valid number");
+			FE_RETURN_LONG(0);
+		}
+
+		ferite_set_error(script, 0, "");
+		FE_RETURN_DOUBLE(d);
+	}
+	native function hexToNumber( string s ) : number {
+		long l = 0;
+		if( s->length ) {
+			l = strtol( s->data, NULL, 16 );
+		}
+		FE_RETURN_LONG(l);
+	}
+
+	/**
+	 * @function reverse
+	 * @declaration function reverse( string s )
+	 * @brief Reverses a string
+	 * @param string s The input string
+	 * @return The input string with the order of the characters reversed
+	 * @example <nl/><code>
+	 <type>string</type> s = String.reverse("gninnuc"); &raquo; s = "cunning"</code><nl/>
+	 */
+	function reverse(string s)
+	{
+		return s[String.length(s) - 1..0];
+	}
+
+	/**
+	 * @function dissect
+	 * @declaration function dissect(string s, string d, number limit)
+	 * @brief Dissects a string into an array with single character delimiters
+	 * @param string s The string to dissect
+	 * @param string d The list of single delimiting characters
+	 * @param number limit If greater than zero, limits the number of cuts
+	 * @return Array of the resulting substrings
+	 * @description This function dissects string s into an array of substrings
+	 *			  delimited by the characters in string d. It is similar to
+	 *			  String.toArray() except that it expects a list of single
+	 *			  character delimiters instead of a single delimiting string.
+	 *			  For example, if s contains "aaa1bbbb2ccc3dddd" and d
+	 *			  contains "123" the result will be ["aaa", "bbbb", "ccc",
+	 *			  "dddd"]. If none of the delimiting characters are present
+	 *			  in the string, the result array will contain a single
+	 *			  string which is an exact copy of the input string. If limit
+	 *			  is 0, dissect() will cut the string every time it
+	 *			  encounters a delimiting character. If it is greater than
+	 *			  0, it will not cut the string more than limit times. If the
+	 *			  limit parameter is omitted, there is no limit to the number
+	 *			  of times the string will be cut.
+	 */
+	native function dissect(string s, string d, number limit) : array
+	{
+		int cuts = 0;
+		int left, right, i;
+		FeriteVariable *a, *fv;
+
+		if(!(a = ferite_create_uarray_variable(script, "string::split", 0,
+											   FE_STATIC)))
+		{
+			FE_RETURN_NULL_OBJECT;
+		}
+
+		for(left = right = 0; right < s->length; right++)
+		{
+			for(i = 0; i < d->length; i++)
+			{
+				if(s->data[right] == d->data[i])
+				{
+					if((right - left) > 0)
+					{
+						fv = ferite_create_string_variable_from_ptr(script,
+																	"", s->data + left, right - left,
+																	FE_CHARSET_DEFAULT, FE_STATIC);
+						ferite_uarray_add(script, VAUA(a), fv, NULL,
+										  FE_ARRAY_ADD_AT_END);
+						cuts++;
+					}
+					left = right + 1;
+					break;
+				}
+			}
+			if(limit > 0 && cuts == (int)limit) break;
+		}
+
+		/* Handle anything left on the end of the string: */
+		if((s->length - left) > 0)
+		{
+			fv = ferite_create_string_variable_from_ptr(script, "",
+														s->data + left, s->length - left,
+														FE_CHARSET_DEFAULT, FE_STATIC);
+			ferite_uarray_add(script, VAUA(a), fv, NULL, FE_ARRAY_ADD_AT_END);
+		}
+
+		FE_RETURN_VAR(a);
+	}
+	function dissect(string s, string d)
+	{
+		return(String.dissect(s, d, 0));
+	}
+
+	/**
+	 * @function toArray
+	 * @brief Splits a string up into an array based on a string delimiter
+	 * @declaration function toArray(string s, string d, number limit)
+	 * @param string str The string to split
+	 * @param string delims The string to use as the delimiter
+	 * @description This function splits string s into an array of substrings
+	 *			  delimited by string d. It is similar to String.dissect()
+	 *			  except that it expects a string as a delimiter instead of
+	 *			  a list of single characters. For example, if s contains
+	 *			  "foo equals bar" and d contains " equals " then the
+	 *			  result will be ["foo", "bar"]. If d is not present in
+	 *			  s, then the returned array will contain a single string
+	 *			  which is an exact copy of s. If limit is greater than 0,
+	 *			  toArray() will not break the string more than limit times.
+	 *			  Otherwise, it will break the string every time it
+	 *			  encounters the delimiting string. Note: it is possible to
+	 *			  omit the limit parameter, and it will default to 0.
+	 */
+	native function toArray( string str, string delims, number limit ) : array
+	{
+		int splits = 0;
+		char *name = NULL;
+		FeriteVariable *array = ferite_create_uarray_variable( script, "string::toArray", 100, FE_STATIC );
+		FeriteVariable *vstr = NULL;
+		int i = 0, j = 0, start = 0;
+
+		if( str->length > 0 && delims->length > 0 )
+		{
+			name = FE_CLEAN_STRING(str->length+1);
+			for( i = 0; i < str->length; i++ )
+			{
+				if( str->data[i] == delims->data[0] )
+				{
+					for( j = 0; delims->data[j] == str->data[j+i] && (j+i) < str->length && j < delims->length; j++ )
+					  ;
+					if( j == delims->length )
+					{
+						strncpy( name, str->data+start, i - start ); /* copy the data */
+						name[i-start] = '\0';
+						if( strlen( name ) >= 0 )
+						{
+							vstr = ferite_create_string_variable_from_ptr( script, "", name, strlen(name), FE_CHARSET_DEFAULT, FE_STATIC );
+							ferite_uarray_add( script, VAUA(array), vstr, NULL, FE_ARRAY_ADD_AT_END );
+						}
+						start = i + j;
+						i += j - 1;
+						splits++;
+					}
+				}
+				if(limit > 0 && splits == (int)limit) break;
+			}
+			if( start < str->length )
+			{
+				strncpy( name, str->data+start, str->length - start ); /* copy the data */
+				name[str->length - start] = '\0';
+				vstr = ferite_create_string_variable_from_ptr( script, "", name, strlen(name), FE_CHARSET_DEFAULT, FE_STATIC );
+				ferite_uarray_add( script, VAUA(array), vstr, NULL, FE_ARRAY_ADD_AT_END );
+			}
+			ffree( name );
+		}
+		FE_RETURN_VAR( array );
+	}
+	function toArray(string str, string delims)
+	{
+		return(String.toArray(str, delims, 0));
+	}
+
+	/**
+	 * @function trim
+	 * @declaration function trim( string str, string delims )
+	 * @brief Trims a string (front and back) using the specified delimiters
+	 * @param string str The string to trim
+	 * @param string delims The list of delimiters
+	 * @return The trimmed string
+	 * @description This function removes all occurrences of any of the
+	 *			  characters in the delims string from the front and back of
+	 *			  the specified string.
+	 * @example <nl/><code>
+	 <type>string</type> s = String.trim(" FNAR<tab/>  ", " "); &raquo; s = "FNAR"</code><nl/>
+	 */
+	native function trim( string str, string delims ) : string
+	{
+		FeriteVariable *var = NULL;
+		if( str->length > 0 ) {
+			int i,j;	
+			char *p = NULL;
+
+			for( i = 0 ; i < str->length ; i++ )
+			{
+		  /* FIXME Change this after code defrost:
+				if( memchr(delims->data, str->data[i], delims->length) == NULL ) */
+				if( strchr(delims->data, str->data[i]) == NULL )
+				  break;
+			}
+			for( j = str->length ; j > i-1 ; j-- )
+			{
+		  /* FIXME Change this after code defrost:
+				if( memchr(delims->data, str->data[i], delims->length) == NULL ) */
+				if( strchr(delims->data, str->data[j]) == NULL )
+				  break;
+			}
+			j++;
+			p = ( j - i == 0) ? "" : str->data + i;
+			var = fe_new_str_static( "string::trim", p, j - i, FE_CHARSET_DEFAULT );
+		} else {
+			var = fe_new_str_static( "string::trim", "", 0, FE_CHARSET_DEFAULT);
+		}
+		FE_RETURN_VAR( var );
+	}
+
+	/**
+	 * @function preTrim
+	 * @declaration function preTrim( string str, string delims )
+	 * @brief Trims the front of a string using the specified delimiters
+	 * @param string str The string to trim
+	 * @param string delims The list of delmimiters
+	 * @return The trimmed string
+	 * @description This function removes all occurrences of any of the
+	 *			  chararacters in the delims string from the front of the
+	 *			  specified string.
+	 */
+	native function preTrim( string str, string delims ) : string
+	{
+		int i;
+		char *p;
+		FeriteVariable *var;
+		for( i = 0 ; i < str->length ; i++ )
+		{
+	  /* FIXME Change this after code defrost:
+			if( memchr(delims->data, str->data[i], delims->length) == NULL ) */
+			if( strchr(delims->data, str->data[i]) == NULL )
+			  break;
+		}
+		p = ( str->length - i == 0) ? "" : str->data + i;
+		var = fe_new_str_static( "string::preTrim", p, str->length - i , FE_CHARSET_DEFAULT );
+		FE_RETURN_VAR( var );
+	}
+
+	/**
+	 * @function postTrim
+	 * @declaration function postTrim( string str, string delims )
+	 * @brief Trims the back of a string using the specified delimiters
+	 * @param string str The string to trim
+	 * @param string delims The list of delimiters
+	 * @return The trimmed string
+	 * @description This function removes all occurrences of any of the
+	 *			  characters in the delims string from the back of the
+	 *			  specified string.
+	 */
+	native function postTrim( string str, string delims ) : string
+	{
+		int j = 0;
+		char *p = NULL;
+		FeriteVariable *var = NULL;
+
+		for( j = str->length ; j > 0 ; j-- )
+		{
+	  /* FIXME Change this after code defrost:
+			if( memchr(delims->data, str->data[i], delims->length) == NULL ) */
+			if( strchr(delims->data, str->data[j]) == NULL )
+			  break;
+		}
+		if( str->length > 1 )
+		  j++;
+		
+		p = ( j == 0) ? "" : str->data;
+		var = fe_new_str_static( "string::postTrim", str->data, j, FE_CHARSET_DEFAULT );
+		FE_RETURN_VAR( var );
+	}
+
+	/**
+	 * @function toLower
+	 * @declaration function toLower( string str )
+	 * @brief Translates a string to lower case
+	 * @param string str The input string
+	 * @return A copy of the input string translated to lower case
+	 * @description This function translates all occurrences of upper case
+	 *			  alphabetical characters (A, B, C, etc.) in the input string
+	 *			  to their lower case equivalents (a, b, c, etc.) and returns
+	 *			  the result in a new string.
+	 * @example <nl/><code>
+	 <type>string</type> s = String.toLower("FNAR"); &raquo; s = "fnar"</code><nl/>
+	 */
+	native function toLower( string str ) : string
+	{
+		FeriteVariable *var;
+		FeriteString *s;
+		int i;
+
+		var = ferite_create_string_variable( script, "string::toLower", str, FE_STATIC );
+		s = VAS(var);
+		for( i = 0 ; i < s->length ; i++ )
+		{
+			s->data[i] = tolower( s->data[i] );
+		}
+		FE_RETURN_VAR( var );
+	}
+
+	/**
+	 * @function toUpper
+	 * @declaration function toUpper( string str )
+	 * @brief Translates a string to upper case
+	 * @param string str The input string
+	 * @return A copy of the input string translated to upper case
+	 * @description This function translates all occurrences of lower case
+	 *			  alphabetical characters (a, b, c, etc.) in the input string
+	 *			  to their upper case equivalents (A, B, C, etc.) and returns
+	 *			  the result in a new string.
+	 * @example <nl/><code>
+	 <type>string</type> s = String.toUpper("fnar"); &raquo; s = "FNAR"</code><nl/>
+	 */
+	native function toUpper( string str ) : string
+	{
+		FeriteVariable *var;
+		FeriteString *s;
+		int i;
+
+		var = ferite_create_string_variable( script, "string::toUpper", str, FE_STATIC );
+		s = VAS(var);
+		for( i = 0 ; i < s->length ; i++ )
+		{
+			s->data[i] = toupper( s->data[i] );
+		}
+		FE_RETURN_VAR( var );
+	}
+
+	/**
+	 * @function compareCase
+	 * @declaration function compareCase( string a, string b )
+	 * @brief Compares two strings
+	 * @param string a The first string
+	 * @param string b The second string
+	 * @return True if they match, false if they do not
+	 * @description This function compares the two strings and returns true if
+	 *			  they match or false if they do not. The case of
+	 *			  alphabetical characters is not ignored.
+	 */
+	native function compareCase( string a, string b ) : boolean {
+		if( ferite_str_cmp(script, a, b) ) {
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+	native function compare( string a, string b ) : number
+	{
+		FE_RETURN_LONG( ferite_strcasecmp( a->data, b->data ) );
+	}
+	/**
+	 * @function compareNoCase
+	 * @declaration function compareNoCase( string a, string b )
+	 * @brief Compares two strings, ignoring the case of alphabetical characters
+	 * @param string a The first string
+	 * @param string b The second string
+	 * @return True if they match, false if they do not
+	 * @description This function compares the two strings and returns true if
+	 *			  they match or false if they do not. The case of
+	 *			  alphabetical characters is ignored, eg. if you compare
+	 *			  "hello" and "HELLO" with this function, they will match.
+	 */
+	native function compareNoCase( string a, string b ) : boolean {
+		if( ferite_str_case_cmp(script, a, b) ) {
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function nCompareCase
+	 * @declaration function nCompareCase( string a, string b, number max )
+	 * @brief Compares the initial part of two strings
+	 * @param string a The first string
+	 * @param string b The second string
+	 * @param number max The maximum number of characters to compare
+	 * @return True if the first "max" characters match, false if they do not
+	 * @description This function compares the first "max" characters of the
+	 *			  two strings and returns true if they match or false if they
+	 *			  do not. The case of alphabetical characters is not ignored.
+	 */
+	native function nCompareCase( string a, string b, number max ) : boolean {
+		if( ferite_str_ncmp(script, a, b, (size_t)max) ) {
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function nCompareNoCase
+	 * @declaration function nCompareCase( string a, string b, number max )
+	 * @brief Compares the initial part of two strings, ignoring the case of alphabetical characters
+	 * @param string a The first string
+	 * @param string b The second string
+	 * @param number max The maximum number of characters to compare
+	 * @return True if the first "max" characters match, false if they do not
+	 * @description This function compares the first "max" characters of the
+	 *			  two strings and returns true if they match or false if they
+	 *			  do not. The case of alphabetical characters is ignored, eg.
+	 *			  if you compare "hello" and "HELLO" with this function, they
+	 *			  will match.
+	 */
+	native function nCompareNoCase( string a, string b, number max ) : boolean {
+		if( ferite_str_case_ncmp(script, a, b, (size_t)max) ) {
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function orderedCompare
+	 * @declaration native function orderedCompare( string a, string b )
+	 * @brief Compare two strings and provided ordered information
+	 * @param string a The left hand string
+	 * @param string b The right hand side string
+	 * @return -1 if a is less than b, 0 if a and b are the same, 1 is a is greater than b
+	 */
+	native function orderedCompare( string a, string b ) : number {
+		FE_RETURN_LONG( strcmp( a->data, b->data ) );
+	}
+
+	/**
+	 * @function isalpha
+	 * @native function isalpha( string s )
+	 * @brief Tests whether the first character of a string is alphabetic
+	 * @returns True if it is alphabetic, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is one of [a-z] or [A-Z]. False is returned if it
+	 *			  is not alphabetic or if the string is empty.
+	 */
+	native function isalpha(string s) : boolean
+	{
+		if(s->length > 0 && isalpha(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function islower
+	 * @native function islower( string s )
+	 * @brief Tests whether the first character of a string is a lower case letter
+	 * @returns True if it is a lower case letter, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is one of [a-z]. False is returned if it is not a
+	 *			  lower case letter or if the string is empty.
+	 */
+	native function islower(string s) : boolean
+	{
+		if(s->length > 0 && islower(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function isupper
+	 * @native function isupper( string s )
+	 * @brief Tests whether the first character of a string is an upper case letter
+	 * @returns True if it is an upper case letter, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is one of [A-Z]. False is returned if it is not an
+	 *			  upper case letter or if the string is empty.
+	 */
+	native function isupper(string s) : boolean
+	{
+		if(s->length > 0 && isupper(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function isdigit
+	 * @native function isdigit( string s )
+	 * @brief Tests whether the first character of a string is a digit
+	 * @returns True if it is a digit, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is one of [0-9]. False is returned if it is not a
+	 *			  digit or if the string is empty.
+	 */
+	native function isdigit(string s) : boolean
+	{
+		if(s->length > 0 && isdigit(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function isalnum
+	 * @native function isalnum( string s )
+	 * @brief Tests whether the first character of a string is alphanumerical
+	 * @returns True if it is alphanumerical, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is one of [a-z], [A-Z], or [0-9]. False is returned
+	 *			  if it is not alphanumerical or if the string is empty.
+	 */
+	native function isalnum(string s) : boolean
+	{
+		if(s->length > 0 && isalnum(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function isxdigit
+	 * @native function isxdigit( string s )
+	 * @brief Tests whether the first character of a string is a hex digit
+	 * @returns True if it is a hex digit, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is one of [0-9], [a-f], or [A-F]. False is returned
+	 *			  if it is not a hex digit or if the string is empty.
+	 */
+	native function isxdigit(string s) : boolean
+	{
+		if(s->length > 0 && isxdigit(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function ispunct
+	 * @native function ispunct( string s )
+	 * @brief Tests whether the first character of a string is a punctuation character
+	 * @returns True if it is a punctuation character, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is any non alphanumerical printable character. False
+	 *			  is returned if it is not a punctuation character or if the
+	 *			  string is empty.
+	 */
+	native function ispunct(string s) : boolean
+	{
+		if(s->length > 0 && ispunct(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function isspace
+	 * @native function isspace( string s )
+	 * @brief Tests whether the first character of a string is a whitespace character
+	 * @returns True if it is a whitespace character, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is one of ' ', '\f', '\n', '\r', '\t', or '\v'.
+	 *			  False is returned if it is not a whitespace character or if
+	 *			  the string is empty.
+	 */
+	native function isspace(string s) : boolean
+	{
+		if(s->length > 0 && isspace(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function isgraph
+	 * @native function isgraph( string s )
+	 * @brief Tests whether the first character of a string is a graphic character
+	 * @returns True if it is a graphic character, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is a graphic character, ie. one which has a glyph
+	 *			  associated with it. Whitespace characters are not considered
+	 *			  to be graphic characters. False is returned if it is not
+	 *			  a graphic character or if the string is empty.
+	 */
+	native function isgraph(string s) : boolean
+	{
+		if(s->length > 0 && isgraph(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function isprint
+	 * @native function isprint( string s )
+	 * @brief Tests whether the first character of a string is a printable character
+	 * @returns True if it is a printable character, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is a printable character. isprint() returns true for
+	 *			  all the characters that isgraph() does, and for the space
+	 *			  character as well. False is returned if it is not a
+	 *			  printable character or if the string is empty.
+	 */
+	native function isprint(string s) : boolean
+	{
+		if(s->length > 0 && isprint(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/**
+	 * @function iscntrl
+	 * @native function iscntrl( string s )
+	 * @brief Tests whether the first character of a string is a control character
+	 * @returns True if it is a control character, false if it is not or on error
+	 * @description This function returns true if the first letter of the
+	 *			  string is a control character, ie. any character which is
+	 *			  not printable. False is returned if it is not a control
+	 *			  character or if the string is empty.
+	 */
+	native function iscntrl(string s) : boolean
+	{
+		if(s->length > 0 && iscntrl(s->data[0]))
+		{
+			FE_RETURN_TRUE;
+		}
+		FE_RETURN_FALSE;
+	}
+
+	/* This is used as a utility function by sprintf to format a variable. You
+	 * probably shouldn't call this function directly from user scripts. The
+	 * format should be a printf type format for a single variable (eg. "%d"),
+	 * which is passed in in the void parameter. Some of the more rarely used
+	 * or Gnu specific conversions aren't supported. Printing of objects and
+	 * arrays is not yet supported. On error an empty string is returned (this
+	 * doesn't trigger an error in sprintf() though because some valid formats
+	 * such as %s with an empty string will also produce an empty output
+	 * string). */
+	native function __printvar(string fmt, void var) : string
+	{
+		long l;
+		int ret;
+		double d;
+		char *buf;
+		unsigned char c;
+		int buflen = 256;
+		FeriteString *fs;
+		FeriteVariable *fv;
+
+		if(fmt->length == 0 || !var || !(buf = fmalloc(buflen))) goto err2;
+
+		do
+		{
+			switch(fmt->data[fmt->length - 1])
+			{
+			  case 'd':
+			  case 'i':
+			  case 'o':
+			  case 'u':
+			  case 'x':
+			  case 'X':
+				if(F_VAR_TYPE(var) == F_VAR_LONG) l = VAI(var);
+				else if(F_VAR_TYPE(var) == F_VAR_DOUBLE) l = (long)VAF(var);
+				else goto err1;
+				ret = snprintf(buf, buflen, fmt->data, l);
+				break;
+			  case 'f':
+			  case 'e':
+			  case 'E':
+			  case 'g':
+			  case 'G':
+			  case 'a':
+			  case 'A':
+				if(F_VAR_TYPE(var) == F_VAR_LONG) d =(double)VAI(var);
+				else if(F_VAR_TYPE(var) == F_VAR_DOUBLE) d = VAF(var);
+				else goto err1;
+				ret = snprintf(buf, buflen, fmt->data, d);
+				break;
+			  case 'c':
+			  case 'C':
+				if(F_VAR_TYPE(var) == F_VAR_LONG) c = (unsigned char)VAI(var);
+				else if(F_VAR_TYPE(var) == F_VAR_DOUBLE) c = (unsigned char)VAF(var);
+				else if(F_VAR_TYPE(var) == F_VAR_STR)
+				{
+					fs = VAS(var);
+					if(fs->length == 0) goto err1;
+					else c = fs->data[0];
+				}
+				else goto err1;
+				ret = snprintf(buf, buflen, fmt->data, c);
+				break;
+			  case 's':
+			  case 'S':
+				if(F_VAR_TYPE(var) == F_VAR_STR) fs = VAS(var);
+				else goto err1;
+				ret = snprintf(buf, buflen, fmt->data, fs->data);
+				break;
+			  default:
+				goto err1;
+			}
+	  /* Here we have to deal both with versions of snprintf() which
+	   * return -1 if the buffer isn't long enough and versions which
+	   * return the length of text that would have been generated if the
+	   * buffer had been long enough. */
+			if(ret > -1 && ret < buflen) break;
+			else if(ret > -1) buflen = ret + 1;
+			else buflen *= 2;
+		}
+		while((buf = frealloc(buf, buflen)));
+
+		if(!buf) goto err2;
+
+		fv = ferite_create_string_variable_from_ptr(script, "", buf, ret,
+													FE_CHARSET_DEFAULT, FE_STATIC);
+		ffree(buf);
+		FE_RETURN_VAR(fv);
+
+		err1:   ffree(buf);
+		err2:   fv = ferite_create_string_variable_from_ptr(script, "", "", 0,
+															FE_CHARSET_DEFAULT, FE_STATIC);
+		FE_RETURN_VAR(fv);
+	}
+
+	/* Another utility function for sprintf(). You definitely don't want to
+	 * call this from a user script. */
+	native function __isfmt(string s) : boolean
+	{
+		char fmts[] = "diouxXfeEgGaAcCsS";
+
+		if(!s->data[0] || !strchr(fmts, s->data[0]))
+		{
+			FE_RETURN_FALSE;
+		}
+		FE_RETURN_TRUE;
+	}
+
+	/**
+	 * @function sprintf
+	 * @declaration function sprintf( string fmt, ... )
+	 * @brief Prints formatted text to a string
+	 * @param string fmt The format string
+	 * @param void ... The variables
+	 * @returns The formatted string
+	 * @description This function is analagous to the libc sprintf() function.
+	 *			  You should read your system libc manual for full details on
+	 *			  the different output formats you can use. Printing of
+	 *			  objects and arrays is not currently supported and various
+	 *			  extensions such as %m are not supported (but may be in the
+	 *			  future).
+	 * @example <nl/><code>
+	 <type>string</type> s = String.sprintf("fnar:%s:%d","Yes",32); &raquo; s = "fnar:Yes:32"</code><nl/>
+	 */
+	function sprintf(string fmt, ...) : string
+	{
+		string ret = "";
+		number fl = 0, fr = 0, ai = 1;
+		array args = arguments();
+		number alen = Array.size(args);
+		number flen = String.length(fmt);
+
+		/* Loop through the format string: */
+		while(fr < flen)
+		{
+
+			/* Look for the start of a format definition: */
+			if(fmt[fr] != '%')
+			{
+				fr++;
+				continue;
+			}
+
+			/* Output anything that came before this format definition: */
+			if(fl < fr)
+			{
+				ret += fmt[fl..(fr - 1)];
+				fl = fr;
+			}
+
+			/* Make sure there's at least one more character in the format: */
+			if(++fr == flen) break;
+
+			/* Check for the special case of "%%": */
+			if(fmt[fr] == '%')
+			{
+				/* Make left point to the second % in the sequence: */
+				fl = fr;
+				fr++;
+				continue;
+			}
+
+			/* Look for the format character which goes with this %: */
+			while(fr < flen)
+			{
+				if(String.__isfmt(fmt[fr]))
+				{
+					/* We found it, so check we have a variable in the argument
+					 * array to go with it: */
+					if(ai == alen) break;
+					/* We have a variable, so format the string and add it to
+					 * the output: */
+					ret += String.__printvar(fmt[fl..fr], args[ai]);
+					fr++;
+					fl = fr;
+					ai++;
+					break;
+				}
+				fr++;
+			}
+		}
+
+		/* Add any remaining characters from the format string: */
+		if(fl < flen) ret += fmt[fl..(flen - 1)];
+
+		return ret;
+	}
+
+	/**
+	 * @function escape
+	 * @declaration function escape( string str )
+	 * @brief Converts various characters in a string to escape sequences
+	 * @param string str The string
+	 * @return A copy of the string after escaping some characters
+	 * @description This function encodes a binary string using standard C
+	 *			  escape sequences which can be used in many places where
+	 *			  arbitrary binary data is not allowed.
+	 */
+	native function escape( string str ) : string
+	{
+		FeriteVariable *ret;
+		char tmp[5], *buf, *newbuf;
+		int i, len, bufsiz = 256, buflen = 0;
+
+		if(str->length == 0 || !(buf = fmalloc(bufsiz)))
+		{
+			ret = ferite_create_string_variable_from_ptr(script, NULL, "", 0,
+														 FE_CHARSET_DEFAULT, FE_STATIC);
+			FE_RETURN_VAR(ret);
+		}
+
+		for(i = 0; i < str->length; i++)
+		{
+
+			/* Initialising these two here assuming that it is going to be a
+			 * letter escape sequence saves two lines of code for each of
+			 * the letter escape sequences below: */
+			len = 2;
+			tmp[0] = '\\';
+
+			switch(str->data[i])
+			{
+				/* Handle all of the letter escapes first: */
+			  case '\a':
+				tmp[1] = 'a';
+				break;
+			  case '\b':
+				tmp[1] = 'b';
+				break;
+			  case '\f':
+				tmp[1] = 'f';
+				break;
+			  case '\n':
+				tmp[1] = 'n';
+				break;
+			  case '\r':
+				tmp[1] = 'r';
+				break;
+			  case '\t':
+				tmp[1] = 't';
+				break;
+			  case '\v':
+				tmp[1] = 'v';
+				break;
+			  case '\\':
+				tmp[1] = '\\';
+				break;
+			  case '\?':
+				tmp[1] = '\?';
+				break;
+			  case '\'':
+				tmp[1] = '\'';
+				break;
+			  case '\"':
+				tmp[1] = '\"';
+				break;
+			  default:
+					/* Handle any remaining non-printable characters by
+					 * converting them to a hex escape number: */
+				if(!isprint(str->data[i]))
+				{
+					len = snprintf(tmp, 5, "\\x%.2x", (unsigned char)str->data[i]);
+				}
+				else
+				{
+						/* Anything else is included directly: */
+					tmp[0] = str->data[i];
+					len = 1;
+				}
+				break;
+			}
+
+			/* Expand the output buffer if necessary: */
+			if(buflen + len > bufsiz)
+			{
+				bufsiz *= 2;
+				/* Shouldn't really happen, but handle it if it does: */
+				if(buflen + len > bufsiz) bufsiz += len;
+				if(!(newbuf = frealloc(buf, bufsiz)))
+				{
+					ffree(buf);
+					ret = ferite_create_string_variable_from_ptr(script, NULL,
+																 "", 0, FE_CHARSET_DEFAULT, FE_STATIC);
+					FE_RETURN_VAR(ret);
+				}
+				else buf = newbuf;
+			}
+
+			memcpy(&buf[buflen], tmp, len);
+			buflen += len;
+		}
+
+		ret = ferite_create_string_variable_from_ptr(script, "String:escape",
+													 buf, buflen, FE_CHARSET_DEFAULT, FE_STATIC);
+		ffree(buf);
+		FE_RETURN_VAR(ret);
+	}
+
+	/**
+	 * @function unescape
+	 * @declaration function unescape( string str )
+	 * @brief Unescapes strings which contain standard C escape sequences
+	 * @param string str The string
+	 * @return A copy of the string after unescaping it
+	 */
+	native function unescape( string str ) : string
+	{
+		long l;
+		int i, buflen = 0;
+		FeriteVariable *ret;
+		unsigned char *buf, c, tmp[4];
+
+		/* We know the output can't be longer than the input when unescaping: */
+		if(str->length == 0 || !(buf = fmalloc(str->length)))
+		{
+			ret = ferite_create_string_variable_from_ptr(script, "str:unescape", "", 0,
+														 FE_CHARSET_DEFAULT, FE_STATIC);
+			FE_RETURN_VAR(ret);
+		}
+
+		for(i = 0; i < str->length; i++)
+		{
+			/* Check if this is the start of an escape sequence (being careful
+			 * to handle the special case of the string ending with a single
+			 * backslash): */
+			if(str->data[i] == '\\' && i < str->length - 1)
+			{
+				switch(str->data[++i])
+				{
+					/* Handle all the single letter escapes: */
+				  case 'a':
+					c = '\a';
+					break;
+				  case 'b':
+					c = '\b';
+					break;
+				  case 'f':
+					c = '\f';
+					break;
+				  case 'n':
+					c = '\n';
+					break;
+				  case 'r':
+					c = '\r';
+					break;
+				  case 't':
+					c = '\t';
+					break;
+				  case 'v':
+					c = '\v';
+					break;
+				  case '\\':
+					c = '\\';
+					break;
+				  case '?':
+					c = '?';
+					break;
+				  case '\'':
+					c = '\'';
+					break;
+				  case '"':
+					c = '"';
+					break;
+					/* Handle hex numbers: */
+				  case 'x':
+						/* We can safely do this because we know that
+						 * str->data[str->length] is always '\0': */
+					if(isxdigit(str->data[i + 1]))
+					{
+						tmp[0] = str->data[++i];
+						if(isxdigit(str->data[i + 1]))
+						{
+							tmp[1] = str->data[++i];
+							tmp[2] = '\0';
+						}
+						else tmp[1] = '\0'; /* Only one hex digit */
+						l = strtol(tmp, NULL, 16);
+						if(l > 255 || l < 0) c = 0; /* Shouldn't happen */
+						else c = (unsigned char)l;
+					}
+					else c = 'x'; /* No hex digits after the x */
+					break;
+					/* Handle octal numbers: */
+				  case '0':
+				  case '1':
+				  case '2':
+				  case '3':
+				  case '4':
+				  case '5':
+				  case '6':
+				  case '7':
+					tmp[0] = str->data[i];
+					tmp[1] = str->data[i + 1];
+					if(tmp[1] >= '0' && tmp[1] <= '7')
+					{
+						i++;
+						tmp[2] = str->data[i + 1];
+						if(tmp[2] >= '0' && tmp[2] <= '7')
+						{
+							i++;
+							tmp[3] = '\0'; /* Three octal digits */
+						}
+						else tmp[2] = '\0'; /* Two octal digits */
+					}
+					else tmp[1] = '\0'; /* One octal digit */
+					l = strtol(tmp, NULL, 8);
+					if(l > 255 || l < 0) c = 0;
+					else c = (unsigned char)l;
+					break;
+					/* Anything else just gets copied straight through: */
+				  default:
+					c = str->data[i];
+					break;
+				}
+			}
+			else c = str->data[i];
+			buf[buflen++] = c;
+		}
+
+		ret = ferite_create_string_variable_from_ptr(script, "String:unescape",
+													 buf, buflen, FE_CHARSET_DEFAULT, FE_STATIC);
+		ffree(buf);
+		FE_RETURN_VAR(ret);
+	}
+
+	/**
+	 * @function pad
+	 * @declaration function pad( string str, number pad, string padstr )
+	 * @brief Pads a string
+	 * @param string str The string
+	 * @param number pad The total length the string should be
+	 * @param string padchar The character to pad the extra space with
+	 * @return A copy of the string, padded to the specified length
+	 * @description If the specified string is less than "pad" characters long,
+	 *			  copies of the first character of padchar are added to the
+	 *			  end of the string to make it up to the specified length.
+	 *			  The string is not truncated if it is already longer than
+	 *			  the specified length. If the padchar parameter is omitted
+	 *			  or is an empty string, spaces are used. If a number between
+	 *			  0 and 255 is specified instead of the padchar, the string
+	 *			  is padded with the ASCII character which that number
+	 *			  represents.
+	 * @example <nl/><code>
+	 <type>string</type> s = String.pad("fnar",10,"."); &raquo; s = "fnar......"</code><nl/>
+	 */
+	native function pad( string str, number pad, string padchar ) : string
+	{
+		unsigned char pch;
+		FeriteVariable *ret;
+		long lpad = (long)pad;
+		
+		if( lpad < 0 )
+			lpad = 0;
+		
+		if(lpad <= str->length)
+		{
+			ret = ferite_create_string_variable(script, "String::pad", str,
+												FE_STATIC);
+			FE_RETURN_VAR(ret);
+		}
+
+		if(!(ret = ferite_create_string_variable_from_ptr(script, "String::pad",
+														  NULL, lpad, FE_CHARSET_DEFAULT, FE_STATIC)))
+		{
+			FE_RETURN_VOID;
+		}
+
+		memcpy(VAS(ret)->data, str->data, str->length);
+		if(padchar->length < 1) pch = ' ';
+		else pch = padchar->data[0];
+		memset(&VAS(ret)->data[str->length], pch, lpad - str->length);
+
+		FE_RETURN_VAR(ret);
+	}
+  /**
+  * @function pad
+   * @declaration function pad( string str, number pad )
+   * @brief Pads a string
+   * @param string str The string
+   * @param number pad The total length the string should be
+   * @return A copy of the string, padded to the specified length
+   * @description If the specified string is less than "pad" characters long,
+   *			  copies of the first character of padchar are added to the
+   *			  end of the string to make it up to the specified length.
+   *			  The string is not truncated if it is already longer than
+   *			  the specified length. The character to pad will be a space.
+   * @example <nl/><code>
+   <type>string</type> s = String.pad("fnar",10); &raquo; s = "fnar	  "</code><nl/>
+   */
+  function pad(string str, number pad)
+	{
+		return(String.pad(str, pad, ''));
+	}
+	  /**
+	  * @function pad
+	   * @declaration function pad( string str, number pad, number ch )
+	   * @brief Pads a string
+	   * @param string str The string
+	   * @param number pad The total length the string should be
+	   * @param number ch The ASCII value to use.
+	   * @return A copy of the string, padded to the specified length
+	   * @description If the specified string is less than "pad" characters long,
+	   *			  copies of the first character of padchar are added to the
+	   *			  end of the string to make it up to the specified length.
+	   *			  The string is not truncated if it is already longer than
+	   *			  the specified length. The character to pad will be the value ch.
+	   * @example <nl/><code>
+	   <type>string</type> s = String.pad("fnar",10,32); &raquo; s = "fnar	  "</code><nl/>
+	   */
+				  
+	function pad(string str, number pad, number ch)
+	{
+		string s;
+
+		if(ch < 0 || ch > 255) s = ' ';
+		else s = String.numberToByte(ch);
+
+		return(String.pad(str, pad, s));
+	}
+
+	/**
+	 * @function blocks
+	 * @declaration function blocks( string str, number size )
+	 * @brief Splits a string into an array of strings of no more than the specified size
+	 * @param string str The string
+	 * @param number size The maximum size of the output strings
+	 * @return The array of output strings
+	 * @description This function converts the specified string into an array
+	 *			  of strings. Each string in the array will contain "size"
+	 *			  characters of the input string, except for the last string
+	 *			  which may be smaller if it runs out of characters in the
+	 *			  input string. For example, String.blocks("hello world", 3)
+	 *			  will produce the output [ "hel", "lo ", "wor", "ld" ].
+	 */
+	native function blocks( string str, number size ) : array
+	{
+		FeriteVariable *fv, *ret;
+		long i, len, lsize = (long)size, asize;
+
+		if(lsize < 1)
+		{
+			ret = ferite_create_uarray_variable(script, NULL, 0, FE_STATIC);
+			FE_RETURN_VAR(ret);
+		}
+
+		asize = str->length / lsize;
+		if(str->length % lsize) asize++;
+
+		if(!(ret = ferite_create_uarray_variable(script, "String:blocks",
+												 asize, FE_STATIC)))
+		{
+			FE_RETURN_VOID;
+		}
+
+		for(i = 0; i < str->length; i += len)
+		{
+			len = str->length - i;
+			if(len > lsize) len = lsize;
+			fv = ferite_create_string_variable_from_ptr(script,
+														"String::blocks", &str->data[i], len,
+														FE_CHARSET_DEFAULT, FE_STATIC);
+			if(fv)
+			{
+				ferite_uarray_add(script, VAUA(ret), fv, NULL,
+								  FE_ARRAY_ADD_AT_END);
+			}
+		}
+
+		FE_RETURN_VAR(ret);
+	}
+
+	  /**
+	  * @function lines
+	   * @declaration function lines( string str )
+	   * @brief Itterate through the lines within a string or create an array containing the lines.
+	   * @param string str The string
+	   * @return The array containing the lines.
+	   * @description If you pass this function a closure, it will call it with each line.
+	   * @example <nl/><code>
+	   <type>array</type> lines = String.lines( "line1\nline2\nline3\n" );<nl/>
+	   String.lines( "line1\nline2\nline3\n" ) <keyword>using</keyword> ( line ) {<nl/>
+	   <tab/>Console.println( line );<nl/>
+	   }</code><nl/>
+	   */
+	function lines( string str ) 
+	{
+	  array a = String.toArray( str, "\n" );
+	  if( recipient() != null ) {
+		  Array.each( a ) using recipient();
+	  }
+	  else
+		  return a;
+	}
+
+	/**
+	 * @function base64encode
+	 * @brief Convert a string to base64 encoding. 
+	 * @description The base64 encoding makes it possible to transport binary information
+	 *			  within an ascii system such as email.
+	 * @param string source The string to encode
+	 * @return The encoded version of source.
+	 */
+	native function base64encode( string source ) : string
+	{
+		static unsigned char dtable[256];
+		int i, loc;
+		FeriteBuffer *output = ferite_buffer_new( script, source->length * 2 );
+		FeriteString *output_flat = NULL;
+			
+		for( i = 0; i < 9; i++ )
+		{
+			dtable[i] = 'A'+i;
+			dtable[i+9] = 'J'+i;
+			dtable[26+i] = 'a'+i;
+			dtable[26+i+9] = 'j'+i;
+		}
+		for( i = 0 ; i < 8; i++ )
+		{
+			dtable[i+18] = 'S'+i;
+			dtable[26+i+18] = 's'+i;
+		}
+		for( i = 0; i < 10; i++ )
+		{
+			dtable[52+i] = '0'+i;
+		}
+		dtable[62] = '+';
+		dtable[63] = '/';
+		
+		for( loc = 0; loc < source->length; )
+		{
+			unsigned char igroup[3], ogroup[4];
+			int c, n;
+			
+			igroup[0] = igroup[1] = igroup[2] = 0;
+			for( n = 0; n < 3 && loc < source->length; n++, loc++ )
+			{
+				c = source->data[loc];
+				igroup[n]= (unsigned char)c;
+			}
+			if( n > 0)
+			{
+				ogroup[0]= dtable[igroup[0]>>2];
+				ogroup[1]= dtable[((igroup[0]&3)<<4)|(igroup[1]>>4)];
+				ogroup[2]= dtable[((igroup[1]&0xF)<<2)|(igroup[2]>>6)];
+				ogroup[3]= dtable[igroup[2]&0x3F];
+
+				if( n < 3 )
+				{
+					ogroup[3] = '=';
+					if( n < 2 )
+					{
+						ogroup[2] = '=';
+					}
+				}
+				for( i = 0; i < 4; i++ )
+					ferite_buffer_add_char( script, output, ogroup[i] );
+			}
+		}
+		
+		output_flat = ferite_buffer_to_str( script, output );
+		ferite_buffer_delete( script, output );
+		FE_RETURN_STR( output_flat, FE_TRUE );
+	}
+	/**
+	 * @function base64decode
+	 * @brief Convert a string from base64 encoding to normal. 
+	 * @description The base64 encoding makes it possible to transport binary information
+	 *			  within an ascii system such as email.
+	 * @param string source The string to decode
+	 * @return The decoded version of source.
+	 */
+	native function base64decode( string source ) : string
+	{
+		static unsigned char dtable[256];
+		int i, j, loc;
+		FeriteBuffer *output = ferite_buffer_new( script, source->length * 2 );
+		FeriteString *output_flat = NULL;		
+		
+		for(i= 0;i<255;i++){
+			dtable[i]= 0x80;
+		}
+		for(i= 'A';i<='I';i++){
+			dtable[i]= 0+(i-'A');
+		}
+		for(i= 'J';i<='R';i++){
+			dtable[i]= 9+(i-'J');
+		}
+		for(i= 'S';i<='Z';i++){
+			dtable[i]= 18+(i-'S');
+		}
+		for(i= 'a';i<='i';i++){
+			dtable[i]= 26+(i-'a');
+		}
+		for(i= 'j';i<='r';i++){
+			dtable[i]= 35+(i-'j');
+		}
+		for(i= 's';i<='z';i++){
+			dtable[i]= 44+(i-'s');
+		}
+		for(i= '0';i<='9';i++){
+			dtable[i]= 52+(i-'0');
+		}
+		dtable['+']= 62;
+		dtable['/']= 63;
+		dtable['=']= 0;
+		
+		for( loc = 0; loc < source->length; )
+		{
+			unsigned char a[4],b[4],o[3];
+			
+			for( i = 0; i < 4 && loc < source->length; i++, loc++ )
+			{
+				int c = source->data[loc];
+				a[i]= (unsigned char)c;
+				b[i]= (unsigned char)dtable[c];
+			}
+			o[0]= (b[0]<<2)|(b[1]>>4);
+			o[1]= (b[1]<<4)|(b[2]>>2);
+			o[2]= (b[2]<<6)|b[3];
+			i= a[2]=='='?1:(a[3]=='='?2:3);
+			
+			for( j = 0; j < i; j++ )
+				ferite_buffer_add_char( script, output, o[j] );
+
+			if(i<3){
+				break;
+			}
+		}
+		
+		output_flat = ferite_buffer_to_str( script, output );
+		ferite_buffer_delete( script, output );
+		FE_RETURN_STR( output_flat, FE_TRUE );		
+	}
+
+   /**
+	 * @function replace
+	 * @brief Replace a string within the string.  
+	 * @param string source The string to work with. 
+	 * @param string what The string replace within the string. 
+	 * @param string whit The string replace with. 
+	 * @return The new version of source.
+	 */
+	native function replace( string source, string what, string with ) : string {
+		FeriteString *str = NULL;
+		char *data = "";
+
+		if(source->data != NULL) {
+			data = ferite_replace_string( source->data, what->data, with->data);
+		} 
+		str = ferite_str_new(script, data, 0, FE_CHARSET_DEFAULT);
+		ffree( data );
+
+		FE_RETURN_STR( str, FE_TRUE );
+	}
+
+	/**
+	 * @function toBoolean
+	 * @declaration function toBoolean( string value )
+	 * @brief Test to see whether a string is equal to 'true'
+	 * @param string value The string to test
+	 * @return true if the string is equal to 'true', or false otherwise 
+	 */
+	function toBoolean( string value ) {
+		if( value.toLower() == 'true' )
+			return true;
+		return false;
+	}
+	
+	/**
+	 * @function hexStringToNumber
+	 * @declaration native function hexStringToNumber( string value )
+	 * @brief Convert a hexadecimal number in string format to a number
+	 * @param string value The string to convert
+	 * @return The numerical value
+	 */
+	native function hexStringToNumber( string value ) : number {
+		int r = strtol( value->data, NULL, 16 );
+		FE_RETURN_LONG( (int)r );
+	}
+	/**
+	 * @function binaryStringToNumber
+	 * @declaration native function binaryStringToNumber( string value )
+	 * @brief Convert a binary number in string format to a number
+	 * @param string value The string to convert
+	 * @return The numerical value
+	 */
+	native function binaryStringToNumber( string value ) : number {
+		int r = strtol( value->data, NULL, 2 );
+		FE_RETURN_LONG( (int)r );
+	}
+	/**
+	 * @function octalStringToNumber
+	 * @declaration native function octalStringToNumber( string value )
+	 * @brief Convert a octal number in string format to a number
+	 * @param string value The string to convert
+	 * @return The numerical value
+	 */
+	native function octalStringToNumber( string value ) : number {
+		int r = strtol( value->data, NULL, 8 );
+		FE_RETURN_LONG( (int)r );
+	}
+	/**
+	 * @function repeat
+	 * @declaration function repeat( string source, number times )
+	 * @brief Repeat a string n times
+	
+	 * @param string source The string to repeat
+	 * @param number times The number of times to repeat the string
+	 * @return A string with source repeated 'times' times
+	 */
+	function repeat( string source, number times ) {
+		string s = '';
+		for( number i = 0; i < times; i++ )
+			s += source;
+		return s;
+	}
+	/**
+	 * @function isUTF8
+	 * @declaration function isUTF8( string str )
+	 * @brief Try and detect UTF8 characters withing a string
+	 * @param string str The string to detect characters withing
+	 * @return true if a character is found, false otherwise
+	 */
+	function isUTF8( string str ) {
+		number isUTF8 = false;
+		number length = str.length();
+		for( number i = 0; i < length; i++ ) {
+			number b1 = String.byteToNumber(str[i]);
+			if( (b1 & 0b11000000) == 0b11000000 ) {
+				number b2 = ((i + 1) < length ? String.byteToNumber(str[i+1]) : 0);
+				number b3 = ((i + 2) < length ? String.byteToNumber(str[i+2]) : 0);
+				number b4 = ((i + 3) < length ? String.byteToNumber(str[i+3]) : 0);
+
+				// 4 byte
+				if( (b1 & 0b11110000) == 0b11110000 and
+					(b2 & 0b10000000) == 0b10000000 and
+					(b3 & 0b10000000) == 0b10000000 and
+					(b4 & 0b10000000) == 0b10000000 ) {
+					isUTF8 = true;
+					break;
+				}
+
+				// 3 byte
+				if( (b1 & 0b11100000) == 0b11100000 and
+					(b2 & 0b10000000) == 0b10000000 and
+					(b3 & 0b10000000) == 0b10000000 ) {
+					isUTF8 = true;
+					break;
+				}
+				
+				// We do a proper check
+				// 2 byte
+				if( (b1 & 0b11000000) == 0b11000000 and
+					(b2 & 0b10000000) == 0b10000000 ) {
+					isUTF8 = true;
+					break;
+				}
+			}
+		}
+		return isUTF8;
+	}
+	/**
+	 * @function utf8Size
+	 * @declaration function utf8Size( string value )
+	 * @brief Provide the byte count of the string ignoring characters withing
+	 * @param string value The string to provide the size of
+	 * @return The raw number of bytes a string takes up
+	 */
+	function utf8Size( string value ) {
+		return value.length();
+	}
+	/**
+	 * @function utf8Length
+	 * @declaration function utf8Length( string str )
+	 * @brief Provide the number of characters within the string taking into account the UTF8 encoding standard
+	 * @param string str The string to provide the size of
+	 * @return The number of characters (note, this when UTF8 characters are present will be different from String.utf8Size())
+	 */
+	function utf8Length( string str ) {
+		number count = 0; 
+		number length = str.length();
+		for( number i = 0; i < length; i++ ) {
+			number b1 = String.byteToNumber(str[i]);
+			if( (b1 & 0b11000000) == 0b11000000 ) {
+				number b2 = ((i + 1) < length ? String.byteToNumber(str[i+1]) : 0);
+				number b3 = ((i + 2) < length ? String.byteToNumber(str[i+2]) : 0);
+				number b4 = ((i + 3) < length ? String.byteToNumber(str[i+3]) : 0);
+
+				if( (b1 & 0b11110000) == 0b11110000 and (b2 & 0b10000000) == 0b10000000 and (b3 & 0b10000000) == 0b10000000 and (b4 & 0b10000000) == 0b10000000 ) {
+					i += 3;
+					count++;
+				}
+				// 3 byte
+				else if( (b1 & 0b11100000) == 0b11100000 and (b2 & 0b10000000) == 0b10000000 and (b3 & 0b10000000) == 0b10000000 ) {
+					i += 2;
+					count++;
+				}
+				// We do a proper check
+				// 2 byte
+				else if( (b1 & 0b11000000) == 0b11000000 and (b2 & 0b10000000) == 0b10000000 ) {
+					i += 1;
+					count++;
+				}
+				// 4 byte
+				else {
+					count++;
+				}
+			} else {
+				count++;
+			}
+		}
+		return count;
+	}
+	/**
+	 * @function utf8Slice
+	 * @declaration function utf8Slice( string str, number offset )
+	 * @brief Slice a string from the start character to some index making sure not to slice across the multi-byte characters
+	 * @description This function will return 0 to offset characters making sure not to cut in the middle of a valid UTF8 character
+	 * @param string str The string to slice
+	 * @param number offset The offset to go ton
+	 * @return The sliced string if offset < String.utf8Length(str), or the whole string otherwise
+	 */
+	function utf8Slice( string str, number offset ) {
+		number count = 0; 
+		number length = str.length();
+		for( number i = 0; offset > 0 and i < length; i++ ) {
+			number b1 = String.byteToNumber(str[i]);
+			if( (b1 & 0b11000000) == 0b11000000 ) {
+				number b2 = ((i + 1) < length ? String.byteToNumber(str[i+1]) : 0);
+				number b3 = ((i + 2) < length ? String.byteToNumber(str[i+2]) : 0);
+				number b4 = ((i + 3) < length ? String.byteToNumber(str[i+3]) : 0);
+
+				// We do a proper check
+
+				// 4 byte
+				if( (b1 & 0b11110000) == 0b11110000 and (b2 & 0b10000000) == 0b10000000 and (b3 & 0b10000000) == 0b10000000 and (b4 & 0b10000000) == 0b10000000 ) {
+					i += 3;
+					count++;
+				}
+				// 3 byte
+				else if( (b1 & 0b11100000) == 0b11100000 and (b2 & 0b10000000) == 0b10000000 and (b3 & 0b10000000) == 0b10000000 ) {
+					i += 2;
+					count++;
+				}
+				// 2 byte
+				else if( (b1 & 0b11000000) == 0b11000000 and (b2 & 0b10000000) == 0b10000000 ) {
+					i += 1;
+					count++;
+				}
+				else {
+					count++;
+				}
+			} else {
+				count++;
+			}
+			if( count == offset ) {
+				return str[..i];
+			}
+		}
+		return str;
+	}
+	/**
+	 * @function expandArray
+	 * @declaration function expandArray( string fmt, array values )
+	 * @brief With a given format, expand a string replacing the anchors with the values within the parameter list
+	 * @description This function will take a string with format anchors within it and expand those. An anchor looks 
+			like this {n} where n denotes the offset from the first parameter (starts at 0). To aid the developer, it is
+			possible to add names to the format anchors to make re-arrangement easier to see what should be there. For instance
+			{1:the name of the organisation}. There are other optional anchors that can be used: {,} will replace the
+			anchor with all the values passed in joined together using a comma, {;} will join them using a semi-colon, and
+			{~} will join all values with a space in between. It is also possible to match to names within the passed in
+			array by using the {!:name} anchor, this will replace the anchor with the keyed value in the array.
+	 * @param string fmt The format string
+	 * @param array a The values to be passed in
+	 * @return The expanded string
+	 */
+	function expandArray( string fmt, array a ) {
+		object o = new Regexp( '{(([0-9~,;!]*))(:(.*?))?}');
+		number count = 0;
+		string expanse = '';
+		object lastMatch = null;
+		
+		monitor {
+			expanse = o.replaceAll( fmt ) using ( match ) {
+				string result = '';
+				lastMatch = match;
+				if( match.capture(1) == '' ) {
+					result = '' + (count < a.size() ? a[count++] : '');
+				}
+				else if( match.capture(1).in( '~', ',', ';' ) ) {
+					string s = a.join(Regexp.replace('~', match.capture(1), ' '));
+					if( s ) 
+						s += match.capture(3);
+					result = s;
+				}
+				else if( match.capture(1).in( '!') ) {
+					string key = match.capture(3);
+					array  parts = key.toArray('.');
+					void   r = a.getPath(parts);
+					if( r )
+						result = "$r";
+					else
+						result = "{No Such Key: $key}";
+				}
+				else {
+					number index = match.capture(1).toNumber();
+					result = '' + (index < a.size() ? a[index] : '');
+				}
+				return result;
+			};
+		} handle {
+			Console.println("Error Processing: $fmt ${err.str} (Last match: $lastMatch)");
+			return '';
+		}
+		return expanse;
+	}
+	/**
+	 * @function expand
+	 * @declaration function expand( string s, ... )
+	 * @brief This is a wrapper around the String.expand(string,array) function that allows you to pass values in using
+			a normal parameter list.
+	 * @param string s String to expand
+	 * @param ... Values to expand with
+	 * @return The expanded string
+	 */
+	function expand( string s, ... ) {
+		array a = arguments();
+		a.shift();
+		return s.expandArray(a);
+	}
+	/**
+	 * @function in
+	 * @declaration function in( string s, ... )
+	 * @brief Check to see if the string s occurs in any of the arguments passed in.
+	 * @param string s The string to check for
+	 * @param ... The list of strings to check withing
+	 * @return true if the string does exist, false otherwise
+	 */
+	function in( string s, ... ) {
+		array a = arguments();
+		a.shift();
+		return a.valueExists(s);
+		
+	}
+	/**
+	 * @function nextCharacterLength
+	 * @declaration function nextCharacterLength( string str)
+	 * @brief Provide the byte length for the next character within a string. The next character is the character at index 0
+	 * @param string str The string to investigate
+	 * @return The size of the byte, this assumes UTF-8 encoding and will be 1-4
+	 */
+	function nextCharacterLength( string str) {
+		if( str ) {
+			number length = str.length();
+			number i = 0;
+			number b1 = String.byteToNumber(str[i]);
+			if( (b1 & 0b11000000) == 0b11000000 ) {
+				number b2 = ((i + 1) < length ? String.byteToNumber(str[i+1]) : 0);
+				number b3 = ((i + 2) < length ? String.byteToNumber(str[i+2]) : 0);
+				number b4 = ((i + 3) < length ? String.byteToNumber(str[i+3]) : 0);
+
+				// We do a proper check
+				// 4 byte
+				if( (b1 & 0b11110000) == 0b11110000 and
+					(b2 & 0b10000000) == 0b10000000 and
+					(b3 & 0b10000000) == 0b10000000 and
+					(b4 & 0b10000000) == 0b10000000 ) {
+					return 4;
+				}
+				// 3 byte
+				if( (b1 & 0b11100000) == 0b11100000 and
+					(b2 & 0b10000000) == 0b10000000 and
+					(b3 & 0b10000000) == 0b10000000 ) {
+					return 3;
+				}
+				// 2 byte
+				if( (b1 & 0b11000000) == 0b11000000 and
+					(b2 & 0b10000000) == 0b10000000 ) {
+					return 2;
+				}
+			}
+			return 1;
+		}
+		return 0;
+	}
+	/**
+	 * @function nextCharacter
+	 * @declaration function nextCharacter( string str )
+	 * @brief Fetch the next character in the string. This is UTF-8 safe and will return the next valid UTF-8 character
+	 * @param string str The string to take the character from
+	 * @return The next character that is UTF-8 valid and starts at index 0
+	 */
+	function nextCharacter( string str ) {
+		if( str ) {
+			return str[..(str.nextCharacterLength() - 1)];
+		}
+		return '';
+	}
+	/**
+	 * @function characterCodePoint
+	 * @declaration function characterCodePoint( string character )
+	 * @brief Convert the character at index 0 to its numerical code point (integer)
+	 * @param string character The character to convert
+	 * @return A numerical version of the character
+	 */
+	function characterCodePoint( string character ) {
+		number characterSize = character.nextCharacterLength();
+		number characterValue = 0;
+		
+		switch( characterSize ) {
+			case 1:
+				characterValue =   character[0].byteToNumber();
+				break;
+			case 2:
+				characterValue = ((character[0].byteToNumber() & 0b00011111) << 6) + 
+								  (character[1].byteToNumber() & 0b00111111);
+				break;
+			case 3:
+				characterValue = ((character[0].byteToNumber() & 0b00001111) << 12) + 
+								 ((character[1].byteToNumber() & 0b00111111) << 6) + 
+								  (character[2].byteToNumber() & 0b00111111);
+				break;
+			case 4:
+				characterValue = ((character[0].byteToNumber() & 0b00000111) << 18) + 
+								 ((character[1].byteToNumber() & 0b00111111) << 12) + 
+								 ((character[2].byteToNumber() & 0b00111111) << 6) + 
+								  (character[3].byteToNumber() & 0b00111111);
+				break;
+		}
+		return characterValue;
+	}
+	/**
+	 * @function codePointCharacter
+	 * @declaration function codePointCharacter( number cp )
+	 * @brief Convert a given code point into a textual UTF8 character
+	 * @param number cp The code point to convert
+	 * @return A string containing the single UTF8 character
+	 */
+	function codePointCharacter( number characterValue ) {
+		string character = '';
+		
+		// Position 0 - 127 is equal to percent-encoding with an ASCII character encoding:
+		if (characterValue < 128) {
+			character += String.numberToByte(characterValue);
+		}
+
+		// Position 128 - 2047: two bytes for UTF-8 character encoding.
+		if (characterValue > 127 && characterValue < 2048) {
+			// First UTF byte: Mask the first five bits of characterValue with binary 110X.XXXX:
+			character += String.numberToByte((characterValue >> 6) | 0xC0);
+			// Second UTF byte: Get last six bits of characterValue and mask them with binary 10XX.XXXX:
+			character += String.numberToByte((characterValue & 0x3F) | 0x80);
+		}
+
+		// Position 2048 - 65535: three bytes for UTF-8 character encoding.
+		if (characterValue > 2047 && characterValue < 65536) {
+			// First UTF byte: Mask the first four bits of characterValue with binary 1110.XXXX:
+			character += String.numberToByte((characterValue >> 12) | 0xE0);
+			// Second UTF byte: Get the next six bits of characterValue and mask them binary 10XX.XXXX:
+			character += String.numberToByte(((characterValue >> 6) & 0x3F) | 0x80);
+			// Third UTF byte: Get the last six bits of characterValue and mask them binary 10XX.XXXX:
+			character += String.numberToByte((characterValue & 0x3F) | 0x80);
+		}
+
+		// Position 65536 - : four bytes for UTF-8 character encoding.
+		if (characterValue > 65535) {
+			// First UTF byte: Mask the first three bits of characterValue with binary 1111.0XXX:
+			character += String.numberToByte((characterValue >> 18) | 0xF0);
+			// Second UTF byte: Get the next six bits of characterValue and mask them binary 10XX.XXXX:
+			character += String.numberToByte(((characterValue >> 12) & 0x3F) | 0x80);
+			// Third UTF byte: Get the last six bits of characterValue and mask them binary 10XX.XXXX:
+			character += String.numberToByte(((characterValue >> 6) & 0x3F) | 0x80);
+			// Fourth UTF byte: Get the last six bits of characterValue and mask them binary 10XX.XXXX:
+			character += String.numberToByte((characterValue & 0x3F) | 0x80);
+		}
+		
+		return character;
+	}
+
+	string URL_unreservedCharacters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_.~";
+	string URL_hexCharacters = "0123456789ABCDEFabcdef";
+
+	// This function returns a percent sign followed by two hexadecimal digits.
+	// Input is a decimal value not greater than 255.
+	function _urlByteEncode(number decimal)
+		return "%" + .URL_hexCharacters[decimal >> 4] + .URL_hexCharacters[decimal & 0xF];
+	
+	/**
+	 * @function urlEncode
+	 * @declaration function urlEncode( string decoded )
+	 * @brief Convert a given string into URL encoded string, this is UTF-8 safe
+	 * @param string decoded The string to convert
+	 * @return The encoded string that is URL safe.
+	 */
+	function urlEncode( string decoded ) {
+		string encoded = '';
+
+		for (number i = 0; i < decoded.length(); i++ ) {
+			string ch = decoded[i];
+			string remainingDecoded = decoded[i..];
+
+			// Check if character is an unreserved character:
+			if( .URL_unreservedCharacters.index(ch) != -1 ) {
+				encoded = encoded + ch;
+			} else {
+
+				// The position in the Unicode table tells us how many bytes are needed.
+				// Note that if we talk about first, second, etc. in the following, we are
+				// counting from left to right:
+				//
+				//   Position in   |  Bytes needed   | Binary representation
+				//  Unicode table  |   for UTF-8     |       of UTF-8
+				// ----------------------------------------------------------
+				//     0 -     127 |    1 byte       | 0XXX.XXXX
+				//   128 -    2047 |    2 bytes      | 110X.XXXX 10XX.XXXX
+				//  2048 -   65535 |    3 bytes      | 1110.XXXX 10XX.XXXX 10XX.XXXX
+				// 65536 - 2097151 |    4 bytes      | 1111.0XXX 10XX.XXXX 10XX.XXXX 10XX.XXXX
+
+				number characterSize = remainingDecoded.nextCharacterLength();
+				number characterValue = remainingDecoded.nextCharacter().characterCodePoint();
+
+				i += (characterSize - 1);
+
+				// Position 0 - 127 is equal to percent-encoding with an ASCII character encoding:
+				if (characterValue < 128) {
+					encoded = encoded + ._urlByteEncode(characterValue);
+				}
+
+				// Position 128 - 2047: two bytes for UTF-8 character encoding.
+				if (characterValue > 127 && characterValue < 2048) {
+					// First UTF byte: Mask the first five bits of characterValue with binary 110X.XXXX:
+					encoded = encoded + ._urlByteEncode((characterValue >> 6) | 0xC0);
+					// Second UTF byte: Get last six bits of characterValue and mask them with binary 10XX.XXXX:
+					encoded = encoded + ._urlByteEncode((characterValue & 0x3F) | 0x80);
+				}
+
+				// Position 2048 - 65535: three bytes for UTF-8 character encoding.
+				if (characterValue > 2047 && characterValue < 65536) {
+					// First UTF byte: Mask the first four bits of characterValue with binary 1110.XXXX:
+					encoded = encoded + ._urlByteEncode((characterValue >> 12) | 0xE0);
+					// Second UTF byte: Get the next six bits of characterValue and mask them binary 10XX.XXXX:
+					encoded = encoded + ._urlByteEncode(((characterValue >> 6) & 0x3F) | 0x80);
+					// Third UTF byte: Get the last six bits of characterValue and mask them binary 10XX.XXXX:
+					encoded = encoded + ._urlByteEncode((characterValue & 0x3F) | 0x80);
+				}
+
+				// Position 65536 - : four bytes for UTF-8 character encoding.
+				if (characterValue > 65535) {
+					// First UTF byte: Mask the first three bits of characterValue with binary 1111.0XXX:
+					encoded = encoded + ._urlByteEncode((characterValue >> 18) | 0xF0);
+					// Second UTF byte: Get the next six bits of characterValue and mask them binary 10XX.XXXX:
+					encoded = encoded + ._urlByteEncode(((characterValue >> 12) & 0x3F) | 0x80);
+					// Third UTF byte: Get the last six bits of characterValue and mask them binary 10XX.XXXX:
+					encoded = encoded + ._urlByteEncode(((characterValue >> 6) & 0x3F) | 0x80);
+					// Fourth UTF byte: Get the last six bits of characterValue and mask them binary 10XX.XXXX:
+					encoded = encoded + ._urlByteEncode((characterValue & 0x3F) | 0x80);
+				}
+			}
+		}  // end of for ...
+		return encoded;
+	}
+	function charToNum( string c ) {
+		return c.byteToNumber();
+	}
+	function numToChar( number cp ) {
+		return String.numberToByte(cp);
+	}
+	/**
+	 * @function utf8Blocks
+	 * @declaration function utf8Blocks( string str, number size )
+	 * @brief Splits a string into an array of strings of no more than the specified size making sure not to split across the multi-byte characters
+	 * @param string str The string
+	 * @param number size The maximum size of the output strings
+	 * @return The array of output strings
+	 * @description This function converts the specified string into an array
+	 *			  of strings. Each string in the array will contain "size"
+	 *			  characters of the input string, except for the last string
+	 *			  which may be smaller if it runs out of characters in the
+	 *			  input string. For example, String.blocks("hello world", 3)
+	 *			  will produce the output [ "hel", "lo ", "wor", "ld" ].
+	 */
+	function utf8Blocks( string str, number size ) {
+		number length = str.utf8Length();
+		array list = [];
+		if( size < 1 or length <= size ) {
+			list[] = str;
+		} else {
+			string currentBlock = "";
+			for( number i = 0; i < length; i++ ) {
+				currentBlock += str.nextCharacter();
+				if( currentBlock.utf8Length() == size or i == ( length - 1 ) ) {
+					list[] = currentBlock;
+					currentBlock = "";
+				}
+				if( str.length() > str.nextCharacterLength() ) {
+					str = str[str.nextCharacterLength()..];
+				}
+			}
+		}
+		return list;
+	}
+}
+/**
+ * @end
+ */

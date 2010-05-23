@@ -1,0 +1,37 @@
+#!/usr/bin/env ferite
+
+uses "array", "console";
+
+array foo = ["Hello", "World", "From" => "Chris", "Subject" => "Hi There", "Timestamp" => [ 1, 2, 3 ] ];
+array bar = ["Hello", "world", [ "fun" ], 2 ];
+array t = [ 'Chris' => 'Ross', 'Emily' => 'Ross' ];
+
+
+Console.println( "Array: $bar" );
+Console.println( "Array (assoc): $foo" );
+Console.println( "Size of array:" + Array.size( ["Hello", "world" ] ) );
+Console.println( "Size of array:" + Array.size( ["Hello" ] ) );
+Console.println( "Size of array:" + Array.size( [ ] ) );
+Console.println( "Size of array:" + Array.size( ["Hello", "world", "from", "boris" ] ) );
+Console.println( "Size of array:" + Array.size( bar ) );
+Console.println( "Size of array:" + Array.size( bar[2] ) );         
+Console.println( "Size of array (assoc):" + Array.size( foo ) );
+Console.println( "Size of array (assoc):" + Array.size( foo["Timestamp"] ) );
+
+if( [] == [] )
+  Console.println( "empty works" );
+
+if( [1,2] == [1,2] )
+  Console.println( "fill works" );
+
+if( [1] == [1,2] )
+  Console.println( "cry!" );
+else
+  Console.println( "dont cry!" );
+
+bar["Hello"] = "World";
+Console.println( "Key for index 0:" + Array.getName(bar, 0) );
+Console.println( "Key for index 4:" + Array.getName(bar, 4) );
+
+Console.println( t.Chris );
+Console.println( t.Emily );

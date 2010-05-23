@@ -1,0 +1,292 @@
+#!/usr/bin/env ferite
+
+uses "string", "array", "console", "sys", "regexp", "posix", "filesystem";
+
+global
+{
+    string authors = "\nChris Ross <chris@ferite.org>\nSveinung Haslestad <sveinung@cention.se>\nStephan Engström <sem@cention.se>";
+    string version = "1.0";
+    string name = "Ferite Module Distributor";
+    object feriteConfig;
+}
+
+/* Wraps a foo-config script
+ *
+ * Use:
+ *
+ * object foo = new ConfigWrapper("foo-config");
+ * string libs = foo.libs();
+ * string cflags = foo.cflags();
+ */
+
+class ConfigWrapper
+{
+   string config;
+
+   function constructor( string c )
+   {
+       self.config = c;
+   }
+
+   function method_missing( string functionName )
+   {
+       array fncArgs = arguments();
+       string actualOption = "--" + fncArgs[Array.size(fncArgs)-1];
+       string value;
+       object conf = null;
+       
+       conf = Posix.openprocess( findTool(self.config) + " $actualOption", "r" );
+
+       value = conf.readln( );
+       value = value[..-2]; // remove the carriage returns
+
+       conf.close();
+       return value;
+   }
+}
+
+/*
+ * This class will parse command line options
+ */
+
+class GetOptions
+{
+   array options;
+   string ferite, script;
+
+   function constructor( array options )
+   {
+       self.options = options;
+   }
+
+   function parse()
+   {
+       number i = 0;
+       string ferite, script;
+
+       if( Array.size(self.options) == 0 )
+         return;
+
+       // Go through the array, the first item is the ferite executable,
+       // the second is the script, there after are the script options...
+       self.ferite = self.options[0];
+       self.script = self.options[1];
+
+       for( ; i < Array.size(self.options); i++ )
+       {
+
+       }
+   }
+}
+
+function PrintVersion()
+{
+    Console.println( "$name ($version)" );
+    Console.println( "Copyright (c) 2000-2002:\n $authors\n" );
+}
+
+function findTool( string toolname )
+{
+    object whichPipe;
+    string value;
+
+    whichPipe = Posix.openprocess( "which $toolname", "r" );
+    
+    value = whichPipe.readln( );
+    value = value[..-2]; // remove the carriage returns
+    
+    whichPipe.close();
+    return value;
+}
+
+function CreateModuleDirectory( string moduleName )
+{
+    if( !Posix.stat( "$moduleName" ) )
+    {
+        Console.println( "Creating Directory '$moduleName'" );
+        Directory.make( moduleName, 0777 );
+    }
+}
+
+function CopySkeleton( string moduleName )
+{
+    string skeletonPath = feriteConfig.prefix() + "/share/ferite/generate-module/skel";
+    object directory;
+    string file;
+    number i = 0;
+
+
+    if( !Posix.stat( skeletonPath ) )
+    {
+        skeletonPath = "skeleton";
+        if( !Posix.stat( skeletonPath ) )
+        {
+            Sys.error( "Can't find skel directory!", 0 );
+            Sys.exit(1);
+        }
+    }
+    // We have the path, lets go and uhm, copy it to us :)
+    Console.println("Reading directory: $skeletonPath");
+    directory = Directory.open( skeletonPath );
+    Array.each( directory.toArray() ) using ( file ) {
+        Console.println("Reading file: $file");
+        if( file != "" )
+        {
+            if( file != "." && file != ".." && file != "CVS" )
+            {
+                Console.println( "Copying " + file + " to $moduleName/" );
+                FileCopy( "$skeletonPath/$file", "$moduleName/$file" );
+            }
+        }
+    };
+}
+function FileCopy( string src, string dest )
+{
+    object s,d;
+    s = File.open( src, 0 );
+    d = File.create( dest, 0644 );
+    if( !d )
+    {
+        Sys.error("Couldn't open file: " + dest, 0 );
+        Sys.exit(1);
+    }
+    if( !s )
+    {
+        Sys.error("Couldn't open file: " + src, 0 );
+        Sys.exit(1);
+    }
+    d.write( s.read( s.length() ) );
+}
+function InstallFec( string moduleName, array files)
+{
+    number i;
+    string source_dir = moduleName;
+    string mainfile = files[0];
+    string file_args;
+    object regexp = new Regexp("\.fec$");
+    
+    Directory.make( "./$moduleName/$source_dir", 0777 );
+    Directory.make( "./$moduleName/test", 0777 );
+
+    for(i = 0; i < Array.size(files);i++)
+    {
+        if( regexp.match( files[i] ) )
+          file_args  = file_args + " --add-dist-file " + files[i];
+        else
+          file_args  = file_args + " --add-file " + files[i];
+
+        Console.println( "Copying module source over..." );
+        FileCopy( files[i], "$moduleName/$source_dir/" + files[i] );
+    }
+    Console.println( "Running builder..." );
+    Directory.setCurrent( "./$moduleName/$source_dir" );
+    Sys.system( findTool("builder") + " -k -m $moduleName $file_args  $mainfile > /dev/null" );
+    Directory.setCurrent( "../../" );
+}
+
+function UpdateConfigureac( string moduleName )
+{
+    object f;
+    string contents = "";
+    object regexp = new Regexp("\%mod\%");
+
+    if( Posix.stat( "$moduleName/configure.ac" ) )
+    {
+        f = File.open( "$moduleName/configure.ac", 0 );
+        contents = f.toString();
+        f.close();
+
+        contents = regexp.replaceAll(contents, moduleName);
+        f = File.create( "$moduleName/configure.ac", 0644 );
+        f.write( contents );
+        f.close();
+
+        f = File.open( "$moduleName/Makefile.am", 0 );
+        contents = f.toString();
+        f.close();
+
+        contents = regexp.replaceAll(contents, moduleName);
+        f = File.create( "$moduleName/Makefile.am", 0644 );
+        f.write( contents );
+        f.close();
+
+    }
+    else
+    {
+        Sys.error( "Can't find '$moduleName/configure.ac'", 0 );
+        Sys.exit(1);
+    }
+}
+
+function PopulateDirectory( string moduleName, array files )
+{
+    CopySkeleton( moduleName );
+    InstallFec( moduleName, files );
+    UpdateConfigureac( moduleName );
+    Sys.system( "chmod 755 $moduleName/autogen.sh" );
+    Sys.system( "chmod 755 $moduleName/udcl.sh" );
+}
+
+string fecName = "";
+string moduleName = "";
+number i;
+array files,captures;
+object regexp = null; 
+
+PrintVersion();
+
+if( Array.size(argv) >= 1 )
+{
+    feriteConfig = new ConfigWrapper( "ferite-config" );
+
+    Console.println( "ferite-config: " + findTool( "ferite-config" ) );
+    Console.println( "builder: " + findTool( "builder" ) );
+    Console.println( "prefix: " + feriteConfig.prefix() );
+
+    files = argv;
+
+    //The main fec file SHOULD be the next in line
+    fecName = files[0];
+
+    //Check for existence
+    for(i=0;i < Array.size(files); i++)
+    {
+        if( !Posix.stat( files[i] ) )
+        {
+            Console.println( "Error, can't find file '" + files[i] + "'" );
+            Sys.exit(1);
+        }
+    }
+    Console.println( "Using file '$fecName'" );
+
+    // Get the module name
+    regexp =  new Regexp("(.*)(\.fec)");
+    captures = regexp.match(fecName).captures();
+
+    moduleName = captures[0];
+
+    if( !captures[1] )
+    {
+        Sys.error("The generator must use a .fec file", 0);
+        Sys.exit(1);
+    }
+    Console.println( "Module name '$moduleName'" );
+
+    // Create our source tree
+    CreateModuleDirectory( moduleName );
+
+    // Copy over the files
+    PopulateDirectory( moduleName, files );
+
+    Console.println( "\nFinished!, now to build a tarball run:\n" );
+    Console.println( "   cd $moduleName && ./autogen.sh && make dist\n" );
+    Console.println( "People will then be able to configure and install the tarball\n" );
+    Console.println( "If you wish to add any special checking to to the configure script" );
+    Console.println( "please edit $moduleName/config.m4\n" );
+}
+else
+{
+    Console.println( "generate-module v." + version + "\n");
+    Console.println( "Supply all filenames that the module needs, the first filename must be" );
+    Console.println( "a .fec file and the name of the .fec file will be used for package name." );
+}

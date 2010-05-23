@@ -1,0 +1,134 @@
+/*
+ * Copyright (C) 2002 Daniel Nakata <dnakata@chan.co.jp>,
+ *                    Alex Holden <alex@linuxhacker.org>,
+ *                    Stephan Engstrom <stephan@cention.se>,
+ *                    Chris Ross <chris@darkrock.co.uk>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * o Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * o Neither the name of the ferite software nor the names of its contributors may
+ *   be used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+uses "console", "sys", "array", "regexp";
+
+uses "cgi/cookies";
+uses "cgi/template";
+
+/**
+ * This module provides basic CGI methods
+ *
+ * This module was written by Chris Ross <chris@darkrock.co.uk>
+ *
+ * Please make suggestions on how to make this module better to:
+ * Chris Ross <chris@darkrock.co.uk> or Daniel Nakata <dnakata@chan.co.jp>
+ */
+       
+
+/**
+ * !namespace CGI
+ * !brief CGI Namespace
+ */
+namespace CGI {
+
+	function PrintContent( string content ){
+		if( content == "" ) {
+			content = "text/html";
+		}
+		Console.print( "Content-type: $content\r\n\r\n" );
+	}
+
+	function AddHeader( string header ){
+		if( header != "" ) {
+			Console.println( "$header\n" );
+		}
+	}
+
+	function MethodGet() {
+		return (Sys.env.read( "REQUEST_METHOD" ) == "GET");
+	}
+   
+	function MethodPost() {
+		return (Sys.env.read( "REQUEST_METHOD" ) == "POST");
+	}
+
+	/**
+	 * !function GetVariables
+	 * !declaration function GetVariables()
+	 * !return an array of supplied parameters
+	 */
+	function GetVariables(){
+		string	q = "";
+		object	cgiReg;
+		array	keyvalues;
+
+		if( CGI.MethodGet() ) {
+			q = Sys.env.read( "QUERY_STRING" );
+		} else {
+			q = Console.readln();
+		}
+
+		cgiReg = new Regexp( '([^&]+)', 'sg' );
+
+		cgiReg.matchAll( q ) using ( match ) {
+			string	mypair = match.capture(0);
+			object	pairReg = new Regexp( '([^=]+)=(.*)' );
+
+			pairReg.matchAll( mypair ) using ( pairmatch ) {
+				object	hexReg = new Regexp( '%(..)' );
+				object	plusReg = new Regexp( '\+' );
+				string	tvarA = pairmatch.capture(0);
+				string	tvarB = pairmatch.capture(1);
+				
+				tvarA = plusReg.replaceAll( tvarA ) using ( plusmatch ) {
+					return ' ';
+				};
+				tvarB = plusReg.replaceAll( tvarB ) using ( plusmatch ) {
+					return ' ';
+				};
+				tvarA = hexReg.replaceAll( tvarA ) using ( hexmatch ) {
+					return String.numToChar( String.toNumber( "0x" + hexmatch.capture(0) ) );
+				};
+				tvarB = hexReg.replaceAll( tvarB ) using ( hexmatch ) {
+					return String.numToChar( String.toNumber( "0x" + hexmatch.capture(0) ) );
+				};
+
+		        	keyvalues[tvarA] = tvarB;
+			};
+		};
+
+		return keyvalues;
+	}
+   
+	function DumpVariables() {
+		array vars, keys;
+		number i;
+
+		Console.println( "Dumping variables:" );
+		vars = CGI.GetVariables();
+		keys = Array.keys( vars );
+		for( i = 0; i < Array.size( keys ); i ++ ) {
+			Console.println( " -> " + keys[i] + " = \"" + vars[keys[i]] + "\"" );
+		}
+	}
+}

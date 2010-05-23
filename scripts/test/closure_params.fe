@@ -1,0 +1,28 @@
+uses "console", "array";
+
+function map( array a ){
+    
+    if( recipient() != null )
+    {
+        number i = 0;
+        for( i = 0; i < Array.size(a); i++ )
+            deliver( i, a[i] );
+    }
+    else
+        Console.println( "No block passed." );
+}
+
+array a = [ "Hi", "There", "From", "Chris" ];
+string outside = "";
+
+map( a );
+
+Console.println( "Outside: $outside" );
+map( a ) using ( index, item ) {
+	if( index == 1 )
+		outside = item;
+
+    Console.println( "Item '$item' at index $index" ); 
+};
+Console.println( "Outside (should be 'There'): $outside" );
+

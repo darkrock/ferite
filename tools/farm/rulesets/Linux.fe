@@ -1,0 +1,100 @@
+
+namespace Linux {
+	
+	class C extends Farm.RuleSet.SourceRule {
+		
+		static function constructor() { Farm.RuleSet.registerSourceHandler( new Linux.C() ); }
+		
+		function types() {
+			return [ 'c' ];
+		}
+		function build( object target, string file, array specialOptions ) {
+			string objectPath = .buildOutput( target, file );
+			string flags = target.getProperty('C');
+			specialOptions['C'] and flags = "$flags ${specialOptions['C']}";
+			if( flags.index('-fPIC') == -1  )
+				flags += " -fPIC";
+				
+			if( Farm.invokeExternalProgram( "gcc $flags -o $objectPath -c $file" ) )
+				return objectPath;
+			return "";   
+		}
+		function buildOutput( object target, string file ) {
+			return "${Farm.compiledObjectsDirForTarget(target)}/${(Farm.basename(file) - '.c')}.o";
+		}
+	}
+	
+	class CPP extends Farm.RuleSet.SourceRule {	 
+		
+		static function constructor() { Farm.RuleSet.registerSourceHandler( new Linux.CPP() ); }
+		
+		function types() {
+			return [ 'cpp', 'cc', 'c++' ];
+		}
+		function build( object target, string file, array specialOptions ) {
+			string objectPath = .buildOutput( target, file );
+			string flags = target.getProperty('CPP');
+			specialOptions['CPP'] and flags = "$flags ${specialOptions['CPP']}";
+			if( flags.index('-fPIC') == -1  )
+				flags += " -fPIC";
+			
+			if( Farm.invokeExternalProgram( "g++ $flags -fPIC -o $objectPath -c $file" ) )
+				return objectPath;
+			return "";   
+		}
+		function buildOutput( object target, string file ) {
+			return "${Farm.compiledObjectsDirForTarget(target)}/${(Farm.basename(file) - '.cpp')}.o";
+		}
+	}
+	
+	class SharedLibrary extends Farm.RuleSet.BuildRule {
+		
+		static function constructor() { Farm.RuleSet.registerBuildHandler( new Linux.SharedLibrary() ); }
+
+		function type() {
+			return Farm.RuleSet.SharedLibrary;
+		}
+
+		function combinationName( object target ) {
+			return "${Farm.productsDirForTarget(target)}/lib${target.getProperty('name')}.so";
+		}
+
+		function combine( object target, array files ) {
+			string objects = Array.join( files, " " );
+		string flags = target.getProperty('LD');
+			if( Farm.invokeExternalProgram( "gcc -shared -o ${.combinationName(target)} $flags $objects" ) )
+				return true;
+			return false;
+		}		
+	}
+	class ModuleLibrary extends Linux.SharedLibrary {
+		
+		static function constructor() { Farm.RuleSet.registerBuildHandler( new Linux.ModuleLibrary() ); }
+
+		function type() {
+			return Farm.RuleSet.ModuleLibrary;
+		}
+
+		function combinationName( object target ) {
+			return "${Farm.productsDirForTarget(target)}/${target.getProperty('name')}.so";
+		}
+	}
+	class Executable extends Farm.RuleSet.BuildRule {
+		
+		static function constructor() { Farm.RuleSet.registerBuildHandler( new Linux.Executable() ); }
+		
+		function type() {
+			return Farm.RuleSet.Executable;
+		}
+		
+		function combinationName( object target ) {
+			return "${Farm.productsDirForTarget(target)}/${target.getProperty('name')}";
+		}
+		
+		function combine( object target, array files ) {
+			string objects = Array.join( files, " " );
+			string flags = target.getProperty( 'LD' );
+			return Farm.invokeExternalProgram( "gcc -o ${.combinationName(target)} $flags $objects" );
+		}
+	}
+}

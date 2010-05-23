@@ -1,0 +1,27 @@
+if( [expr] ) 
+{
+  [then]
+} 
+else 
+{
+  [else]
+}
+
+evalute the expression
+create a jump if the status register is 0
+ setup a flag to say you need an address in the array to jump to and
+ push that onto a stack
+ 
+ <!--- process stuff in the if --->
+ 
+find address of the else (or next set of instructions)
+pop the top off the requested flag list
+ and set the address at the information held within that location
+ (back tracking)
+push another flag onto the stack to say you want nother jump (if there is an
+else)
+
+ <!--- process else shit --->
+ 
+end of else, jump back and add the addrss to the stack.
+ 

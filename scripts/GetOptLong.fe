@@ -1,0 +1,318 @@
+/*
+ * Copyright 2002-2004, Chris Ross
+ *
+ * Class to parse command line options like GNU getopt_long()
+ *
+ * Direct port of the ruby version of this class
+ */
+
+uses "env", "array", "string", "regexp";
+
+/**
+ * @class GetOptLong
+ * @brief Gives arguement parsing ability
+ */
+class GetOptLong
+{
+
+   public static number REQUIRE_ORDER = 0, PERMUTE = 1, RETURN_IN_ORDER = 2;
+   public static number NO_ARGUMENT = 0, REQUIRED_ARGUMENT = 1, OPTIONAL_ARGUMENT = 2;
+   public static number STATUS_YET = 0, STATUS_STARTED = 1, STATUS_TERMINATED = 2;
+
+   number ordering = 0, quiet = 0, status = 0;
+   array  canonical_names, argument_flags, non_option_arguments;
+   string rest_singles = "";
+
+   array  argv;
+
+   /**
+    * @function    GetOptLong
+    * @brief       The class constructor
+    * @declaration function GetOptLong( array a )
+    * @param       array a
+    *              This array is the array over which arguments will be looked for.
+    */
+   function constructor( array a )
+   {
+       .status = GetOptLong.STATUS_YET;
+       .argv = a;
+   }
+
+   /**
+    * @function    set_ordering
+    * @brief       Set the ording requirements of the parameter parsing
+    * @declaration function set_ordering( number ordering )
+    * @param       number ordering
+    *              The order the parameters must be in.
+    */
+   function set_ordering( number ordering )
+   {
+       if( .status != GetOptLong.STATUS_YET )
+         return;
+
+       if( ordering > 2 || ordering < 0 )
+         return;
+
+       if( Sys.env.read( "POSIXLY_CORRECT" ) != "" )
+         .ordering = GetOptLong.REQUIRE_ORDER;
+       else
+         .ordering = ordering;
+   }
+
+   /**
+    * @function    set_options
+    * @brief       Setup the options we want to be able to parse and whether or not they are necessary
+    * @declaration function set_options( array arguments )
+    * @param       array arguments
+    *              The options.
+    */
+   function set_options( array args )
+   {
+       number i = 0;
+       number argument_flag = -1;
+       object regexp = new Regexp("^-([^-]|-.+)$");
+       array arg = [];
+
+       if( .status != GetOptLong.STATUS_YET )
+         return;
+
+       .canonical_names = [];
+       .argument_flags = [];
+
+       for( i = 0; i < Array.size(args); i++ )
+       {
+           arg = args[i];
+           if( arg[0] >= GetOptLong.NO_ARGUMENT && arg[0] <= GetOptLong.OPTIONAL_ARGUMENT )
+             .argument_flags[arg[1]] = arg[0];
+
+           if( arg[1] isa string && regexp.match(arg[1]) && !Array.keyExists(.canonical_names, arg[1]) )
+             .canonical_names[arg[1]] = arg[1];
+       }
+   }
+
+   /**
+    * @function    terminated
+    * @declaration function terminate()
+    * @brief       Check to see if parsing has completed
+    * @return      boolean
+    */
+   function terminated()
+   {
+       return .status == GetOptLong.STATUS_TERMINATED;
+   }
+
+   /**
+    * @function    terminate
+    * @declaration function terminate()
+    * @brief       Terminate the parsing
+    */
+   function terminate()
+   {
+       if( .status == GetOptLong.STATUS_TERMINATED )
+         return;
+
+       .status = GetOptLong.STATUS_TERMINATED;
+       .canonical_names = [];
+       .argument_flags = [];
+       .non_option_arguments = [];
+       .rest_singles = "";
+   }
+
+   /**
+    * @function    set_error
+    * @declaration function set_error( string message )
+    * @brief       Terminate processing and throw an error
+    * @param       string message
+    *              The error message
+    */
+   function set_error( string message )
+   {
+       .terminate();
+       Sys.error( "GetOptLong Error: $message\n", 0 );
+   }
+
+   /**
+    * @function    get
+    * @declaration function get()
+    * @brief       Get the next pair of arguments that are matched
+    */
+   function get()
+   {
+       string option_name = "", option_argument = "";
+       string argument = "", pattern = "", ch = "";
+       number match_count = 0, i = 0;
+       array keys = [];
+       array captures = [];
+       object match = null;
+       object regexp = new Regexp("^-.");
+
+       switch( .status )
+       {
+         case GetOptLong.STATUS_YET:
+           .status = GetOptLong.STATUS_STARTED;
+           break;
+         case GetOptLong.STATUS_TERMINATED:
+           return [];
+       }
+
+       if( String.length(.rest_singles) > 0 )
+       {
+           argument = "-" + .rest_singles;
+       }
+       else if( Array.size(.argv) == 0 )
+       {
+           .terminate();
+           return [];
+       }
+       else if( .ordering == GetOptLong.PERMUTE )
+       {
+           while( 0 < Array.size( .argv ) && ! regexp.match(.argv[0] ) )
+           {
+               Array.push( .non_optional_arguments, Array.shift( .argv ) );
+           }
+           if( Array.size(.argv) == 0 )
+           {
+               .terminate();
+               return [];
+           }
+           argument = Array.shift(.argv);
+       }
+       else if( .ordering == GetOptLong.REQUIRE_ORDER )
+       {
+           if( ! regexp.match(.argv[0] ) )
+           {
+               .terminate();
+               return[];
+           }
+           argument = Array.shift(.argv);
+       }
+       else
+       {
+           argument = Array.shift(.argv);
+       }
+
+       if( argument == "--" && String.length(.rest_singles) == 0 )
+       {
+           .terminate();
+           return [];
+       }
+
+       regexp = new Regexp("^(--[^=]+)");
+       match = regexp.match( argument );
+       if( match && String.length(.rest_singles) == 0 )
+       {
+	   pattern = match.match();
+           if( Array.keyExists( .canonical_names, pattern ) )
+             option_name = pattern;
+           else
+           {
+               match_count = 0;
+               keys = Array.keys(.canonical_names);
+               for( i = 0; i < Array.size(keys); i++ )
+               {
+                   if( String.index( keys[i], pattern ) == 0 )
+                   {
+                       option_name = keys[i];
+                       match_count++;
+                   }
+               }
+               if( match_count >= 2 )
+                 .set_error( "Option '$argument' is ambigous" );
+               else if( match_count == 0 )
+                 .set_error( "Unrecognised option '$argument'" );
+           }
+
+           if( .argument_flags[option_name] == GetOptLong.REQUIRED_ARGUMENT )
+           {
+	       regexp = new Regexp("=(.*)$");
+	       match = regexp.match( argument );
+               if( match ) {
+		   option_argument = match.match();
+	       }
+               else if( Array.size(.argv) > 0 )
+                 option_argument = Array.shift(.argv);
+               else
+                 .set_error( "Option '$argument' requires an argument" );
+           }
+           else if( .argument_flags[option_name] == GetOptLong.OPTIONAL_ARGUMENT )
+           {
+	       regexp = new Regexp("=(.*)$");
+	       if( match = regexp.match( argument )) 
+		   option_argument = match.match();
+               else if( Array.size(.argv) > 0 && !.argv[0][0] == "-" )
+                 option_argument = Array.shift(.argv);
+               else
+                 option_argument = "";
+           }
+           else if( ( regexp = new Regexp("=(.*)$") ) && regexp.match( argument ) )
+             .set_error( "Option '$argument' doesn't allow for an argument" );
+       }
+       else if( regexp = new Regexp("^(-(.))(.*)") && captures = regexp.match( argument ))
+       {
+           option_name = captures[1];
+           ch = captures[2];
+           .rest_singles = captures[3];
+           if( Array.keyExists( .canonical_names, option_name ) )
+           {
+               if( .argument_flags[option_name] == GetOptLong.REQUIRED_ARGUMENT )
+               {
+                   if( String.length( .rest_singles ) > 0 )
+                   {
+                       option_argument = .rest_singles;
+                       .rest_singles = "";
+                   }
+                   else if( Array.size(.argv) > 0 )
+                     option_argument = Array.shift(.argv);
+                   else
+                     .set_error( "Option requires an argument -- $ch" );
+               }
+               else if( .argument_flags[option_name] == GetOptLong.OPTIONAL_ARGUMENT )
+               {
+                   if( String.length(.rest_singles) > 0 )
+                   {
+                       option_argument = .rest_singles;
+                       .rest_singles = "";
+                   }
+                   else if( Array.size(.argv) > 0 && !.argv[0][0] == "-" )
+                     option_argument = Array.shift(.argv);
+                   else
+                     option_argument = "";
+               }
+               else
+               {
+                   if( Sys.env.read( "POSIXLY_CORRECT" ) != "" )
+                     .set_error( "illegal option -- $ch" );
+                   else
+                     .set_error( "invalid option -- $ch" );
+               }
+           }
+       }
+       else
+       {
+           return ["",argument];
+       }
+       return [ option_name, option_argument ];
+   }
+}
+/**
+ * @end
+ */
+
+// The test, to enable place a '/' in front of the '/*' below
+/*
+
+uses  "console";
+
+object oplong = new GetOptLong(argv);
+array a;
+
+oplong.set_options( [ [GetOptLong.REQUIRED_ARGUMENT, "--help"],
+           [GetOptLong.OPTIONAL_ARGUMENT, "--please"],
+           [GetOptLong.NO_ARGUMENT, "--now"] ] );
+
+while( a = oplong.get() )
+{
+   Console.println( "Got Option '" + a[0] + "','" + a[1] + "'" );
+}
+
+//*/

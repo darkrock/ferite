@@ -1,0 +1,184 @@
+/*
+ * This provides the structure of the programs
+ */
+
+class DocGeneral
+{
+	public static number SCR = 1;
+	public static number GRP = 2;
+	public static number NS =  3;
+	public static number CLS = 4;
+	public static number FNC = 5;
+	public static number VAR = 6;
+	public static number PRT = 7;
+	
+	number doctype = 0;
+	string module = "";
+	string name = "";
+	string declaration = "";
+	string brief = "";
+	string description = "";
+	string warning = "";
+	boolean is_static = false;
+	string example = "";
+	array requires;
+	string providedBy = "";
+	
+	function constructor()
+	{
+		.doctype = 0;
+	}
+	
+	function toString()
+	{
+		return .name;
+	}
+	function requires( string item ) {
+		.requires = item.toArray(',');
+	}
+	
+	static function compare( object a, object b )
+		return String.compare( a.name, b.name );
+}
+
+class DocScript extends DocGeneral
+{
+	array items;
+	
+	function constructor()
+	{
+		.doctype = DocGeneral.SCR;
+		.name = "DocScript";
+	}
+	
+	function add( object o )
+	{
+		number i = 0;
+		
+		if( (o instanceof DocClass || o instanceof DocNamespace) && o.mods != "" )
+		{
+			for( i = 0; i < Array.size(.items); i++ )
+			{
+				if( .items[i] != null && .items[i].name == o.name )
+					return .items[i];
+			}
+		}
+		.items[] = o;
+		return self;
+	}
+}
+
+class DocClass extends DocGeneral
+{
+	string mods = "";
+	string exts = "";
+	array  implements_list;
+	array  items;
+	
+	function constructor()
+	{
+		.doctype = DocGeneral.CLS;
+	}
+	
+	function add( object o )
+	{
+		.items[] = o;
+		return self;
+	}
+}
+
+class DocProtocol extends DocClass {
+	function constructor() {
+		.doctype = DocGeneral.PRT;
+	}	
+}
+
+class DocNamespace extends DocGeneral
+{
+	string mods;
+	array items;
+	
+	function constructor()
+	{
+		.doctype = DocGeneral.NS;
+	}
+	
+	function add( object o )
+	{
+		if( o ) {
+			number i = 0;
+			
+			if( (o instanceof DocClass || o instanceof DocNamespace) && o.mods != "" )
+			{
+				for( i = 0; i < Array.size(.items); i++ )
+				{
+					if( .items[i].name == o.name )
+						return .items[i];
+				}
+			}
+			.items[] = o;
+		}
+		return self;
+	}
+}
+
+class DocGroup extends DocGeneral
+{
+	string mods;
+	array items;
+	
+	function constructor()
+	{
+		.doctype = DocGeneral.GRP;
+	}
+	
+	function add( object o )
+	{
+		if( o ) {
+			number i = 0;
+			
+			if( (o instanceof DocClass || o instanceof DocNamespace) && o.mods != "" )
+			{
+				for( i = 0; i < Array.size(.items); i++ )
+				{
+					if( .items[i].name == o.name )
+						return .items[i];
+				}
+			}
+			.items[] = o;
+		}
+		return self;
+	}
+}
+
+class DocFunction extends DocGeneral
+{
+	string return_type = "";
+	array  parameters;
+	
+	function constructor()
+	{
+		.doctype = DocGeneral.FNC;
+	}
+}
+
+/**
+* !class   DocVariable
+ * !extends DocGeneral
+ * !brief   Wrapper around a variable
+ */
+class DocVariable extends DocGeneral
+{
+	
+	/**
+	* !variable type
+	 * !type	 string
+	 * !brief	Used to determine the type of the variable
+	 */
+	string type = "";
+	
+	function constructor()
+	{
+		.doctype = DocGeneral.VAR;
+	}
+}

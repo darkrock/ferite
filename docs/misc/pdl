@@ -1,0 +1,11 @@
+ok this is how you describe the function in terms of it's prameters
+
+type [name[=value]][,...] <--- new method
+eg.
+
+  "string, number blim=10, string blot=\"Hello\""
+
+  or
+
+  "s,n"
+  

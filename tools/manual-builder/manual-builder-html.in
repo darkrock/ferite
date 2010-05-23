@@ -1,0 +1,22 @@
+#!/bin/sh
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+library_path=@prefix@/share/ferite/manual-builder
+
+WD=`pwd`
+NAME=`basename $1 .sgml`
+
+if test -d $NAME; then
+    rm -rf $NAME;
+fi
+
+mkdir $NAME
+
+echo "Generating html document in directory $NAME for $NAME.sgml"
+$prefix/bin/ferite --include $library_path $library_path/manual-builder.fe -- html $WD/$NAME.sgml $NAME/index.html
+
+cp $library_path/ManualBuilder/Support/CSS/Default.css $NAME/style.css
+cp $library_path/ManualBuilder/Support/Images/http.png $NAME/
+cp $library_path/ManualBuilder/Support/Images/http-int.png $NAME/
+cp $library_path/ManualBuilder/Support/Images/docs-background.png $NAME/

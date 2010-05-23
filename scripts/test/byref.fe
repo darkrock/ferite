@@ -1,0 +1,14 @@
+uses "console";
+
+function foo( number &b, string str ){
+	b = 2;
+	str += "From Foo";
+}
+
+number a = 1;
+string str = "bar";
+
+Console.println("This should be 1: $a, should be 'bar': $str");
+foo(a, str);
+Console.println("This should be 2: $a, should be 'bar': $str");
+

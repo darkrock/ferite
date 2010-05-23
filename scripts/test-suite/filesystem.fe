@@ -1,0 +1,252 @@
+#!/usr/bin/env ferite
+
+/*
+ *  Stephan Engström <sem@cention.se>
+ */
+
+uses "filesystem","test","console","string","sys","array";
+
+function MakeFile( string path )
+{
+    object f = File.create(path, 0600 );
+    if(f == null)
+        return;
+    f.writeln( "ferite-test1" );
+    f.writeln( "ferite-test2" );
+    f.writeln( "ferite-test3" );
+    f.writeln( "ferite-test4" );
+    f.writeln( "ferite-test5" );
+    f.close();    
+}
+
+class FileTest extends Test
+{
+    object f;
+    function __setup__( )
+    {
+        MakeFile('/tmp/ferite-test');
+        self.f = File.open('/tmp/ferite-test');
+        if( self.f == null )
+            return 1;
+	return Test.SUCCESS;
+    }
+    function __teardown__( )
+    {
+	self.f.close();
+        File.remove('/tmp/ferite-test');
+	return Test.SUCCESS;
+    }
+    function open( )
+    {
+	object f = File.open("IhopeThatThisFileDoesNotExists");
+        if( f != null )
+	    return 1;
+	return Test.SUCCESS;
+    }
+    function create()
+    { 
+        object f = File.create('/tmp/ferite-test-2', 0600 );
+        if( f == null )
+            return 1;
+        
+        f.close();
+        File.remove( '/tmp/ferite-test-2' );
+        return Test.SUCCESS; 
+    }    
+    function lock()
+    {
+        number r = self.f.lock( false, false );
+        if( r != 0 )
+            return 1;
+        r = self.f.lock( false, false );
+        if( r == -1 )
+            return 2;
+        r = self.f.unlock();
+        if( !r )
+            return 3;
+        return Test.SUCCESS; 
+    }
+    function unlock()
+    {
+        return .lock();
+    }
+    function pos()
+    { 
+        number p;
+        self.f.seek( 0, Stream.SEEK_SET );
+        p = self.f.pos();
+        if( p != 0 )
+            return 1;
+        
+        self.f.seek( String.length("ferite-test1"), Stream.SEEK_SET );
+        p = self.f.pos();
+        if( p != String.length("ferite-test1") )
+            return 2;
+        
+        return Test.SUCCESS; 
+    }
+    function getDescriptor()
+    {
+        if( Sys.stdin().getDescriptor() != 0 )
+            return 1;
+        if( Sys.stdout().getDescriptor() != 1 )
+            return 2;
+        if( Sys.stderr().getDescriptor() != 2 )
+            return 3;
+        return Test.SUCCESS;
+    }
+    function length()
+    { 
+        number expected = String.length("ferite-test1\n") * 5;
+        number actual = self.f.length();
+        if( expected != actual )
+            return 1;
+        return Test.SUCCESS; 
+    }
+    function truncate()
+    {
+        object g;
+        if( self.f.truncate(String.length("ferite-test\n")) )
+            return 1;
+        
+        g = File.open( '/tmp/ferite-test', FileSystem.O_RDWR );
+        if( g == null )
+            return 2;
+        
+        if( !g.truncate(String.length("ferite-test\n")) )
+            return 3;
+        
+        .__teardown__();
+        .__setup__();
+        return Test.SUCCESS; 
+    }
+    function seek()
+    { 
+        string s = "";
+        if( self.f.seek( String.length('ferite-test1 '), Stream.SEEK_SET ) == -1 )
+            return 1;
+        s = self.f.readln();
+        if( s != "ferite-test2\n" )
+            return 2;
+        return Test.SUCCESS; 
+    }
+    function toString()
+    { 
+        object g = File.open( '/tmp/ferite-test', FileSystem.O_RDWR );
+        if( g == null )
+            return 1;
+        
+        if( !g.truncate(String.length("ferite-test\n")) )
+            return 2;
+        
+        g.flush();
+        if( g.length() != String.length("ferite-test\n") )
+            return 3;
+        
+        return Test.SUCCESS; 
+    }
+    function move()
+    {
+        if( File.move( '/tmp/ThisWillNotExistEver', '/tmp/NeitherWillThis' ) )
+            return 1;
+        if( !File.move( '/tmp/ferite-test', '/tmp/ferite-test-move' ) )
+            return 2;
+        if( !File.move( '/tmp/ferite-test-move', '/tmp/ferite-test' ) )
+            return 3;
+        return Test.SUCCESS; 
+    }
+    function remove()
+    {
+        if( File.remove( '/tmp/ThisWillNotExistEver' ) )
+            return 1;
+        if( !File.remove( '/tmp/ferite-test' ) )
+            return 2;
+        .__setup__();
+        return Test.SUCCESS; 
+    }
+    function eos() {
+        string s = "";
+        if( self.f.seek( 0, Stream.SEEK_SET ) == -1 )
+            return 1;
+        while( not self.f.eos() )
+            s += self.f.readln();
+         if( s != "ferite-test1\nferite-test2\nferite-test3\nferite-test4\nferite-test5\n" )
+            return 2;
+        return Test.SUCCESS;
+    }
+}
+class DirectoryTest extends Test
+{
+    function getCurrent()
+    {
+        string p, cwd = Directory.getCurrent();
+        if( cwd == "" )        
+            return 1; 
+        
+        if( !Directory.setCurrent( '/usr' ) )
+            return 2;
+        
+        p = Directory.getCurrent();
+        if( p != '/usr' )
+            return 3;
+        
+        if( !Directory.setCurrent( cwd ) )
+            return 4;
+        
+        return Test.SUCCESS;
+    }
+    function setCurrent(){ return .getCurrent(); }
+    
+    function open()
+    { 
+        number pass = 1;
+        MakeFile('/tmp/ferite-listing');
+        Directory.open( '/tmp' ) using ( entry ) {
+            if( entry == 'ferite-listing' )
+                pass = 0;
+        };
+        File.remove('/tmp/ferite-listing');
+        return pass; 
+    }
+    function make()
+    { 
+        if( !Directory.make( '/tmp/ferite-directory', 0644 ) )            
+            return 1; 
+        if( !Directory.remove( '/tmp/ferite-directory', false ) )
+            return 2;
+        if( Directory.remove( '/', false ) )
+            return 3;            
+        return Test.SUCCESS;
+    }    
+    function remove()
+    {
+        return .make();
+    }
+    
+    function close()
+    { 
+        object o = Directory.open('/tmp');
+        array a;
+        if( o == null )
+            return 1; 
+        a = o.toArray();
+        if( Array.size(a) == 0 )
+            return 2;
+        if( !o.close() )
+            return 3;
+        if( o.close() )
+            return 4;
+        return Test.SUCCESS;
+    }
+    function getEntry(){ return .close(); }
+    function toArray(){ return .close(); }
+}
+class FileSystemTest extends Test
+{
+}
+
+object f = new FileTest();
+object d = new DirectoryTest();
+object fs = new FileSystemTest();
+
+return f.run("File") + d.run("Directory") + fs.run("FileSystem");

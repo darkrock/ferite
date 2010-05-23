@@ -1,0 +1,75 @@
+#!/usr/bin/env ferite
+
+uses "console";
+
+function throw_error()
+{
+    number i;
+    i = "blarg";
+}
+
+number blarg = 10;
+string blarg2 = "Yesh";
+
+Console.println( "Running error tests" );
+
+Console.println( "Test One:" );
+monitor
+{
+    blarg = "blarg";
+}
+handle
+{
+    Console.println( "First Block Failed: " + err.str + " (" + err.num +") (correct)" );
+}
+else
+{
+    Console.println( "First Block Succeded (error: this shouldn't happen)" );
+}
+
+Console.println( "Test Two:" );
+monitor
+{
+    blarg2 = "Russpect";
+}
+handle
+{
+    Console.println( "Second Block Failed (error: this shouldn't happen)" );
+}
+else
+{
+    Console.println( "Second Block Succeded (correct)" );
+}
+
+Console.println( "Test Three:" );
+monitor
+{
+    blarg2 = 2;
+}
+handle
+{
+    Console.println( "Third Block Failed (correct)" );
+}
+else
+{
+    Console.println( "Third Block Succeded (error: this shouldn't happen)" );
+}
+
+Console.println( "Test Four:" );
+
+monitor
+{
+    monitor
+    {
+        throw_error();
+    }
+    handle
+    {
+        Console.println( "Handled here (correct)" );
+    }
+}
+handle
+{
+    Console.println( "And not here....As..." );
+    Console.println( "You should never see this." );
+}

@@ -1,0 +1,29 @@
+#!/usr/bin/env ferite
+
+uses "string", "array", "console";
+
+global {
+    static number IM = 139968;
+    static number IA = 3877;
+    static number IC = 29573;
+}
+
+function getRandom( number max )
+{
+    number last = 42;
+    last = (last * IA + IC) % IM;
+    return (max * last / IM );
+}
+
+number num;
+
+if( Array.size( argv ) > 0 )
+    num = String.toLong( argv[0] );
+else
+    num = 1;
+
+while( num-- )
+    getRandom( 100.0 );
+
+Console.println( getRandom( 100.0 ) );
+

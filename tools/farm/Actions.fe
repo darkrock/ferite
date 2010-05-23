@@ -1,0 +1,186 @@
+
+namespace modifies Farm {
+	
+	abstract class Action {
+		function constructor( object element ) {
+		}
+		function invoke() {
+			return false;
+		}
+	}
+	
+	class PerformAction extends Farm.Action {
+		static function constructor() {
+			Farm.Yard.registerAction( 'perform', self );
+		}
+		
+		string target;
+		string action;
+		function constructor( string t, string a ) {
+			.target = t;
+			.action = a;
+		}
+		function constructor( object element ) {
+			array attributes = element.getAttributes();
+			.target = attributes['target'];
+			.action = attributes['action'];
+		}
+		function invoke() {
+			if( Array.keyExists(Farm.targets,.target) ) {
+				object o = Farm.targets[.target];
+				number rval = false;
+				
+				Console.println( "\n -> Target '${o.uid}':" );
+				rval = Farm.invokeTargetAction( .target, .action );
+				return rval;
+			}
+			Farm.displayAction('error', "No such target '${.target}'");
+			return false;
+		}
+	}
+	
+	class CopyFilesAction extends Farm.Action {
+		static function constructor() {
+			Farm.Yard.registerAction( 'copy', self );
+		}
+		
+		array   filelist;
+		string  target;
+		number  filter;
+		boolean allowOverwrite;
+		boolean maintainSourcePath = false;
+		
+		function constructor( object element ) {
+			array attributes = element.getAttributes();
+			array filelist = [];
+			
+			if( Array.keyExists(attributes,'file') ) {
+				filelist = [ Farm.expandStringProperties(attributes['file']) ];
+			} else if( attributes.keyExists('source') ) {
+				array parts = attributes['source'].toArray('.');
+				object target = Farm.getTarget(parts[0]);
+				if( not target ) {
+					raise new Error("Copy action: Unable to find target ${parts[0]}");
+				}
+				if( not target.files.keyExists(parts[1]) ) {
+					raise new Error("Copy action: Unable to find file section ${parts[1]} in target ${parts[0]}");
+				}
+				filelist = target.files[parts[1]];
+			} else {
+				Array.each( element.getChildren() ) using ( child ) {
+					array a = Farm.Yard.walkFileDescripton( child );
+					Array.each( a ) using ( file ) {
+						filelist[] = Farm.expandStringProperties(file);
+					};
+				};
+			}
+			
+			.filelist = filelist;
+			.target = Farm.expandStringProperties(attributes['target']);
+			
+			.filter = false;
+			if( Array.keyExists(attributes,'filter') )
+				.filter = true;
+				
+			.allowOverwrite = true;
+			if( Array.keyExists(attributes, 'overwrite') ) {
+				.allowOverwrite = false;
+			}
+
+			.maintainSourcePath = false;
+			if( Array.keyExists(attributes, 'maintainpath') and attributes['maintainpath'] == 'true' ) {
+				.maintainSourcePath = true;
+			}
+		}
+		function invoke() {
+			number success = true;
+			Array.each( .filelist ) using ( file ) {
+				string target = (.maintainSourcePath ? "${.target}/$file" : "${.target}/${Farm.basename(file)}");
+				if( not .filter ) 
+					success = Farm.copyFile( file, target, 0644, .allowOverwrite );
+				else
+					success = Farm.filterCopyFile( file, target, 0644, .allowOverwrite );		
+				return success;
+			};
+			return success;
+		}
+	}
+	
+	class ExecuteAction extends Farm.Action {
+		
+		static function constructor() {
+			Farm.Yard.registerAction( 'execute', self );
+		}
+		
+		array programs;
+		string args;
+		function constructor( object element ) {
+			array attributes = element.getAttributes();
+			.programs = String.toArray(attributes['program'],',');
+			.args = attributes['arguments'];
+		}
+		function invoke() {
+			number didRun = false;
+			Array.each( .programs ) using ( program ) {
+				string path = Farm.locateBinary(program, Farm.searchPaths());
+				if( path == "" )
+					return;
+				Farm.displayAction('execute', "Running '$program ${Farm.expandStringProperties(.args)}'");
+				didRun = Farm.invokeExternalProgram("$path ${Farm.expandStringProperties(.args)}");
+				return false; // We jump out quickly
+			};
+
+			if( not didRun )
+				Farm.displayAction('error', "Unable to locate either of the programs '${Array.join(.programs,',')}'");	
+			return didRun;
+		}			
+	}
+	
+	class Phase {
+		array actions;
+		string dependancy;
+		string id;
+		
+		function constructor( string id ) {
+			.id = id;
+		}
+		function addAction( object p ) {
+			if( p != null )
+				.actions[] = p;
+		}
+		function invoke() {
+			number success;
+			
+			Farm.processed_phases[] = .id;
+			
+			if( .dependancy != "" and Array.keyExists(Farm.phases, .dependancy) ) {
+				object o = Farm.phases[.dependancy];
+				
+				if( not o.invoke() ) {
+					Farm.displayAction('error',"Unable to invoke dependancy '${.dependancy}' of phase '${.id}'");
+					return false;
+				}					
+			}
+			
+			Console.println( "Processing Action '${.id}':" );
+			Array.each( .actions ) using ( action ) {
+				success = action.invoke();
+				return success;
+			};
+			
+			return success;
+		}
+	} 
+	
+	class CleanPhase extends Farm.Phase {
+		function invoke() {
+			number r;
+			Farm.displayAction('clean',"Removing Directory: FarmYard");
+			r = Farm.destroyPath(Farm.yardDir());
+			if( not r ) {
+				Farm.displayAction('error', 'Failed: ' + err.str);
+			}
+			return r;
+		}
+	}
+}
