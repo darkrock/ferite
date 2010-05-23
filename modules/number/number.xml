@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+    <name>number</name>
+    <documentation-list>
+        <include>number.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

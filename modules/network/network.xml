@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+    <name>network</name>
+    <documentation-list>
+        <include>network.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

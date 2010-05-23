@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+    <name>stream</name>
+    <documentation-list>
+        <include>stream.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

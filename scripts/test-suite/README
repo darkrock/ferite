@@ -1,0 +1,189 @@
+
+Ferite Test Suite
+
+Stephan Engström <sem@cention.se>
+
+------------------------------------------------------------------------------
+
+The test suite makes it easy to write unit tests for classes and namespaces.
+The base is the Test class. To write your own test you need to inherit from
+the Test class and add the methods of the class for wich you are testing.
+
+Here is a simple example, first is the class that we want to test:
+
+
+class myMath
+{
+    number foo;
+    function constructor( )
+    {
+	self.foo = 3;
+    }
+    function pi( )
+    {
+	return 3.141592;
+    }
+    function sqrt2( )
+    {
+	return 1.414213;
+    }
+    function magic( number i )
+    {
+	self.foo++;
+	return i * self.foo;
+    }
+}
+
+
+To make a simple unit test, just extend the Test class and add the methods
+corresponing to myMath class. All methods should return 0 for success.
+
+uses "test";
+
+class testMyMath extends Test
+{
+    function constructor( )
+    {
+	super();
+    }
+    function pi( )
+    {
+	object math = new myMath();
+	number pi;
+	pi = math.pi();
+	if(pi < 3.14)
+	    return 1;
+	if(pi > 3.15)
+	    return 2;
+	return 0;
+    }
+    function sqrt2( )
+    {
+	object math = new myMath();
+	number s = math.sqrt2();
+	if(s < 1.41)
+	    return 1;
+	if(s > 1.42)
+	    return 2;
+	return 0;
+    }
+}
+/* Do the test */
+object T = new testMyMath();
+T.run("myMath");
+
+
+As you can see, the "magic()" method was left out of the test.
+To run the test you make an instance of your test class and call the run()
+method with the name of the class or namespace that should be tested.
+The run() method should print out a report of the tests. If you don't want
+a report printed, you can set 'T.beQuiet = true;' before you run the test.
+The run() method will also return how the test went, 0 for success and 100
+for total failure.
+
+Now run the test:
+
+-------------------------------------------------------------------------------
+$ ferite test.fe
+
+===================================
+Class: myMath
+[FAILED] method magic(), not implemented
+[PASSED] sqrt2()
+[PASSED] pi()
+===================================
+Success rate: 66%, test did not pass.
+
+-------------------------------------------------------------------------------
+
+To successfully complete a test, every method needs a method that return '0'.
+
+The test suite also have some predefined methods to help you keep the state of
+the test. The following methods are defined and will be executed at given time.
+
+__setup__()     /* Runs as the first method */
+__teardown__()  /* Runs as the last method */
+__misc__()	/* This method will run after ordinary methods but before
+		   __teardown__() */
+__shakedown__() /* This test should contain as many methods as possible
+		   chained together. It will run after ordinary methods
+		   but before __teardown__() */
+
+We rewrite the test above:
+
+
+uses "test";
+
+class testMyMath extends Test
+{
+    object math;
+    function constructor( )
+    {
+        super();
+    }
+    function __setup__( )
+    {
+	self.math = new myMath();
+	return 0;
+    }
+    function pi( )
+    {
+        number pi = self.math.pi();
+        if(pi < 3.14)
+            return 1;
+        if(pi > 3.15)
+            return 2;
+        return 0;
+    }
+    function sqrt2( )
+    {
+        number s = self.math.sqrt2();
+        if(s < 1.41)
+            return 1;
+        if(s > 1.42)
+            return 2;
+        return 0;
+    }
+    function magic( )
+    {
+	if(self.math.magic( 4 ) != 16)
+	    return 1;
+	return 0;
+    }
+    function __shakedown__( )
+    {
+	number sum;
+	sum = self.math.pi() * self.math.sqrt2() * self.math.magic(1);
+	if(sum < 22.21)
+            return 1;
+        if(sum > 22.22)
+            return 2;
+	return 0;
+    }
+    function __teardown__( )
+    {
+	if(self.math.foo != 5)	/* magic should have been called twice */
+	    return 1;
+	return 0;
+    }
+}
+
+/* Do the test */
+object T = new testMyMath();
+T.run("myMath");
+
+
+
+The report should now say:
+
+
+===================================
+Class: myMath
+[PASSED] magic()
+[PASSED] sqrt2()
+[PASSED] pi()
+===================================
+Success rate: 100%
+
+
+

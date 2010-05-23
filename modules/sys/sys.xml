@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<module>
+    <name>sys</name>
+    <documentation-list>
+        <include>sys.fec</include>
+        <include>std.fec</include>
+        <include>env.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

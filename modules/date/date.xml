@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+    <name>date</name>
+    <documentation-list>
+        <include>date.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

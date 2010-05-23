@@ -1,0 +1,33 @@
+Farm Structure
+--------------
+
+farm.fe - this is the core system.
+
+rulesets/ - per platform specific rulesets for building code,
+	  by default each platform must be able to handle:
+
+	  'c', 'c++', 'objc', building of shared, static and 
+	  loadable libraries
+
+	  They are simply a wrapper around a set of commands that,
+	  given a set of files, will process those files and return
+	  the output file.
+
+rulesets/Toplevel.fe - contains various intermediate files such
+		     as 'fec', 'y', 'l' files.
+
+tagsets/ - The core tags within the system both target and action
+	 tags.
+
+Farm Execution
+--------------
+
+Load up rulesets/Toplevel.fe, rulesets/`uname -s`.fe
+
+Load up tagsets/targets/*
+
+Load up tagsets/actions/*
+
+Load up farm.yard file and process.
+
+Process the build phases.

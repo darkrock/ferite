@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<module>
+    <name>posix</name>
+    <documentation-list>
+        <include>posix.fec</include>
+	<include>posix_consts.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

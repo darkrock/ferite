@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<module>
+    <name>math</name>
+    <documentation-list>
+        <include>math.fec</include>
+        <include>complex.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

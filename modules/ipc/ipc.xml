@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+    <name>ipc</name>
+    <documentation-list>
+        <include>ipc.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

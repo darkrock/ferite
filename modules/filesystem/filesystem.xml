@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+    <name>filesystem</name>
+    <documentation-list>
+        <include>filesystem.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

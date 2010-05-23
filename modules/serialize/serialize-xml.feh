@@ -1,0 +1,96 @@
+uses "console", "serialize", "xml", "reflection", "array";
+
+namespace modifies Serialize {
+	
+	function parseXMLNode( object element, array &storedObjects ) {
+		void returnValue;
+		array attributes = element.getAttributes();
+		
+		switch( element.getElementName() ) {
+			case "object":
+			{
+				returnValue = null;
+				switch( attributes['type'] ) {
+					case 'reference':
+						if( Array.keyExists( storedObjects, attributes['id'] ) )
+							returnValue = storedObjects[attributes['id']];
+						break;
+					case 'object':
+					{
+						array children = element.getChildren();
+						void klass = Class.locate( attributes['class'] );
+						object wrapper;
+						
+						returnValue = new klass();
+						storedObjects[attributes['referenceid']] = returnValue;
+						wrapper = new Object(returnValue);
+						
+						Array.each( children ) using ( child ) {
+							if( child.getElementName() != 'text' ) {
+								array childAttrs = child.getAttributes();
+								string name = '' + childAttrs['name'];
+								void value = .parseXMLNode( child, storedObjects );
+								if( wrapper.hasVariable(name) )
+									wrapper.setVariable( name, value );
+							}
+						};						
+						break;
+					}
+				}
+				break;				
+			}
+			case "array":
+			{
+				array children = element.getChildren();
+				returnValue = [];
+				Array.each( children ) using ( child ) {
+					if( child.getElementName() != 'text' ) {
+						array childAttrs = child.getAttributes();
+						void value = .parseXMLNode( child, storedObjects );
+						string name = '' + childAttrs['name'];
+						
+						if( name == '' )
+							returnValue[] = value;
+						else
+							returnValue[name] = value;
+					}
+				};
+				break;
+			}
+			case "number":
+				returnValue = String.toNumber( element.getElementData() );
+				break;
+			case "boolean":
+				returnValue = String.toBoolean( element.getElementData() );
+				break;
+			case "string":
+				returnValue = element.getElementData();
+				break;
+			case "void":
+				break;
+			case "namespace":
+				returnValue = Namespace.locate( attributes['location'] );
+				break;
+			case "class":
+				returnValue = Class.locate( attributes['location'] );
+				break;
+		}
+		
+		return returnValue;
+	}
+	
+	function fromXML( string v ) {
+		object xml = new XML.TreeParser();
+		object tree = null;
+		array storedObjects;
+		void returnValue;
+		
+		xml.parseChunk( v );
+		tree = xml.getDocumentElement();
+		
+		storedObjects = [];
+		returnValue = .parseXMLNode( tree, storedObjects );
+		
+		return returnValue;
+	}
+}

@@ -1,0 +1,11 @@
+ferite (0.99.4) unstable; urgency=low
+
+  * 0.99.4 Release
+
+ -- Chris Ross <ctr@ferite.org>  Wed, 9 Jan 2002 16:13:22 -0000
+
+Local variables:
+mode: debian-changelog
+add-log-mailing-address: "ctr@ferite.org"
+End:
+eoch

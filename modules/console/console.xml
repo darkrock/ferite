@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+    <name>console</name>
+    <documentation-list>
+        <include>console.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

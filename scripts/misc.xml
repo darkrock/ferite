@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<module>
+    <name>misc</name>
+    <documentation-list>
+        <include>GetOptLong.fe</include>
+        <include>freezethaw.fe</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

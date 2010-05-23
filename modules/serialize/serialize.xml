@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+    <name>serialize</name>
+    <documentation-list>
+        <include>serialize.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

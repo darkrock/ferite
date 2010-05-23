@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+    <name>array</name>
+    <documentation-list>
+        <include>array.fec</include>
+    </documentation-list>
+    <dependance-list>
+    </dependance-list>
+</module>

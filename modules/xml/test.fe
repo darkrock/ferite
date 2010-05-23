@@ -1,0 +1,132 @@
+uses "console", "array", "xml", "string";
+
+class MyXMLParser extends XML.SAXParser
+{
+    
+    string evalBlock;
+    number indent;
+    number inEvalBlock;
+    
+    function constructor(  )
+    {
+        self.indent = 0;
+        self.inEvalBlock = 0;
+        super(  );	
+    }
+    
+    function indent()
+    {
+        number i;
+        string foo = "";
+        
+        for( i = 0; i < self.indent; i++ ){
+            foo += " ";
+        }
+        return foo;
+    }
+    
+    function startDocument()
+    {
+        Console.println( self.indent() + "Start!" );
+    }
+    
+    function endDocument()
+    {
+        Console.println( self.indent() + "End!" );
+    }
+    
+    function startElement( string name, array attrs )
+    {
+        array keys = Array.keys( attrs );
+        number i = 0;
+        
+        if( name == "ferite" ){
+            self.inEvalBlock = 1;
+            self.evalBlock = "";
+        } else {
+            self.indent += 2;
+            Console.print( self.indent() + "<$name" );
+            for( i = 0; i < Array.size(keys); i++ )
+            {
+                Console.print( " " + keys[i] + "=\"" + attrs[keys[i]] + "\"" );
+            }
+            Console.println( ">" );
+        }
+    }
+    
+    function endElement( string name )
+    {
+        if( name == "ferite" )
+        {
+            self.inEvalBlock = 0;
+            monitor
+            {
+                eval( self.evalBlock );
+            }
+            fix
+            {
+                Console.println( "Eval Failed: Reason: " + err.str );
+                Console.println( "Code >>>>>>>>>>>>>>\n" + self.evalBlock + "<<<<<<<<<" );
+            }
+        } else {
+            Console.println( self.indent() + "</$name>" );
+            self.indent -= 2;
+        }
+    }
+    
+    function characters( string chars )
+    {
+        string data = String.trim(chars," ");	  
+        
+        if( data != "" )
+        {
+            if( self.inEvalBlock )
+            {
+                self.evalBlock += data;
+            }
+            else
+            {
+                self.indent += 2;
+                Console.println( self.indent() + data );
+                self.indent -= 2;
+            }
+        }
+    }
+    
+    function comment( string chars )
+    {
+      	Console.println( self.indent() + "Comment: $chars");
+    }
+    
+    function cdata( string chars )
+    {
+      	Console.println( self.indent() + "CdataBlock: $chars");
+    }	
+    
+    function processingInstruction( string name, string value )
+    {
+      	Console.println( self.indent() + "PI name: $name, value: $value");
+    }	
+}
+
+object parser = new MyXMLParser(  );
+
+if( parser.parseFile( "test.xml" ) )
+{
+    Console.println( "Well formed file" );
+}
+else
+{
+    Console.println( "Not Well formed file" );
+}
+
+
+if( parser.parseChunk( "<xml>Test ParseChunk</xml>" ) )
+{
+    Console.println( "Well formed Chunk" );
+}
+else
+{
+    Console.println( "Not Well formed Chunk" );
+}
+

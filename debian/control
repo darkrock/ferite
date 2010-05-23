@@ -1,0 +1,25 @@
+Source: ferite
+Section: interpreters
+Priority: optional
+Maintainer: Laurence J. Lane <ljlane@debian.org>
+Build-Depends: libpcre3-dev, libncurses5-dev, libreadline4-dev, slang1-dev, debhelper (>= 2.0)
+Standards-Version: 3.5.0.0
+
+Package: ferite
+Architecture: any
+Section: interpreters
+Depends: ${shlibs:Depends}
+Description: a lightweight embedable engine for the ferite programming language
+ ferite is an object oriented programming language. Based on a
+ hybrid of C, Perl and Java. It is stronger typed than Perl, and
+ will employ a object system not to far off Java. ferite is also
+ designed for quick deployment in applications - its primary role
+ being that of adding scripting ability to other programs.
+
+Package: ferite-dev
+Architecture: any
+Section: interpreters
+Depends: ${shlibs:Depends}
+Description: development files for ferite
+ C header files and static libs required for developing applications with
+ ferite.

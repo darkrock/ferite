@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<module>
+    <name>rmi</name>
+    <documentation-list>
+        <include>rmi.fe</include>
+    </documentation-list>
+    <dependance-list>
+        <include>array</include>
+        <include>reflection</include>
+        <include>sys</include>
+        <include>thread</include>
+        <include>regexp</include>
+    </dependance-list>
+</module>
