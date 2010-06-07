@@ -30,9 +30,13 @@ namespace modifies Farm {
 					filelist[] = Farm.expandStringProperties( attributes['name'] );
 					break;
 				case 'fileset': {
-					string directory = String.postTrim( attributes['dir'], '/' );
+					string directory = String.postTrim( (attributes.keyExists('dir') ? attributes['dir'] : ''), '/' );
 					object r = new Regexp((attributes['match'] ? attributes['match'] : '.*\..*'));
 					if( r != null ) {
+						if( !directory ) {
+							Console.println("Directory is empty");
+							directory = Directory.getCurrent();
+						}
 						if( attributes['recursive'] == 'true' ) {
 							string current = Directory.getCurrent();
 							Directory.walk( Farm.expandStringProperties(directory) ) using ( file ) {

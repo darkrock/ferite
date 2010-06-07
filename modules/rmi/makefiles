@@ -1,0 +1,4 @@
+modules\/rmi\/rmi\/Makefile \\\
+modules\/rmi\/rmi\/protocol\/Makefile \\\
+modules\/rmi\/rmi\/translation\/Makefile \\\
+modules\/rmi\/rmi\/transport\/Makefile \\\

@@ -23,6 +23,7 @@ case "$1" in
         fi
 	if test -f "Makefile.am"; then
 	   if test ! -f "$dir.fec"; then
+		echo "Got module $dir $makefiles";
 	      modulelist="$modulelist $dir";
 	      if test -f makefiles; then
 	         modulemakefiles="$modulemakefiles$moduledir\/$dir\/Makefile \\\\\\
