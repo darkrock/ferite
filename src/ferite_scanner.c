@@ -20847,7 +20847,7 @@ char *feptext;
 #line 1 "ferite_scanner.l"
 #line 2 "ferite_scanner.l"
 /*
- * Copyright (C) 2000-2007 Chris Ross and various contributors
+ * Copyright (C) 2000-2010 Chris Ross and various contributors
  * Copyright (C) 1999-2000 Chris Ross
  * All rights reserved.
  *

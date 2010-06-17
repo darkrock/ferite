@@ -1,7 +1,8 @@
-bin_PROGRAMS = ferite cache_ferite
+bin_PROGRAMS = ferite cache_ferite ferite_script
 
 ferite_SOURCES = main.c dot.c dot.h
 cache_ferite_SOURCES = cache-ferite.c
+ferite_script_SOURCES = main_script.c dot.c dot.h
 
 EXTRA_DIST = dot.h
 		    
