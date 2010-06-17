@@ -131,6 +131,7 @@ namespace modifies Farm {
 					if( match = header.match(s) ) {
 						array a = String.toArray( s, '/' );
 						string path = '', s = '';
+						
 						if( Array.size(a) > 1 ) // It is not in the current directory
 							path = '-I' + (a[0] == "" ? "" : (Directory.getCurrent() + '/')) + Array.join( a[..-2], '/' );
 						else
