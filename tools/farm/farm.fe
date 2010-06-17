@@ -445,9 +445,10 @@ Farm.global_properties['FeriteLibraryDir'] = Farm.programOutput('ferite-config',
 Farm.global_properties['FeriteModuleSourceDir'] = Farm.programOutput('ferite-config', '--module-library-path');
 Farm.global_properties['FeriteModuleDescriptionDir'] = "${Farm.programOutput('ferite-config', '--library-path')}/module-descriptions";
 Farm.global_properties['FeriteModuleNativeDir'] = Farm.programOutput('ferite-config', '--native-library-path');
+Farm.global_properties['FeriteExampleDir'] = "${Farm.programOutput('ferite-config', '--prefix')}//share/doc/ferite/examples";
 
 Farm.global_properties['YardFile'] = 'farm.yard';
-Farm.global_properties['prefix'] = '/usr/local';
+Farm.global_properties['prefix'] = Farm.programOutput('ferite-config', '--prefix');
 Farm.global_properties['platform'] = Farm.platform;
 Farm.global_properties['destination'] = '';
 

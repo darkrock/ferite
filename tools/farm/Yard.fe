@@ -182,6 +182,14 @@ namespace modifies Farm {
 				string name = element.getElementName();
 				switch( name ) {
 					case 'yard':
+						if( attributes.keyExists('name') ) {
+							Farm.global_properties['name'] = attributes['name'];
+						}
+						if( attributes.keyExists('version') ) {
+							Farm.global_properties['version'] = attributes['version'];
+						} else {
+							Farm.global_properties['version'] = '1.0';
+						}
 						.walk( element.getFirstChild(), null );
 						break;
 					case 'include':
