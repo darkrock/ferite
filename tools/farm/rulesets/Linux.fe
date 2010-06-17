@@ -11,13 +11,14 @@ namespace Linux {
 		function build( object target, string file, array specialOptions ) {
 			string objectPath = .buildOutput( target, file );
 			string flags = target.getProperty('C');
+			File.remove(objectPath);
 			specialOptions['C'] and flags = "$flags ${specialOptions['C']}";
 			if( flags.index('-fPIC') == -1  )
 				flags += " -fPIC";
 				
 			if( Farm.invokeExternalProgram( "gcc $flags -o $objectPath -c $file" ) )
 				return objectPath;
-			return "";   
+			return "FAILED";   
 		}
 		function buildOutput( object target, string file ) {
 			return "${Farm.compiledObjectsDirForTarget(target)}/${(Farm.basename(file) - '.c')}.o";
@@ -34,13 +35,14 @@ namespace Linux {
 		function build( object target, string file, array specialOptions ) {
 			string objectPath = .buildOutput( target, file );
 			string flags = target.getProperty('CPP');
+			File.remove(objectPath);
 			specialOptions['CPP'] and flags = "$flags ${specialOptions['CPP']}";
 			if( flags.index('-fPIC') == -1  )
 				flags += " -fPIC";
 			
 			if( Farm.invokeExternalProgram( "g++ $flags -fPIC -o $objectPath -c $file" ) )
 				return objectPath;
-			return "";   
+			return "FAILED";   
 		}
 		function buildOutput( object target, string file ) {
 			return "${Farm.compiledObjectsDirForTarget(target)}/${(Farm.basename(file) - '.cpp')}.o";

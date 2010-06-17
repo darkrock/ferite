@@ -164,10 +164,13 @@ namespace modifies Farm {
 			
 			Console.println( "Processing Action '${.id}':" );
 			Array.each( .actions ) using ( action ) {
-				success = action.invoke();
-				return success;
+				if( action.invoke() ) {
+					success++;
+					return true;
+				} else {
+					return false;
+				}
 			};
-			
 			return success;
 		}
 	} 

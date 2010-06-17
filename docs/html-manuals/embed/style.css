@@ -1,0 +1,103 @@
+
+BODY {
+  background: white url("docs-background.png");
+  background-repeat: repeat-y;
+  background-position: center;
+}
+
+HR.documentStart {
+    color:  #ccc;
+    height: 1px;
+}
+HR.documentEnd {
+    color:  #ccc;
+    height: 1px;
+}
+HR.sectionSplitter {
+    color: #ccf; 
+    height: 1px;
+}
+HR.ruler {
+    height: 2px; 
+    background-color: #336;
+}
+
+H1.documentTitle { 
+}
+H1.title { 
+}
+H2.title {
+}
+H3.tocTitle {
+}
+H3.title {
+}
+H4.title {
+}
+
+BLOCKQUOTE.section {
+    margin-left: 5px; 
+    padding-left: 25px; 
+    border-left: 2px solid #EEEEFF;
+}
+
+PARAGRAPH.para {
+}
+
+B.string {
+}
+I.emphasis {
+}
+TT.monospace {
+}
+PRE.code {
+    border: 1px solid #666666; 
+    background-color: #EEEEFF; 
+    margin-right: 5px; 
+    margin-left: 5px; 
+    padding: 10px;
+}
+PRE.code-linesright {
+    border-right: 1px solid #666666; 
+    border-top: 1px solid #666666; 
+    border-bottom: 1px solid #666666; 
+    background-color: #EEEEFF; 
+    margin-right: 5px; 
+    padding: 10px;
+}
+PRE.code-linesleft {
+    border-left: 1px solid #666666; 
+    border-top: 1px solid #666666; 
+    border-bottom: 1px solid #666666; 
+    background-color: #CCCCCC; 
+    margin-left: 5px; 
+    padding: 10px;
+}
+BLOCKQUOTE.quote {
+    border-left: 1px solid #006600; 
+    background-color: #CCFFCC; 
+    margin-right: 15px; 
+    margin-left: 15px; 
+    padding: 15px;
+}
+STRIKE.strike {
+    background-color: #FFDDDD;
+}
+U.underline {
+}
+
+UL.list {
+}
+LI.listItem {
+}
+P.listItemParagraph {
+}
+.footnote {
+	font-size: 50%;
+}
+.toc {
+    margin-left: 5px; 
+    padding-left: 5px;
+	border: 1px solid #000;
+	background-color: #FFF;
+}

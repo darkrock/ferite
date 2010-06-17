@@ -75,7 +75,7 @@ namespace Serialize
 			FE_RETURN_NULL_OBJECT;
 		}
 		var = ferite_buffer_to_var( script, ctx->buf );
-		snprintf( len, 12, "%d%.*d\n", SERIALIZER_VERSION, 9, FE_STRLEN(var) );
+		snprintf( len, 12, "%d%.*d\n", SERIALIZER_VERSION, 9, (int)FE_STRLEN(var) );
 		strncpy( FE_STR2PTR( var ), len, 11 );
 		Serialize_walk_deinit( script, ctx );
 		FE_RETURN_VAR( var );

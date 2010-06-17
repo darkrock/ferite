@@ -20,6 +20,9 @@ namespace modifies Farm {
 			function translate( object target, string source, string prefix ) {
 				return [ source ];
 			}
+			function translationProperties( object target, string source, string prefix ) {
+				
+			}
 			
 			// Takes a source file, builds it and then returns
 			function build( object target, string file ) {
@@ -73,7 +76,6 @@ namespace modifies Farm {
 			string dest = Farm.RuleSet.combinationName(target, target.getProperty('type'));
 			object sstat = Posix.stat(source);
 			object dstat = Posix.stat(dest);
-			
 			if( sstat == null or dstat == null or (dstat.getModifiedTime() < sstat.getModifiedTime()) )
 				return true;
 			return false;
@@ -85,6 +87,7 @@ namespace modifies Farm {
 				string prefix = Farm.derivedSourcesDirForTarget(target) + "/" + Farm.generateDerivedSourcesTag(Farm.basename(source));
 				
 				if( .sourceHandlers[ext].doesTranslate() ) {
+					.sourceHandlers[ext].translationProperties(target,source,prefix);
 					if( .needsUpdating( target, source ) ) {
 						array r = [];
 						Farm.destroyPath( prefix );
@@ -152,7 +155,6 @@ namespace GeneralRules {
 		}
 		
 		function translate( object target, string file, string prefix ) {
-			
 			string filename = Farm.basename(file);						
 			string filelocation = Farm.dirname(file);
 			string module = target.getProperty('name');
@@ -171,11 +173,12 @@ namespace GeneralRules {
 			// Go back up the tree
 			Directory.setCurrent(Farm.toplevelDirectory);
 
-		// Sort out the include path
-			target.addProperty('C', "-I$prefix");
-			target.addProperty('C', "-I$prefix");
-			   
 			return Farm.sourceDirectoryContents( prefix );	
+		}
+		function translationProperties( object target, string file, string prefix ) {
+			// Sort out the include path
+			target.addProperty('C', "-I$prefix");
+			target.addProperty('C', "-I$prefix");
 		}
 	}		
 }
