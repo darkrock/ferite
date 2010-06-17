@@ -174,7 +174,6 @@ int parse_args( int argc, char **argv )
     for(i = 1; i < argc; i++)
     {
 		struct stat stat_buf;
-		printf("%d = %s\n", i, argv[i]);
         if( stat(argv[i], &stat_buf) == 0 && S_ISREG(stat_buf.st_mode) )
         {
 			gotScript = 1;
