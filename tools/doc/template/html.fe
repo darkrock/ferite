@@ -178,6 +178,7 @@ class HtmlTemplate extends Template
 		object s,d;
 		s = File.open( src, 0 );
 		d = File.create( dest, 0644 );
+		Console.println("Copying $src to $dest");
 		if( !d )
 		{
 			Sys.error("Couldn't open file: $dest\n", 0 );
@@ -189,6 +190,7 @@ class HtmlTemplate extends Template
 			Sys.exit();
 		}
 		d.write( s.read( s.length() ) );
+		d.close();
 	}
 
 	function createFile( string file, number is_class, string title, object container )
@@ -246,7 +248,7 @@ class HtmlTemplate extends Template
 		o.title = info.name;
 		switch( info.doctype ) {
 			case DocGeneral.GRP: o.title = "<img src=\\\"group.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Group]</span>"; break;
-			case DocGeneral.NS: o.title = "<img src=\\\"namespace.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Namespace]</span>"; break;
+			case DocGeneral.NS:  o.title = "<img src=\\\"namespace.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Namespace]</span>"; break;
 			case DocGeneral.CLS: o.title = "<img src=\\\"class.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Class]</span>"; break;
 			case DocGeneral.FNC: o.title = "<img src=\\\"function.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Function]</span>"; break;
 			case DocGeneral.VAR: o.title = "<img src=\\\"var.png\\\" border=0 style=\\\"vertical-align:middle;\\\"> ${o.title} <span class=smalltext>[Variable]</span>"; break;
