@@ -645,8 +645,11 @@ class HtmlTemplate extends Template
 				{
 					.writeTableMainRow( o, "Functions" );
 					lasttype = space.items[i].doctype;
-				}				
-				.writeTableSecondRow( o, "<img src=\"function.png\" alt=\"function\" style=\"vertical-align: middle;\"> <a href=\"#object.${space.items[i].name}.$count\">${space.items[i].name}</a>${.generateTypeList(space.items[i].parameters)} - ${space.items[i].brief}" );
+				}
+				if( space.items[i].is_static )
+					.writeTableStaticRow( o, "<img src=\"function.png\" alt=\"function\" style=\"vertical-align: middle;\"> <a href=\"#object.${space.items[i].name}.$count\">${space.items[i].name}</a>${.generateTypeList(space.items[i].parameters)} - ${space.items[i].brief}" );
+				else
+					.writeTableSecondRow( o, "<img src=\"function.png\" alt=\"function\" style=\"vertical-align: middle;\"> <a href=\"#object.${space.items[i].name}.$count\">${space.items[i].name}</a>${.generateTypeList(space.items[i].parameters)} - ${space.items[i].brief}" );
 			}
 			else if( space.items[i] instanceof DocVariable )
 			{
@@ -695,7 +698,7 @@ class HtmlTemplate extends Template
 					.writeLittleTitle( o, "Functions" );
 					done_functions = true;
 				}
-				.processFunction( o, space.items[i], false );
+				.processFunction( o, space.items[i], true );
 			}
 		}
 
