@@ -42,6 +42,8 @@ class Parser
 	 */
 	object tree;
 	
+	array objectMap;
+	
 	/**
 	 * @function start
 	 * @brief	Process the file list, and generate an object tree of the comments
@@ -52,6 +54,7 @@ class Parser
 	{
 		number i = 0;
 		
+		.objectMap = [];
 		.tree = new DocScript();
 		for( i = 0; i < Array.size(.file_list); i++ )
 		{
@@ -143,7 +146,7 @@ class Parser
 					object newObj = .generateObject( values );
 //					Console.println( "newObj: $newObj" );
 					{
-						object ret = tree.add( newObj );					
+						object ret = tree.add( newObj );
 						if( Array.keyExists( values, "class" ) || 
 							Array.keyExists( values, "protocol" ) ||
 							Array.keyExists( values, "namespace" ) || 

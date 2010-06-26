@@ -231,7 +231,7 @@ class HtmlTemplate extends Template
 		string r = "";
 		for( number i = 0; i < Array.size(list); i++ )
 		{
-			object match = Regexp.match( '^[ \t]*([A-Za-z.]+)', list[i] );
+			object match = Regexp.match( '^[ \t]*([A-Za-z._*]+)', list[i] );
 			if( match != null )
 				r += match.capture(0);
 			else
@@ -662,16 +662,19 @@ class HtmlTemplate extends Template
 			}
 			else if( space.items[i] instanceof DocClass )
 			{
-				if( lasttype != klass.items[i].doctype )
+				if( lasttype != space.items[i].doctype )
 				{
 					.writeTableMainRow( o, "Classes" );
-					lasttype = klass.items[i].doctype;
+					lasttype = space.items[i].doctype;
 				}						  
 				
 				.writeTableStaticRow( o, "<img src=\"class.png\" alt=\"class\" style=\"vertical-align: middle;\"> <a href=\"$name.${space.items[i].name}.html\">${space.items[i].name}</a> - ${space.items[i].brief}" );
-				Array.push(.name_stack, space.items[i].name );
-				.processClass( space.items[i] );
-				Array.pop(.name_stack);
+				{
+					array a = .name_stack;
+					.name_stack = [ space.items[i].name ]; 
+					.processClass( space.items[i] );
+					.name_stack = a;
+				}
 			}
 			else if( space.items[i] instanceof DocNamespace )
 			{
@@ -681,9 +684,12 @@ class HtmlTemplate extends Template
 					lasttype = klass.items[i].doctype;
 				}						  
 				.writeTableStaticRow( o, "<img src=\"namespace.png\" alt=\"namespace\" style=\"vertical-align: middle;\"> <a href=\"$name.${space.items[i].name}.html\">${space.items[i].name}</a> - ${space.items[i].brief}" );
-				Array.push(.name_stack, space.items[i].name );
-				.processNamespace( space.items[i] );
-				Array.pop(.name_stack);
+				{
+					array a = .name_stack;
+					.name_stack = [ space.items[i].name ]; 
+					.processNamespace( space.items[i] );
+					.name_stack = a;
+				}
 			}
 			lastparserfile = name;
 		}
