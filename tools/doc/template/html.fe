@@ -668,7 +668,7 @@ class HtmlTemplate extends Template
 					lasttype = space.items[i].doctype;
 				}						  
 				
-				.writeTableStaticRow( o, "<img src=\"class.png\" alt=\"class\" style=\"vertical-align: middle;\"> <a href=\"$name.${space.items[i].name}.html\">${space.items[i].name}</a> - ${space.items[i].brief}" );
+				.writeTableStaticRow( o, "<img src=\"class.png\" alt=\"class\" style=\"vertical-align: middle;\"> <a href=\"${space.items[i].name}.html\">${space.items[i].name}</a> - ${space.items[i].brief}" );
 				{
 					array a = .name_stack;
 					.name_stack = [ space.items[i].name ]; 
@@ -683,7 +683,7 @@ class HtmlTemplate extends Template
 					.writeTableMainRow( o, "Namespaces" );
 					lasttype = klass.items[i].doctype;
 				}						  
-				.writeTableStaticRow( o, "<img src=\"namespace.png\" alt=\"namespace\" style=\"vertical-align: middle;\"> <a href=\"$name.${space.items[i].name}.html\">${space.items[i].name}</a> - ${space.items[i].brief}" );
+				.writeTableStaticRow( o, "<img src=\"namespace.png\" alt=\"namespace\" style=\"vertical-align: middle;\"> <a href=\"${space.items[i].name}.html\">${space.items[i].name}</a> - ${space.items[i].brief}" );
 				{
 					array a = .name_stack;
 					.name_stack = [ space.items[i].name ]; 

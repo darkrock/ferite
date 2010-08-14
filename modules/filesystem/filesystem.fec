@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-uses "stream";
+uses "stream", "posix";
 uses "filesystem.lib";
 
 module-header
