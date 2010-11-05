@@ -1386,26 +1386,26 @@ if (foo) {
         </section>
 
         
-        <section id="iferr-fix-else">
-        	<title id="iferr-fix-else.title">Exception Handling</title>
+        <section id="monitor-handle-else">
+        	<title id="monitor-handle-else.title">Exception Handling</title>
         	<para>
             This control structure provides the exception handling within &ferite;. There are three main components
             to this structure: the code to execute that may throw an exception, the code to execute if an exception
             is thrown and an optional block to execute if an exception is <strong>not</strong> thrown.
         	</para>
         	<code>
-<strong>iferr</strong> {
+<strong>monitor</strong> {
 	<emphasis>statements</emphasis>
-} <strong>fix</strong> {
+} <strong>handle</strong> {
 	<emphasis>statements to clean up in case of an exception</emphasis>
 } <strong>else</strong> {
 	<emphasis>statements if no exception has occurred</emphasis>
 } </code>
         	<para>
-            It is possible to nest <strong>iferr-fix-else</strong> blocks. When an exception does occur a global
+            It is possible to nest <strong>monitor-handle-else</strong> blocks. When an exception does occur a global
             variable called err is instantiated and given information relating to the thrown exception. 
             The object has two attributes, a string 'str' and number 'num' - these provide information on the error 
-            that occurred. Exceptions are propagated up through the system until a handler is found; if no iferr-fix-else
+            that occurred. Exceptions are propagated up through the system until a handler is found; if no monitor-handle-else
             block catches the exception, &ferite; will cease execution of the script.
         	</para>
         </section>
