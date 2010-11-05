@@ -6,14 +6,15 @@
 <!ENTITY fvoid     "<monospace><strong>void</strong></monospace>">
 <!ENTITY fobject   "<monospace><strong>object</strong></monospace>">
 <!ENTITY farray    "<monospace><strong>array</strong></monospace>">
-<!ENTITY raquo     "<monospace>&gt;&gt;</monospace>">
+<!ENTITY fboolean  "<monospace><strong>boolean</strong></monospace>">
+<!ENTITY raquo     "<monospace>-&gt;</monospace>">
 ]>
 
 <!-- TODO v1.0: -->
 <!-- TODO v1.1: type hinting, remove operator overloading, exception handling, atomic on functions -->
 
 <document id="ferite-manual">
-    <title>The Ferite Programming Language 1.0</title>
+    <title>The Ferite Programming Language 1.1.19</title>
 
     <section id="introduction">
     	<title>Introduction</title>
@@ -182,7 +183,7 @@ Console.println( "Hello World from ferite" );</code>
             information. &ferite; requires you to state the type of each variable or parameter you declare.
             This keeps writing code and debugging easier because &ferite; can stop you making mistakes -
             such as trying to add a string to an object. There are a number of types within the type system which
-            fall into two main categories: simple types (&fnumber; and <strong>string</strong>)
+            fall into two main categories: simple types (&fboolean;, &fnumber;, and &fstring;)
             and complicated types (&farray;, &fobject; and &fvoid;).
         </para>
         <para>
@@ -190,6 +191,18 @@ Console.println( "Hello World from ferite" );</code>
             on in the manual. It is suggested that you read this section and come back to it when you have made more
             progress with the other sections.
         </para>
+		<section id="boolean">
+			<title id="boolean.title">boolean</title>
+			<para>
+				The &fboolean; type encapsulates a simple numerical type with the value true or false. It is interchangeable with 
+				the number type for values 1 and 0. &ferite; has two build in keywords <monospace>true</monospace> and <monospace>false</monospace>
+				that provide the only two possible values a boolean variable can hold. All logical operators within the language reduce to a boolean
+				value of either true or false.
+			</para>
+			<code>
+&fboolean; someValue = true;
+&fboolean; someOtherValue = false;</code>
+		</section>
         <section id="number">
         	<title id="number.title">number</title>
         	<para>
@@ -281,13 +294,13 @@ number twentyone = 0x15 &results; twentyone is the numerical value 21</code>
         	               <monospace>\n</monospace> -- Adds a new line to the string -- Non visible character
         	           </list-item>
         	           <list-item>
-        	               <monospace>\r</monospace> -- On windows this character provides a line feed. -- 
+        	               <monospace>\r</monospace> -- On windows this character provides a line feed.
         	           </list-item>
         	           <list-item>
         	               <monospace>\t</monospace> -- Adds a tab character to the string -- Non visible character
         	           </list-item>
         	           <list-item>
-        	               <monospace>\"</monospace> -- " 
+        	               <monospace>\"</monospace> -- Adds a double quote character to the string.
         	           </list-item>
         	           <list-item>
         	               <monospace>\x??</monospace> -- Character with the hexadecimal value
@@ -431,8 +444,31 @@ o2 = <strong>new</strong> SomeOtherObjectType(); </code>
                 &fvoid; if wanted. It is strongly recommended that this practice not be followed because you drop a
                 core feature (declared types) of ferite which is there to make maintenance and debugging less of a headache.
             </para>
-        </section> 
+        </section>
+        <section id="type-hinting">
+        	<title id="type-hinting.title">Type Hinting</title>
+        	<para>
+				The type system in &ferite; works great for most code bases, however there are times when less flexibility and more
+				constraints are very useful. In preparation of a future releases, &ferite; currently supports the syntax for type hinting which 
+				will become actively used to provide the afore mentioned constraints.
+			</para>
+			<code>
+object<![CDATA[<XML.Element>]]> e = null;
+string<![CDATA[<UTF8>]]> s = '';</code>
+			<para>
+				The hinting is useful to show intent and the above example shows how hints can be used. A type hint uses the form of <![CDATA[type<hint>]]>, with
+				the hint being contained within the less-than and greater-than characters. The intent of the hint on the object variable is to state that object
+				variable will only point to objects of type XML.Element. When enforced the type system would only allow objects of that type to be assigned to 
+				that variable. The notion of type hinting becomes much more interesting when the string example is considered. The aim of type hinting to allow
+				customised type constraints written in ferite. The string example could, for instance, guarantee that its contents are always UTF8 encoded, with either
+				exceptions or automatic transcoding of character data upon assignment.
+			</para>
+			<para>
+				Even though hints are currently not enforced, their use is not wasted as they help provide tools to make the code self documenting and are highly
+				encouraged.
+			</para>
     	</section>
+	</section>
     	<section id="variables">
         <title id="variables.title">Variables</title>
         <para>
@@ -512,8 +548,7 @@ modifiers type name [= expression] [, name [= expression], ...]</code>
 &farray; myarray = [ 1, 2, 3 ];</code>
         <para>
             A variable's scope is as local as the function in which it is declared. The exception being global variables which
-            can be accessed from any function. Global variables can be accessed anywhere within
-            a script and are declared using the following syntax:
+            can be accessed from any function. Global variables can be accessed anywhere within a script and are declared using the following syntax:
 <!-- mdh: not clear - do you have to declare the variable as global prior to using it? -->
         </para>
         <code>
@@ -1651,6 +1686,41 @@ function foo() {
 function bar() {
 
 } </code>
+			<section id="return-type-annotation-functions">
+			<title id="return-type-annotation-functions.title">Annotating Return Type</title>
+			<para>
+			Future versions of &ferite; will provide improved static type checking. With this shift, &ferite; supports the ability to provide
+			return type annotations on functions. This is an enforced requirement on native interface functions and will remain optional on ferite functions. 
+			Annotations are inserted after the parameter declaration and before the function contents:
+			</para>
+			<code>
+function version : number {
+	return 1.0;
+}</code>
+			<para>
+				The annotation should be the type that the function returns. There are a couple of additions to make the annotation more concise:
+			</para>
+			<list numeration="arabic">
+			      <list-item>
+			        <para>If a function does not return a value, the keyword <monospace>undefined</monospace> should be used.</para>
+			      </list-item>
+			      <list-item>
+			        <para>If a function returns multiple different types the keyword <monospace>void</monospace> should be used.</para>
+			      </list-item>
+			      <list-item>
+			        <para>If a function returns an object you can not only use the <monospace>object</monospace> keyword, but also specify the class.</para>
+					<code>
+function version : XML.Element {
+	return new XML.Element();
+}</code>
+			      </list-item>
+	        </list>
+			<para>
+				Annotations are fast becoming a powerful ally in isolating, at compile time, potential type clashes within the code that might not surface
+				until significantly later in seldom run code. Although the full benefits of annotations have yet to arrive, even in their current state
+				they provide clarity and improved understanding of function outputs which is invaluable in all bug free code bases.
+			</para>
+			</section>
         </section>
         <section id="function-overloading">
         <title id="function-overloading.title">Function Overloading</title>
@@ -1701,6 +1771,21 @@ String: Hello World </code>
 
 printNumber( 10 );
 printString( "Hello World" ); </code>
+        </section>
+        <section id="zero-parameter-functions">
+        <title id="zero-parameter-functions.title">Zero Parameter Functions</title>
+        <para>
+            Along the same lines as one line functions, &ferite; allows you to skip the brackets on function declaration when
+			the function does not take any arguments. It is important to note that you can only skip the brackets on declaration,
+			you will still have to provide them when calling the function.
+        </para>
+        <code>
+<strong>uses</strong> "console";
+
+<strong>function</strong> version 
+	return 1.0;
+
+Console.println(version());</code>
         </section>
         <section id="passing-variables-by-reference">
         <title id="passing-variables-by-reference.title">Pass By Reference</title>
@@ -1772,7 +1857,7 @@ This should be 2: 2, should be 'bar': bar </code>
 <strong>class</strong> ExampleClass {
 	&fstring; stringValue;
 
-	<strong>function constructor</strong>( &fstring; str ){
+	<strong>constructor</strong>( &fstring; str ){
         <strong>self</strong>.stringValue = str; 
 	}
 
@@ -1833,7 +1918,9 @@ someObj.printString(); <emphasis>// will output Hello World</emphasis> </code>
             functions, a constructor may have a parameter list and obtains the value through the <strong>new</strong>
             keyword. An example constructor can be seen in the body of <strong>ExampleClass</strong>.
             This constructor assigns the value of the parameter to the string contained in the object.
-            All constructors are called <strong>constructor</strong>.
+            All constructors are called <strong>constructor</strong>. In a previous life, &ferite; required you to declare
+			constructors with the function keyword. This is no longer the case, however ferite will continue to parse code that still
+			provides it. 
 <!-- mdh: this last sentance seems to disagree with the 3rd sentance. -->
         </para>
         </section>
@@ -2604,13 +2691,11 @@ Array.each( a ) <strong>using</strong> ( value ) {
                 <code>
 <strong>namespace</strong> Array {
     <strong>function</strong> each( &farray; a, &fobject; c ) {
-        if( c != null )
-        {
+        if( c != null ) {
             &fnumber; i = 0;
             &fnumber; size = Array.size(a);
             
-            for( i = 0; i &lt; size; i++ )
-            {
+            for( i = 0; i &lt; size; i++ ) {
                 void val = c.invoke( a[i] );
                 if( val == false or val == null )
                     break;
@@ -2699,6 +2784,75 @@ someFunction() using ( v ) {
         </para>
     	</section>
     </section>
+	<section id="directives">
+		<title id="directives.title">Directives</title>
+		<para>
+			A directive is a function that is only used at compile time by the compiler. They were initially added to &ferite;
+			to provide a means to attach meta data to objects, classes and namespaces within the run time. They have since evolved
+			into a very clean mechanism that almost mimics macros in other languages. Lets dip into an example:
+		</para>
+		<code>
+class modifies Obj { <emphasis>// (1)</emphasis>
+    <strong>directive</strong> reader( string type, string name ) { <emphasis>// (2)</emphasis>
+        eval( " <emphasis>// (3)</emphasis>
+            class modifies ${Class.name(self)} {
+                private $type $name;
+                function get$name() {
+                    return .$name;
+                }
+            }" );
+    }
+}
+
+class Example {
+    <strong>[reader number X];</strong> <emphasis>// (4)</emphasis>
+    [reader string Y];
+    [reader boolean Z];
+}</code>
+		<para>
+			Firstly, the example uses the <strong>modifies</strong> keyword to inject a directive into all classes by modifying the root class 
+			'Obj' (1). Declaring a <strong>directive</strong> is no different to writing a <strong>function</strong> except that instead of the 
+			<monospace>function</monospace> keyword you use <monospace>directive</monospace> (2). This directive is called reader, takes two 
+			arguments that are used to specify the type and name of a variable. The directive uses these values to run an <strong>eval</strong> 
+			expression that modifies the class that directive is used on to, adding a variable and a getter <monospace>function</monospace> (3). 
+			The power of directives comes from their application. Looking at point (4) in the example, the directive is invoked and causes
+			a number variable called X to be declared and a function getX added to the class.
+		</para>
+		<para>
+			All directive applications are structured the same:
+		</para>
+		<code>
+[<emphasis>directive_name</emphasis> <emphasis>parameter_1</emphasis> ... <emphasis>parameter_n</emphasis>];</code>
+		<para>
+			There are a few key pieces of information that should be considered when using directives:
+		</para>
+		<list numeration="arabic">
+		      <list-item>
+		        <para>Applied directives are always evaluated when a class has finished being parsed and are called <emphasis>before</emphasis> the static constructor.</para>
+		      </list-item>
+		      <list-item>
+		        <para>Applied directives are always evaluated in the order they appear within the class declaration.</para>
+		      </list-item>
+		      <list-item>
+		        <para>Directives are inherited.</para>
+		      </list-item>
+		      <list-item>
+		        <para>Invoking directives using the square bracket notation allows commas between arguments but it is not required.</para>
+		      </list-item>
+		      <list-item>
+		        <para>To allow more expressive directive application, &ferite; will convert the keywords <monospace>boolean</monospace>, <monospace>number</monospace>, <monospace>string</monospace>, <monospace>void</monospace>, <monospace>object</monospace>, <monospace>array</monospace>, <monospace>class</monospace> and <monospace>namespace</monospace>, when used within the square brackets, into strings representing the same value.</para>
+		      </list-item>
+		      <list-item>
+		        <para>You can use numerical, string and boolean constants within the directive application, however expression are not supported.</para>
+		    </list-item>
+        </list>
+		<para>
+			Directives provide a very nice mechanism that can be very powerful when you wish to apply repetitive actions in a clean fashion. The
+			ferite webframework uses directives extensively to mark functions as accessible to external RPC mechanisms, binding components to variables
+			within the controllers, setting up attributes on components to name a few. All can be done without directives, but not nearly as cleanly or
+			elegantly.
+		</para>
+	</section>
         <section id="conclusion">
     	<title id="conclusion.title">Conclusion</title>
     	<para>
@@ -2722,11 +2876,4 @@ Array.each( <strong>argv</strong> ) <strong>using</strong> ( argument ) {
 };</code>
     </section>
 	</section>
-	
-	<section id="solving-common-problems">
-	   <title id="solving-common-problems.title">Solving Common Problems With &ferite;</title>
-	   <para>
-	       How to solve problems using &ferite;.
-	   </para>
-    </section>
 </document>
