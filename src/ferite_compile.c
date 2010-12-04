@@ -1351,10 +1351,17 @@ void ferite_do_class_footer()
 			FeriteHashBucket *buk = NULL;
 			FeriteIterator *iter = ferite_create_iterator( CURRENT_SCRIPT );
 
-			while( (buk = (FeriteHashBucket*)ferite_hash_walk( CURRENT_SCRIPT, klass->object_methods, iter )) != NULL )
-			{
+			while( (buk = (FeriteHashBucket*)ferite_hash_walk( CURRENT_SCRIPT, klass->object_methods, iter )) != NULL ) {
+				FeriteClass *classWalker = CURRENT_CLASS;
 				FeriteFunction *f1 = buk->data;
-				FeriteFunction *f2 = ferite_hash_get( CURRENT_SCRIPT, CURRENT_CLASS->object_methods, f1->name );
+				FeriteFunction *f2 = NULL;
+				
+				while( classWalker != NULL ) {
+					f2 = ferite_hash_get( CURRENT_SCRIPT, classWalker->object_methods, f1->name );
+					if( f2 != NULL )
+						break;
+					classWalker = classWalker->parent;
+				}
 
 				if( f2 == NULL )
 				{
