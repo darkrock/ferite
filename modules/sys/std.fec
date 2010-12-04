@@ -50,6 +50,9 @@ module-header
 
 #include <locale.h>
 
+extern FeriteStack  *ferite_module_search_list;
+extern FeriteStack  *ferite_module_native_search_list;
+
 }
 
 module-init
@@ -212,6 +215,33 @@ namespace modifies Sys
         v = fe_new_str_static( "builddate", __DATE__" "__TIME__, 0, FE_CHARSET_DEFAULT );
         FE_RETURN_VAR( v );
     }
+
+	native function getLibraryPaths() : array {
+		FeriteVariable *result_array = NULL, *var = NULL;
+		int counter = 0;
+
+		result_array = ferite_create_uarray_variable(script, "Sys.getLibraryPaths", 6, FE_STATIC);
+		for( counter = 0; counter <= ferite_module_search_list->stack_ptr; counter++ ) {
+			if( ferite_module_search_list->stack[counter] ) {
+				ferite_uarray_add(script, VAUA(result_array), fe_new_str("search-path", ferite_module_search_list->stack[counter], 0, FE_CHARSET_DEFAULT), NULL, FE_ARRAY_ADD_AT_END );
+			}
+		}
+		FE_RETURN_VAR(result_array);
+	}
+
+	native function getNativeLibraryPaths() : array {
+		FeriteVariable *result_array = NULL, *var = NULL;
+		int counter = 0;
+
+		result_array = ferite_create_uarray_variable(script, "Sys.getNativeLibraryPaths", 6, FE_STATIC);
+		for( counter = 0; counter <= ferite_module_native_search_list->stack_ptr; counter++ ) {
+			if( ferite_module_search_list->stack[counter] ) {
+				ferite_uarray_add(script, VAUA(result_array), fe_new_str("search-path", ferite_module_native_search_list->stack[counter], 0, FE_CHARSET_DEFAULT), NULL, FE_ARRAY_ADD_AT_END );
+			}
+		}
+		FE_RETURN_VAR(result_array);
+	}
+
     /**
      * @function system
      * @declaration function system( string cms )
