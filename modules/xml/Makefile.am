@@ -29,11 +29,6 @@ xml_la_SOURCES    = xml_core.c xml_misc.c xml_XML.c xml_XML_SAXParser.c xml_XML_
 xml_la_LDFLAGS    = -no-undefined -module -avoid-version
 xml_la_LIBADD     =
 
-xml_core.c: @MODULE_SRC_PREFIX@/xml/xml.fec 
+$(xml_la_SOURCES): @MODULE_SRC_PREFIX@/xml/xml.fec 
 	@BUILDER@ -m xml @MODULE_SRC_PREFIX@/xml/xml.fec
-
-xml_misc.c xml_SAXParser.c xml_treeparser.c xml_header.h : xml_core.c
-xml_SAXParser.c xml_treeparser.c xml_header.h : xml_core.c
-xml_treeparser.c xml_header.h : xml_core.c
-xml_header.h : xml_core.c
 

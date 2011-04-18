@@ -29,10 +29,5 @@ sys_la_SOURCES    = sys_core.c sys_misc.c sys_Sys.c sys_Sys_env.c sys_header.h
 sys_la_LDFLAGS    = -no-undefined -module -avoid-version
 sys_la_LIBADD     =
 
-sys_core.c: @MODULE_SRC_PREFIX@/sys/env.fec @MODULE_SRC_PREFIX@/sys/std.fec @MODULE_SRC_PREFIX@/sys/sys.fec
+$(sys_la_SOURCES): @MODULE_SRC_PREFIX@/sys/env.fec @MODULE_SRC_PREFIX@/sys/std.fec @MODULE_SRC_PREFIX@/sys/sys.fec
 	@BUILDER@ -m sys @MODULE_SRC_PREFIX@/sys/sys.fec
-
-sys_misc.c: sys_core.c
-sys_Sys.c: sys_core.c
-sys_Sys_env.c: sys_core.c
-sys_header.h: sys_core.c

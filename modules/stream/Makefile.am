@@ -38,13 +38,5 @@ stream_la_SOURCES    = stream_core.c stream_misc.c stream_Stream.c stream_Stream
 stream_la_LDFLAGS    = -no-undefined -module -avoid-version  -L. -lferitestream
 stream_la_LIBADD     =
 
-stream_core.c: @MODULE_SRC_PREFIX@/stream/stream.fec
+$(stream_la_SOURCES): @MODULE_SRC_PREFIX@/stream/stream.fec
 	@BUILDER@ -m stream @MODULE_SRC_PREFIX@/stream/stream.fec
-
-stream_misc.c stream_Stream.c stream_Stream_Stream.c stream_Stream_StdioStream.c stream_Stream_StringStream.c stream_Stream_PointerObject.c stream_header.h : stream_core.c
-stream_Stream.c stream_Stream_Stream.c stream_Stream_StdioStream.c stream_Stream_StringStream.c stream_Stream_PointerObject.c stream_header.h : stream_core.c
-stream_Stream_Stream.c stream_Stream_StdioStream.c stream_Stream_StringStream.c stream_Stream_PointerObject.c stream_header.h : stream_core.c
-stream_Stream_StdioStream.c stream_Stream_StringStream.c stream_Stream_PointerObject.c stream_header.h : stream_core.c
-stream_Stream_StringStream.c stream_Stream_PointerObject.c stream_header.h : stream_core.c
-stream_Stream_PointerObject.c stream_header.h : stream_core.c
-stream_header.h : stream_core.c

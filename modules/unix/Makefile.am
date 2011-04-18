@@ -29,13 +29,8 @@ unix_la_SOURCES    = unix_core.c unix_misc.c unix_Unix.c unix_Unix_SyslogStream.
 unix_la_LDFLAGS    = -no-undefined -module -avoid-version
 unix_la_LIBADD     =
 
-unix_core.c: @MODULE_SRC_PREFIX@/unix/unix.fec @MODULE_SRC_PREFIX@/unix/syslog.fec @MODULE_SRC_PREFIX@/unix/unixsocket.fec
+$(unix_la_SOURCES): @MODULE_SRC_PREFIX@/unix/unix.fec @MODULE_SRC_PREFIX@/unix/syslog.fec @MODULE_SRC_PREFIX@/unix/unixsocket.fec
 	@BUILDER@ -m unix @MODULE_SRC_PREFIX@/unix/unix.fec
 
 consts.h: consts.txt consts.sh
 	@MODULE_SRC_PREFIX@/unix/consts.sh @MODULE_SRC_PREFIX@/unix/consts.txt > @MODULE_SRC_PREFIX@/unix/consts.h
-
-unix_misc.c: unix_core.c
-unix_Unix.c : unix_core.c
-unix_Unix_SyslogStream.c : unix_core.c
-unix_header.h : unix_core.c

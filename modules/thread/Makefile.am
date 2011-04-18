@@ -29,11 +29,5 @@ thread_la_SOURCES    = thread_core.c thread_misc.c thread_Thread.c thread_Mutex.
 thread_la_LDFLAGS    = -no-undefined -module -avoid-version
 thread_la_LIBADD     =
 
-thread_core.c: @MODULE_SRC_PREFIX@/thread/thread.fec 
+$(thread_la_SOURCES): @MODULE_SRC_PREFIX@/thread/thread.fec 
 	@BUILDER@ -m thread @MODULE_SRC_PREFIX@/thread/thread.fec
-
-thread_misc.c: thread_core.c
-thread_Thread.c: thread_core.c
-thread_Mutex.c: thread_core.c
-thread_Event.c: thread_core.c
-thread_header.h: thread_core.c

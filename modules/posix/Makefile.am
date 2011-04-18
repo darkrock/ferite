@@ -29,22 +29,8 @@ posix_la_SOURCES    = posix_core.c posix_misc.c posix_Posix.c posix_Posix_Uname.
 posix_la_LDFLAGS    = -no-undefined -module -avoid-version
 posix_la_LIBADD     =
 
-posix_core.c: @MODULE_SRC_PREFIX@/posix/posix.fec @MODULE_SRC_PREFIX@/posix/posix_consts.fec
+$(posix_la_SOURCES): @MODULE_SRC_PREFIX@/posix/posix.fec @MODULE_SRC_PREFIX@/posix/posix_consts.fec
 	@BUILDER@ -m posix @MODULE_SRC_PREFIX@/posix/posix.fec
 
 consts.h: consts.txt consts.sh
 	@MODULE_SRC_PREFIX@/posix/consts.sh @MODULE_SRC_PREFIX@/posix/consts.txt > @MODULE_SRC_PREFIX@/posix/consts.h
-
-posix_misc.c : posix_core.c
-posix_Posix.c : posix_core.c
-posix_Posix_Uname.c : posix_core.c
-posix_Posix_Rlimit.c : posix_core.c
-posix_Posix_User.c : posix_core.c
-posix_Posix_Pipe.c : posix_core.c
-posix_Posix_Pipe.c : posix_core.c
-posix_Posix_Rusage.c : posix_core.c
-posix_Posix_ProcessStream.c : posix_core.c
-posix_Posix_Stat.c : posix_core.c
-posix_Posix_SelectResult.c : posix_core.c
-posix_Posix_Group.c : posix_core.c
-posix_header.h : posix_core.c

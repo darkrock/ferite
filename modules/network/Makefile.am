@@ -29,13 +29,5 @@ network_la_SOURCES    = network_core.c network_misc.c network_Network.c network_
 network_la_LDFLAGS    = -no-undefined -module -avoid-version
 network_la_LIBADD     =
 
-network_core.c: @MODULE_SRC_PREFIX@/network/network.fec 
+$(network_la_SOURCES): @MODULE_SRC_PREFIX@/network/network.fec 
 	@BUILDER@ -m network @MODULE_SRC_PREFIX@/network/network.fec
-
-network_misc.c network_Network.c  : network_core.c
-network_Network_TCP_Stream.c  network_Network.c : network_core.c
-network_Network.c : network_core.c
-network_Network_Host.c: network_core.c
-network_Network_UDPSocket.c: network_core.c
-network_Network_Service.c : network_core.c
-network_header.h : network_core.c

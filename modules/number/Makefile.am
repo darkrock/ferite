@@ -29,9 +29,5 @@ number_la_SOURCES    = number_core.c number_misc.c number_Number.c number_header
 number_la_LDFLAGS    = -no-undefined -module -avoid-version
 number_la_LIBADD     =
 
-number_core.c: @MODULE_SRC_PREFIX@/number/number.fec 
+$(number_la_SOURCES): @MODULE_SRC_PREFIX@/number/number.fec 
 	@BUILDER@ -m number @MODULE_SRC_PREFIX@/number/number.fec
-
-number_misc.c: number_core.c
-number_Number.c: number_core.c
-number_header.h: number_core.c

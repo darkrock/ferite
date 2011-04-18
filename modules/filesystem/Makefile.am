@@ -29,14 +29,8 @@ filesystem_la_SOURCES    = filesystem_core.c filesystem_misc.c filesystem_FileSy
 filesystem_la_LDFLAGS    = -no-undefined -module -avoid-version
 filesystem_la_LIBADD     =
 
-filesystem_core.c: @MODULE_SRC_PREFIX@/filesystem/filesystem.fec
+$(filesystem_la_SOURCES): @MODULE_SRC_PREFIX@/filesystem/filesystem.fec
 	@BUILDER@ -m filesystem @MODULE_SRC_PREFIX@/filesystem/filesystem.fec
 
 consts.h: consts.txt consts.sh
 	@MODULE_SRC_PREFIX@/filesystem/consts.sh @MODULE_SRC_PREFIX@/filesystem/consts.txt > @MODULE_SRC_PREFIX@/filesystem/consts.h
-
-filesystem_misc.c filesystem_FileSystem.c filesystem_Directory.c filesystem_File.c filesystem_header.h : filesystem_core.c
-filesystem_FileSystem.c filesystem_Directory.c filesystem_File.c filesystem_header.h : filesystem_core.c
-filesystem_Directory.c filesystem_File.c filesystem_header.h : filesystem_core.c
-filesystem_File.c filesystem_header.h : filesystem_core.c
-filesystem_header.h : filesystem_core.c

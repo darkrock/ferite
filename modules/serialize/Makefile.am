@@ -29,9 +29,5 @@ serialize_la_SOURCES    = serialize_core.c serialize_misc.c serialize_Serialize.
 serialize_la_LDFLAGS    = -no-undefined -module -avoid-version
 serialize_la_LIBADD     =
 
-serialize_core.c: @MODULE_SRC_PREFIX@/serialize/serialize.fec 
+$(serialize_la_SOURCES): @MODULE_SRC_PREFIX@/serialize/serialize.fec 
 	@BUILDER@ -m serialize @MODULE_SRC_PREFIX@/serialize/serialize.fec
-
-serialize_misc.c: serialize_core.c
-serialize_Serialize.c: serialize_core.c
-serialize_header.h: serialize_core.c
