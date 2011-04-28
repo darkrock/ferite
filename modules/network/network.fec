@@ -190,6 +190,20 @@ namespace modifies Network
 				}
 	            FE_RETURN_LONG( total_sent );
 	        }
+
+		    /**
+		     * @function setReceiveTimeout
+		     * @declaration native function setReceiveTimeout(number seconds)
+		     * @brief Sets the timeout for receive calls. A value of 0 means no timeout (this is the default).
+		     * @param number seconds The number of seconds to wait for a receive call to complete, use 0 for forever
+		     */
+		    native function setReceiveTimeout( number seconds ) {
+		        struct Stream *Stream = self->odata;
+		        struct timeval t;
+		        t.tv_sec = (long)seconds;
+		        t.tv_usec = 0;
+		        setsockopt(Stream->file_descriptor, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(t));
+		    }
         }
         /**
         * @end
