@@ -216,6 +216,7 @@ namespace modifies Network
          * @param string host The host to connect to
          * @param number port The port to connect to
          * @param number af The address family to use
+         * @param number timeout The connection timeout
          * @return An object connected to the host, or null on failure
          * @description This function attempts to create a TCP socket connected  to
          *              the specified remote address and port, and if it succeeds,
@@ -229,7 +230,7 @@ namespace modifies Network
          *              you can leave off the af parameter if you wish, and it will
          *              default to Network.AF_AUTO.
          */
-        native function connect(string host, number port, number af) : Network.TCP.Stream {
+        native function connect(string host, number port, number af, number timeout) : Network.TCP.Stream {
             FeriteClass *cls;
             struct sockaddr *sa = NULL;
             int sock, size, family = (int)af;
@@ -247,12 +248,85 @@ namespace modifies Network
                 FE_RETURN_NULL_OBJECT;
             }
             
-            if(connect(sock, sa, size) == -1)
+            if((int)timeout <= 0)
             {
-                ferite_set_error(script, errno, "%s", strerror(errno));
-                close(sock);
-                ffree(sa);
-                FE_RETURN_NULL_OBJECT;
+                if(connect(sock, sa, size) == -1)
+                {
+                    ferite_set_error(script, errno, "%s", strerror(errno));
+                    close(sock);
+                    ffree(sa);
+                    FE_RETURN_NULL_OBJECT;
+                }
+            }
+            else
+            {
+                int flags, n, error;
+                fd_set rset, wset;
+                struct timeval tval;
+                
+                flags = fcntl(sock, F_GETFL, 0);
+                fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+                
+                if((n = connect(sock, sa, size)) == -1)
+                {
+                    if(errno != EINPROGRESS)
+                    {
+                        ferite_set_error(script, errno, "%s", strerror(errno));
+                        close(sock);
+                        ffree(sa);
+                        FE_RETURN_NULL_OBJECT;
+        	        }
+                }
+                
+                if(n != 0)
+                {
+                    FD_ZERO(&rset);
+                    FD_SET(sock, &rset);
+                    wset = rset;
+                    tval.tv_sec = (int)timeout;
+                    tval.tv_usec = 0;
+                    
+	                if((n = select(sock+1, &rset, &wset, NULL, &tval)) == 0)
+	                {
+                        /* timeout */
+                        errno = ETIMEDOUT;
+                        ferite_set_error(script, errno, "%s", strerror(errno));
+                        close(sock);
+                        ffree(sa);
+                        FE_RETURN_NULL_OBJECT;
+	                }
+	                
+                    if(FD_ISSET(sock, &rset) || FD_ISSET(sock, &wset))
+                    {
+                        socklen_t len = sizeof(error);
+                        if(getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+                        {
+                            ferite_set_error(script, errno, "%s", strerror(errno));
+                            close(sock);
+                            ffree(sa);
+                            FE_RETURN_NULL_OBJECT;
+                        }
+                    }
+                    else
+                    {
+                        close(sock);
+                        ffree(sa);
+                        FE_RETURN_NULL_OBJECT;
+                    }
+                    
+                    /* restore file status flags */
+                    fcntl(sock, F_SETFL, flags);
+
+                    /* just in case */
+                    if(error)
+                    {
+                        errno = error;
+                        ferite_set_error(script, errno, "%s", strerror(errno));
+                        close(sock);
+                        ffree(sa);
+                        FE_RETURN_NULL_OBJECT;
+                    }
+                }
             }
             
             if((cls = ferite_find_class(script, script->mainns, "Network.TCP.Stream")))
@@ -272,6 +346,10 @@ namespace modifies Network
                 FE_RETURN_VAR(object);
             }
             FE_RETURN_NULL_OBJECT;
+        }
+        
+        function connect(string host, number port, number af) {
+            return(Network.TCP.connect(host, port, af, 0));
         }
         
         function connect(string host, number port) {
