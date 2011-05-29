@@ -29,10 +29,5 @@ date_la_SOURCES    = date_core.c date_header.h date_misc.c date_Alarm.c date_Dat
 date_la_LDFLAGS    = -no-undefined -module -avoid-version
 date_la_LIBADD     =
 
-date_core.c: @MODULE_SRC_PREFIX@/date/date.fec
+$(date_la_SOURCES): @MODULE_SRC_PREFIX@/date/date.fec
 	@BUILDER@ -m date @MODULE_SRC_PREFIX@/date/date.fec
-
-date_misc.c : date_core.c
-date_Date.c : date_core.c
-date_Alarm.c : date_core.c
-date_header.h : date_core.c

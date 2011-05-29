@@ -29,14 +29,5 @@ reflection_la_SOURCES    = reflection_core.c reflection_misc.c reflection_Reflec
 reflection_la_LDFLAGS    = -no-undefined -module -avoid-version
 reflection_la_LIBADD     =
 
-reflection_core.c: @MODULE_SRC_PREFIX@/reflection/reflection.fec 
+$(reflection_la_SOURCES): @MODULE_SRC_PREFIX@/reflection/reflection.fec 
 	@BUILDER@ -m reflection @MODULE_SRC_PREFIX@/reflection/reflection.fec
-
-reflection_misc.c: reflection_core.c
-reflection_Reflection.c: reflection_core.c
-reflection_Function.c: reflection_core.c
-reflection_Namespace.c: reflection_core.c
-reflection_Class.c: reflection_core.c
-reflection_Variable.c: reflection_core.c
-reflection_Object.c: reflection_core.c
-reflection_header.h: reflection_core.c

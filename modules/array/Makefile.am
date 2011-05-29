@@ -29,9 +29,5 @@ array_la_SOURCES    = array_core.c array_misc.c array_Array.c array_header.h  ut
 array_la_LDFLAGS    = -no-undefined -module -avoid-version
 array_la_LIBADD     =
 
-array_core.c: @MODULE_SRC_PREFIX@/array/array.fec 
+$(array_la_SOURCES): @MODULE_SRC_PREFIX@/array/array.fec 
 	@BUILDER@ -m array @MODULE_SRC_PREFIX@/array/array.fec
-
-array_misc.c: array_core.c
-array_Array.c: array_core.c
-array_header.h: array_core.c

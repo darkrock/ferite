@@ -29,9 +29,5 @@ ipc_la_SOURCES    = ipc_core.c ipc_misc.c ipc_IPCObject.c ipc_header.h
 ipc_la_LDFLAGS    = -no-undefined -module -avoid-version
 ipc_la_LIBADD     =
 
-ipc_core.c: @MODULE_SRC_PREFIX@/ipc/ipc.fec 
+$(ipc_la_SOURCES): @MODULE_SRC_PREFIX@/ipc/ipc.fec 
 	@BUILDER@ -m ipc @MODULE_SRC_PREFIX@/ipc/ipc.fec
-
-ipc_misc.c: ipc_core.c
-ipc_IpcObject.c: ipc_core.c
-ipc_header.h: ipc_core.c

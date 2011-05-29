@@ -29,10 +29,5 @@ math_la_SOURCES    = math_core.c math_misc.c math_Math.c math_Math_Complex.c mat
 math_la_LDFLAGS    = -no-undefined -module -avoid-version
 math_la_LIBADD     =
 
-math_core.c: @MODULE_SRC_PREFIX@/math/complex.fec @MODULE_SRC_PREFIX@/math/math.fec 
+$(math_la_SOURCES): @MODULE_SRC_PREFIX@/math/complex.fec @MODULE_SRC_PREFIX@/math/math.fec 
 	@BUILDER@ -m math @MODULE_SRC_PREFIX@/math/math.fec
-
-math_misc.c: math_core.c
-math_Math.c: math_core.c
-math_Math_Complex.c: math_core.c
-math_header.h: math_core.c

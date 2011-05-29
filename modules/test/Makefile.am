@@ -29,9 +29,5 @@ test_la_SOURCES    = test_core.c test_misc.c test_Test.c test_header.h  utility.
 test_la_LDFLAGS    = -no-undefined -module -avoid-version
 test_la_LIBADD     =
 
-test_core.c: @MODULE_SRC_PREFIX@/test/test.fec 
+$(test_la_SOURCES): @MODULE_SRC_PREFIX@/test/test.fec 
 	@BUILDER@ -m test @MODULE_SRC_PREFIX@/test/test.fec
-
-test_misc.c: test_core.c
-test_Test.c: test_core.c
-test_header.h: test_core.c

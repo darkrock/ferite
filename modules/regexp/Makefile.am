@@ -29,10 +29,5 @@ regexp_la_SOURCES    = regexp_core.c regexp_misc.c regexp_MatchObject.c regexp_R
 regexp_la_LDFLAGS    = -no-undefined -module -avoid-version
 regexp_la_LIBADD     =
 
-regexp_core.c: @MODULE_SRC_PREFIX@/regexp/regexp.fec  
+$(regexp_la_SOURCES): @MODULE_SRC_PREFIX@/regexp/regexp.fec  
 	@BUILDER@ -m regexp @MODULE_SRC_PREFIX@/regexp/regexp.fec
-
-regexp_misc.c regexp_MatchObject.c regexp_Regexp.c regexp_header.h : regexp_core.c
-regexp_MatchObject.c regexp_Regexp.c regexp_header.h : regexp_core.c
-regexp_Regexp.c regexp_header.h : regexp_core.c
-regexp_header.h : regexp_core.c

@@ -29,9 +29,5 @@ string_la_SOURCES    = string_core.c string_misc.c string_String.c string_header
 string_la_LDFLAGS    = -no-undefined -module -avoid-version
 string_la_LIBADD     =
 
-string_core.c: @MODULE_SRC_PREFIX@/string/string.fec 
+$(string_la_SOURCES): @MODULE_SRC_PREFIX@/string/string.fec 
 	@BUILDER@ -m string @MODULE_SRC_PREFIX@/string/string.fec
-
-string_misc.c: string_core.c
-string_String.c: string_core.c
-string_header.h: string_core.c
