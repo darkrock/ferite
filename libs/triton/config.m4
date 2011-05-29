@@ -37,6 +37,10 @@ else
 	        AC_MSG_RESULT("Max OS X Snow Leopard ($system)")
 			AC_DEFINE([USE_DLFCN], 1, [Whether to use snow leopard])
 			loader=""
+		elif test "$osx_version" = "11"; then
+	        AC_MSG_RESULT("Max OS X Lion ($system)")
+			AC_DEFINE([USE_DLFCN], 1, [Whether to use lion])
+			loader=""
 		else
  	        AC_DEFINE([USE_DARWIN], 1, [Whether to use darwin loader])
 	        AC_MSG_RESULT($system)

@@ -127,6 +127,7 @@ MKDIR_P = @MKDIR_P@
 MODULE_SRC_PREFIX = @MODULE_SRC_PREFIX@
 NM = @NM@
 NMEDIT = @NMEDIT@
+OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
@@ -196,7 +197,6 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
-lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 math_CFLAGS = @math_CFLAGS@
 math_LIBS = @math_LIBS@
@@ -275,9 +275,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  tools/doc/template/html/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  tools/doc/template/html/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  tools/doc/template/html/Makefile
+	  $(AUTOMAKE) --foreign  tools/doc/template/html/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
