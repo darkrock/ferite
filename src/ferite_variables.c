@@ -139,7 +139,7 @@ void ferite_variable_destroy( FeriteScript *script, FeriteVariable *var )
             }
             break;
           case  F_VAR_UARRAY:
-            ferite_uarray_destroy( script, VAUA(var));
+            (ferite_array->destroy)( script, VAUA(var));
             break;
         }
 #ifdef THREAD_SAFE
@@ -223,8 +223,8 @@ FeriteVariable *ferite_duplicate_variable( FeriteScript *script, FeriteVariable 
         break;
       case F_VAR_UARRAY:
         ptr = ferite_create_uarray_variable( script, var->vname, VAUA(var)->size, alloc );
-        ferite_uarray_destroy( script, VAUA(ptr) );
-        VAUA(ptr) = ferite_uarray_dup( script, VAUA(var) );
+		(ferite_array->destroy)( script, VAUA(ptr) );
+        VAUA(ptr) = (ferite_array->duplicate)( script, VAUA(var) );
         break;
       case F_VAR_NS:
         ptr = ferite_create_namespace_variable( script, var->vname, VAN(var), alloc );
@@ -447,7 +447,7 @@ FeriteVariable *ferite_create_uarray_variable( FeriteScript *script, char *name,
     rsize = ( size == 0 ) ? FE_ARRAY_DEFAULT_SIZE  : size;
     ptr = ferite_variable_alloc(script, name, alloc);
     F_VAR_TYPE(ptr) = F_VAR_UARRAY;
-    VAUA(ptr) = ferite_uarray_create( script );
+    VAUA(ptr) = (ferite_array->create)( script );
  	ptr->subtype = ferite_subtype_link( script, "A" );
    FE_LEAVE_FUNCTION( ptr );
 }
@@ -730,7 +730,7 @@ FeriteString *ferite_variable_to_str( FeriteScript *script, FeriteVariable *var,
 				   str = ferite_str_dup( script, VAS(var) );
 			   break;
 		   case F_VAR_UARRAY:
-			   str = ferite_uarray_to_str(script, VAUA(var));
+			   str = (ferite_array->to_str)(script, VAUA(var));
 			   break;
 		   case F_VAR_OBJ:
 		   {
@@ -986,8 +986,8 @@ int ferite_variable_fast_assign( FeriteScript *script, FeriteVariable *left, Fer
 		VAO(left) = VAO(right);
         break;
       case F_VAR_UARRAY:
-        ferite_uarray_destroy( script, VAUA(left) );
-        VAUA(left) = ferite_uarray_dup( script, VAUA(right) );
+        (ferite_array->destroy)( script, VAUA(left) );
+        VAUA(left) = (ferite_array->duplicate)( script, VAUA(right) );
         break;
       case F_VAR_NS:
 		VAN(left) = VAN(right);
@@ -1024,7 +1024,7 @@ int ferite_fast_variable_cmp( FeriteScript *script, FeriteVariable *left, Ferite
 			FE_VAR_TEST( VAO(left) == VAO(right) );
 			break;
 		case F_VAR_UARRAY:
-			FE_VAR_TEST( ferite_uarray_cmp( script, VAUA(left), VAUA(right) ) == 1 );
+			FE_VAR_TEST( (ferite_array->is_equal)( script, VAUA(left), VAUA(right) ) == 1 );
 			break;
 		case F_VAR_CLASS:
 			FE_VAR_TEST( VAC(left) == VAC(right) );
@@ -1065,7 +1065,7 @@ void ferite_variable_convert_to_type( FeriteScript *script, FeriteVariable *var,
 		  ferite_str_destroy( script, VAS(var) );
 		  break;
       case F_VAR_UARRAY:
-		  ferite_uarray_destroy( script, VAUA(var));
+		  (ferite_array->destroy)( script, VAUA(var));
 		  break;
     }
 	
@@ -1078,7 +1078,7 @@ void ferite_variable_convert_to_type( FeriteScript *script, FeriteVariable *var,
 			VAS(var) = ferite_str_new( script, "", 0, FE_CHARSET_DEFAULT );
 			break;
 		case F_VAR_UARRAY:
-			VAUA(var) = ferite_uarray_create( script );
+			VAUA(var) = (ferite_array->create)( script );
 			break;
 	}
     FE_LEAVE_FUNCTION(NOWT);

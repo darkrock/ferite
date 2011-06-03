@@ -325,7 +325,7 @@ namespace Serialize
 						}
 						/* Add variable to array */
 						// printf("[array.set] setting name: %s\n", ptr->vname);
-						ferite_uarray_add( script, VAUA(st[level-1]), ptr, n , FE_ARRAY_ADD_AT_END );
+						(ferite_array->append)( script, VAUA(st[level-1]), ptr, n , FE_ARRAY_ADD_AT_END );
 					}
 					if( (F_VAR_TYPE(ptr) == F_VAR_OBJ && VAO(ptr) != NULL && type != -1) || F_VAR_TYPE(ptr) == F_VAR_UARRAY )
 					{   

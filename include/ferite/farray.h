@@ -31,30 +31,7 @@
 #ifndef __FERITE_UARRAY_H__
 #define __FERITE_UARRAY_H__
 
-#define FE_ARRAY_ADD_AT_END   -1
-#define FE_ARRAY_ADD_AT_START -2
-
-FERITE_API FeriteUnifiedArray *ferite_uarray_create( FeriteScript *script );
-FERITE_API void                ferite_uarray_destroy( FeriteScript *script,FeriteUnifiedArray *array);
-FERITE_API void                ferite_uarray_add( FeriteScript *script,FeriteUnifiedArray *array, FeriteVariable *var, char *id, int index);
-FERITE_API FeriteVariable     *ferite_uarray_get_index( FeriteScript *script, FeriteUnifiedArray *array, int index );
-FERITE_API FeriteVariable     *ferite_uarray_get( FeriteScript *script,FeriteUnifiedArray *array, FeriteVariable *var);
-FERITE_API FeriteVariable     *ferite_uarray_get( FeriteScript *script,FeriteUnifiedArray *array, FeriteVariable *index );
-FERITE_API FeriteVariable     *ferite_uarray_set( FeriteScript *script,FeriteUnifiedArray *array, FeriteVariable *index, FeriteVariable *rhs );
-FERITE_API void                ferite_uarray_del_var( FeriteScript *script,FeriteUnifiedArray *array, FeriteVariable *i);
-FERITE_API void                ferite_uarray_del_index( FeriteScript *script,FeriteUnifiedArray *array, int i);
-FERITE_API FeriteUnifiedArray *ferite_uarray_dup( FeriteScript *script,FeriteUnifiedArray *array );
-
-FERITE_API FeriteVariable     *ferite_uarray_pop( FeriteScript *script,FeriteUnifiedArray *array);
-FERITE_API FeriteString	   *ferite_uarray_to_str( FeriteScript *script, FeriteUnifiedArray *array);
-FERITE_API void                ferite_uarray_push( FeriteScript *script,FeriteUnifiedArray *array, FeriteVariable *var);
-FERITE_API void                ferite_uarray_unshift( FeriteScript *script,FeriteUnifiedArray *array, FeriteVariable *var);
-FERITE_API FeriteVariable     *ferite_uarray_shift( FeriteScript *script,FeriteUnifiedArray *array);
-
-FERITE_API FeriteVariable     *ferite_uarray_get_from_string( FeriteScript *script, FeriteUnifiedArray *array, char *id );
-FERITE_API FeriteVariable     *ferite_uarray_delete_from_string( FeriteScript *script, FeriteUnifiedArray *array, char *id );
-
-FERITE_API int                 ferite_uarray_cmp( FeriteScript *script, FeriteUnifiedArray *left, FeriteUnifiedArray *right );
-FERITE_API void                ferite_uarray_set_size( FeriteScript *script, FeriteUnifiedArray *array, int size );
+FeriteAbstractArrayInterface *ferite_array_interface();
+FeriteAbstractArrayInterface *ferite_amt_array_interface();
 
 #endif

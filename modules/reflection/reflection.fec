@@ -113,7 +113,7 @@ class Namespace
 			{
 				tmp = b->data;
 				var = fe_new_str(buk->id,ferite_variable_id_to_str( script, F_VAR_TYPE(tmp) ), 0, FE_CHARSET_DEFAULT);
-				ferite_uarray_add(script,VAUA(array),var,buk->id, FE_ARRAY_ADD_AT_END );
+				(ferite_array->append)(script,VAUA(array),var,buk->id, FE_ARRAY_ADD_AT_END );
 			}
 		}
 		ffree(iter);
@@ -368,7 +368,7 @@ class Class
 		{
 			tmp = buk->data;
 			var = fe_new_str(buk->id,ferite_variable_id_to_str( script, F_VAR_TYPE(tmp) ), 0, FE_CHARSET_DEFAULT);
-			ferite_uarray_add(script,VAUA(array),var,buk->id, FE_ARRAY_ADD_AT_END );
+			(ferite_array->append)(script,VAUA(array),var,buk->id, FE_ARRAY_ADD_AT_END );
 		}
 		ffree(iter);
 		FE_RETURN_VAR(array);
@@ -409,7 +409,7 @@ class Class
 		{
 			func = buk->data;
 			var = fe_new_str(buk->id,func->name, 0, FE_CHARSET_DEFAULT);
-			ferite_uarray_add(script,VAUA(array),var,NULL,FE_ARRAY_ADD_AT_END);
+			(ferite_array->append)(script,VAUA(array),var,NULL,FE_ARRAY_ADD_AT_END);
 		}
 		ffree(iter);
 		FE_RETURN_VAR(array);
@@ -910,7 +910,7 @@ class Object
 				
 				if( !FE_VAR_IS_STATIC(var) && var->state == FE_ITEM_IS_PUBLIC && ferite_uarray_get_from_string(script,VAUA(array),var->vname) == NULL )
 				{
-					ferite_uarray_add(script,VAUA(array),
+					(ferite_array->append)(script,VAUA(array),
 									 ferite_duplicate_variable(script,var, NULL),
 									 buk->id, FE_ARRAY_ADD_AT_END);
 				}
@@ -1226,7 +1226,7 @@ class Function
 			}
 			else
 			 newvar = ferite_create_string_variable_from_ptr( script, "", "...", 0, FE_CHARSET_DEFAULT, FE_STATIC );
-			ferite_uarray_add( script, VAUA(retval), newvar, FunctionObj->func->signature[i]->variable->vname, FE_ARRAY_ADD_AT_END );
+			(ferite_array->append)( script, VAUA(retval), newvar, FunctionObj->func->signature[i]->variable->vname, FE_ARRAY_ADD_AT_END );
 		}
 		FE_RETURN_VAR( retval );
 	}

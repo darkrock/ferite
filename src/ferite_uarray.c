@@ -270,6 +270,50 @@ FeriteVariable *ferite_uarray_get_from_string( FeriteScript *script, FeriteUnifi
 }
 
 /**
+ * @function ferite_uarray_del_index
+ * @declaration void ferite_uarray_del_index( FeriteScript *script, FeriteUnifiedArray *array, int index )
+ * @brief Delete a value from an array based upon an index
+ * @param FeriteScript *script The script
+ * @param FeriteUnifiedArray *array The array to delete from
+ * @param int index The index to delete
+ */
+void ferite_uarray_del_index( FeriteScript *script, FeriteUnifiedArray *array, int index )
+{
+    FeriteVariable *var = NULL;
+    long i = 0;
+
+    FE_ENTER_FUNCTION;
+	FE_ASSERT( array != NULL );
+	ferite_uarray_copy_on_write( script, array );
+
+    if( index >= array->size || index < 0 )
+    {
+        ferite_error( script, 0, "Index out of bounds %d, can't delete item\n", index );
+        FE_LEAVE_FUNCTION( NOWT );
+    }
+
+   /* delete the entry in the array */
+    var = array->array[index];
+    if( ferite_hash_get( script, array->hash, var->vname ) != NULL )
+      ferite_hash_delete( script, array->hash, var->vname );
+
+    ferite_variable_destroy( script, var );
+
+   /* we shift the items left one */
+    memmove( array->array + index,
+             array->array + index + 1,
+             (array->size - index) * sizeof(FeriteVariable*) );
+
+    array->size--;
+
+   /* we re-index the variables here. this makes it very very expesive. fun. */
+    for( i = index; i < array->size; i++ )
+      array->array[i]->index = i;
+
+    FE_LEAVE_FUNCTION( NOWT );
+}
+
+/**
  * @function ferite_uarray_delete_from_string
  * @declaration FeriteVariable *ferite_uarray_delete_from_string( FeriteScript *script, FeriteUnifiedArray *array, char *id )
  * @brief Delete a value from the array based upon a string
@@ -425,50 +469,6 @@ void ferite_uarray_del_var( FeriteScript *script, FeriteUnifiedArray *array, Fer
         FE_LEAVE_FUNCTION( NOWT );
     }
     ferite_uarray_del_index( script, array, real_index );
-    FE_LEAVE_FUNCTION( NOWT );
-}
-
-/**
- * @function ferite_uarray_del_index
- * @declaration void ferite_uarray_del_index( FeriteScript *script, FeriteUnifiedArray *array, int index )
- * @brief Delete a value from an array based upon an index
- * @param FeriteScript *script The script
- * @param FeriteUnifiedArray *array The array to delete from
- * @param int index The index to delete
- */
-void ferite_uarray_del_index( FeriteScript *script, FeriteUnifiedArray *array, int index )
-{
-    FeriteVariable *var = NULL;
-    long i = 0;
-
-    FE_ENTER_FUNCTION;
-	FE_ASSERT( array != NULL );
-	ferite_uarray_copy_on_write( script, array );
-
-    if( index >= array->size || index < 0 )
-    {
-        ferite_error( script, 0, "Index out of bounds %d, can't delete item\n", index );
-        FE_LEAVE_FUNCTION( NOWT );
-    }
-
-   /* delete the entry in the array */
-    var = array->array[index];
-    if( ferite_hash_get( script, array->hash, var->vname ) != NULL )
-      ferite_hash_delete( script, array->hash, var->vname );
-
-    ferite_variable_destroy( script, var );
-
-   /* we shift the items left one */
-    memmove( array->array + index,
-             array->array + index + 1,
-             (array->size - index) * sizeof(FeriteVariable*) );
-
-    array->size--;
-
-   /* we re-index the variables here. this makes it very very expesive. fun. */
-    for( i = index; i < array->size; i++ )
-      array->array[i]->index = i;
-
     FE_LEAVE_FUNCTION( NOWT );
 }
 
@@ -719,6 +719,28 @@ int ferite_uarray_cmp( FeriteScript *script, FeriteUnifiedArray *left, FeriteUni
     }
    /* if we have got here they are the same :) */
     FE_LEAVE_FUNCTION(FE_TRUE);
+}
+
+FeriteAbstractArrayInterface *ferite_array_interface() {
+	FeriteAbstractArrayInterface *interface = fmalloc_ngc(sizeof(FeriteAbstractArrayInterface));
+	interface->create = ferite_uarray_create;
+	interface->destroy = ferite_uarray_destroy;
+	interface->duplicate = ferite_uarray_dup;
+	interface->to_str = ferite_uarray_to_str;
+	
+	interface->append = ferite_uarray_add;
+	interface->get = ferite_uarray_get;
+	interface->set = ferite_uarray_set;
+	interface->delete = ferite_uarray_del_var;
+	
+	interface->pop = ferite_uarray_pop;
+	interface->push = ferite_uarray_push;
+	interface->shift = ferite_uarray_shift;
+	interface->unshift = ferite_uarray_unshift;
+	
+	interface->prepare = ferite_uarray_set_size;
+	interface->is_equal = ferite_uarray_cmp;
+	return interface;
 }
 
 /**

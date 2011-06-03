@@ -123,7 +123,7 @@ namespace XML {
 				
 					for (i = 0 ; i < cur->nodeNr ; i++) {
 						obj = create_element_node( script, tree->doc, cur->nodeTab[i] );		
-						ferite_uarray_add( script, VAUA( array ), obj, NULL, FE_ARRAY_ADD_AT_END );
+						(ferite_array->append)( script, VAUA( array ), obj, NULL, FE_ARRAY_ADD_AT_END );
 					}
 					break;
 				default:
@@ -205,7 +205,7 @@ namespace XML {
 			
 				str = ferite_create_string_variable_from_ptr( script, (char *)attr->name, (char *) key, 
 															  0, FE_CHARSET_DEFAULT, FE_STATIC );
-				ferite_uarray_add( script, VAUA( array ), str, (char*)attr->name, FE_ARRAY_ADD_AT_END );
+				(ferite_array->append)( script, VAUA( array ), str, (char*)attr->name, FE_ARRAY_ADD_AT_END );
 				xmlFree( key );
 			
 				attr = attr->next;
@@ -245,7 +245,7 @@ namespace XML {
 		
 			while ( cur ) {
 				obj = create_element_node( script, tree->doc, cur );
-				ferite_uarray_add( script, VAUA( array ), obj, NULL, FE_ARRAY_ADD_AT_END );
+				(ferite_array->append)( script, VAUA( array ), obj, NULL, FE_ARRAY_ADD_AT_END );
 				cur = cur->next;
 			}
 			FE_RETURN_VAR( array );
@@ -358,7 +358,7 @@ namespace XML {
 			{
 				FeriteVariable *str = ferite_create_string_variable_from_ptr( script, "URL", (char *)(tree->node->ns->href), 
 																			  0, FE_CHARSET_DEFAULT, FE_STATIC );
-				ferite_uarray_add( script, VAUA( arr ), str, (char *)(tree->node->ns->prefix), FE_ARRAY_ADD_AT_END );
+				(ferite_array->append)( script, VAUA( arr ), str, (char *)(tree->node->ns->prefix), FE_ARRAY_ADD_AT_END );
 			}
 			FE_RETURN_VAR( arr );
 		}	

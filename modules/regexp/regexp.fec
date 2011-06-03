@@ -526,7 +526,7 @@ class Regexp {
 				{
 					FeriteVariable *var = ferite_create_string_variable_from_ptr( script, "RGX-GROUP-PTR", (char *)stringlist[i], strlen((char *)stringlist[i]), 
 																				  FE_CHARSET_DEFAULT, FE_STATIC );
-					ferite_uarray_add( script, VAUA(c_groups), var, captured_str_names[i], FE_ARRAY_ADD_AT_END );
+					(ferite_array->append)( script, VAUA(c_groups), var, captured_str_names[i], FE_ARRAY_ADD_AT_END );
 				}
 				
 				plist = ferite_create_parameter_list( script, 5 );
@@ -624,7 +624,7 @@ class Regexp {
 				FUD(( "are we replacing? %d\n", (int)replacing ));
 				
 				if( !replacing )
-					ferite_uarray_add( script, VAUA(retv), c_match_object, NULL, FE_ARRAY_ADD_AT_END );
+					(ferite_array->append)( script, VAUA(retv), c_match_object, NULL, FE_ARRAY_ADD_AT_END );
 				else
 				{
 					FeriteString *replacement = NULL;

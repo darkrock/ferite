@@ -185,7 +185,7 @@ namespace Array
         {
             snprintf(buf,512,"index-%d",t);
             var = fe_new_str( buf, buk->id, 0, FE_CHARSET_DEFAULT );
-            ferite_uarray_add( script, VAUA(array), var, NULL, FE_ARRAY_ADD_AT_END );
+            (ferite_array->append)( script, VAUA(array), var, NULL, FE_ARRAY_ADD_AT_END );
             t++;
         }
         ffree(iter);
@@ -750,7 +750,7 @@ namespace Array
         else add_pos = FE_ARRAY_ADD_AT_END;
         for(i = 0; i < a->size; i++) {
 	    if((dup = ferite_duplicate_variable(script, arr[i].var, NULL))) {
-                ferite_uarray_add(script, VAUA(ret), dup, dup->vname, add_pos);
+                (ferite_array->append)(script, VAUA(ret), dup, dup->vname, add_pos);
             }
 	}
 

@@ -518,4 +518,30 @@ struct _ferite_compile_record /* Used in the compiler */
 	int want_container_finish;
 };
 
+
+typedef void FeriteAbstractArray;
+
+#define FE_ARRAY_ADD_AT_END   -1
+#define FE_ARRAY_ADD_AT_START -2
+
+typedef struct __ferite_array_interface {
+	FeriteAbstractArray *(*create)( FeriteScript *script );
+	FeriteAbstractArray *(*duplicate)( FeriteScript *script, FeriteAbstractArray *array );
+	void                 (*destroy)( FeriteScript *script, FeriteAbstractArray *array );
+	FeriteString        *(*to_str)( FeriteScript *script, FeriteAbstractArray *array );
+
+	void                 (*append)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *variable, char *key, size_t location );
+	FeriteVariable      *(*get)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *index );
+	FeriteVariable      *(*set)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *index, FeriteVariable *value );
+	void                *(*delete)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *index );
+
+	FeriteVariable      *(*pop)( FeriteScript *script, FeriteAbstractArray *array );
+	FeriteVariable      *(*push)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *value );
+	FeriteVariable      *(*shift)( FeriteScript *script, FeriteAbstractArray *array );
+	FeriteVariable      *(*unshift)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *value );
+
+	int                  (*is_equal)( FeriteScript *script, FeriteAbstractArray *array, FeriteAbstractArray *other );
+	void                 (*prepare)( FeriteScript *script, FeriteAbstractArray *array, size_t size );
+} FeriteAbstractArrayInterface;
+
 #endif /* __FERITE_STRUCTS_H__ */

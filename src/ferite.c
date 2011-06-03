@@ -187,6 +187,8 @@ int ferite_init( int argc, char **argv )
 			fprintf( stderr, "This a Debug Build.\n" );
 #endif
 
+		ferite_array = ferite_array_interface();
+
 		if( !ferite_init_module_list() )
 		{
 			fprintf( stderr, "Unable to initialise the module subsystem\n" ); /* FIXME: replace with something nicer */
@@ -415,7 +417,7 @@ void ferite_set_script_argv( int argc, char **argv )
 	{
 		for( i = 0; i < argc; i++ )
 		{
-			ferite_uarray_add( NULL, VAUA(ferite_ARGV), fe_new_str(argv[i], argv[i], 0, FE_CHARSET_DEFAULT), NULL, FE_ARRAY_ADD_AT_END );
+			(ferite_array->append)( NULL, VAUA(ferite_ARGV), fe_new_str(argv[i], argv[i], 0, FE_CHARSET_DEFAULT), NULL, FE_ARRAY_ADD_AT_END );
 		}
 	}
 	FE_LEAVE_FUNCTION(NOWT);

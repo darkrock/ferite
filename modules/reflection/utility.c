@@ -90,7 +90,7 @@ FeriteVariable *reflection_ns_get_list( FeriteScript *script, FeriteNamespace *s
         {
             func = b->data;
             var = fe_new_str(buk->id,func->name, 0, FE_CHARSET_DEFAULT);
-            ferite_uarray_add(script,VAUA(array),var,NULL,FE_ARRAY_ADD_AT_END);
+            (ferite_array->append)(script,VAUA(array),var,NULL,FE_ARRAY_ADD_AT_END);
         }
     }
     ffree(iter);

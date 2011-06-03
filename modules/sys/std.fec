@@ -223,7 +223,7 @@ namespace modifies Sys
 		result_array = ferite_create_uarray_variable(script, "Sys.getLibraryPaths", 6, FE_STATIC);
 		for( counter = 0; counter <= ferite_module_search_list->stack_ptr; counter++ ) {
 			if( ferite_module_search_list->stack[counter] ) {
-				ferite_uarray_add(script, VAUA(result_array), fe_new_str("search-path", ferite_module_search_list->stack[counter], 0, FE_CHARSET_DEFAULT), NULL, FE_ARRAY_ADD_AT_END );
+				(ferite_array->append)(script, VAUA(result_array), fe_new_str("search-path", ferite_module_search_list->stack[counter], 0, FE_CHARSET_DEFAULT), NULL, FE_ARRAY_ADD_AT_END );
 			}
 		}
 		FE_RETURN_VAR(result_array);
@@ -236,7 +236,7 @@ namespace modifies Sys
 		result_array = ferite_create_uarray_variable(script, "Sys.getNativeLibraryPaths", 6, FE_STATIC);
 		for( counter = 0; counter <= ferite_module_native_search_list->stack_ptr; counter++ ) {
 			if( ferite_module_search_list->stack[counter] ) {
-				ferite_uarray_add(script, VAUA(result_array), fe_new_str("search-path", ferite_module_native_search_list->stack[counter], 0, FE_CHARSET_DEFAULT), NULL, FE_ARRAY_ADD_AT_END );
+				(ferite_array->append)(script, VAUA(result_array), fe_new_str("search-path", ferite_module_native_search_list->stack[counter], 0, FE_CHARSET_DEFAULT), NULL, FE_ARRAY_ADD_AT_END );
 			}
 		}
 		FE_RETURN_VAR(result_array);

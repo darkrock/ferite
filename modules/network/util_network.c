@@ -78,7 +78,7 @@ int host_constructor(FeriteScript *script, FeriteObject *self, char *host, int t
             fv = ferite_create_string_variable_from_ptr(script, "",
                                                aip->ai_canonname, 0,
                                                FE_CHARSET_DEFAULT, FE_STATIC);
-            ferite_uarray_add(script, VAUA(ar1), fv, NULL, FE_ARRAY_ADD_AT_END);
+            (ferite_array->append)(script, VAUA(ar1), fv, NULL, FE_ARRAY_ADD_AT_END);
         }
         switch(aip->ai_family) {
             case PF_INET:
@@ -92,7 +92,7 @@ int host_constructor(FeriteScript *script, FeriteObject *self, char *host, int t
                 return -1; /* Shouldn't happen */
         }
         fv = ferite_create_number_long_variable(script, "", i, FE_STATIC);
-        ferite_uarray_add(script, VAUA(ar2), fv, NULL, FE_ARRAY_ADD_AT_END);
+        (ferite_array->append)(script, VAUA(ar2), fv, NULL, FE_ARRAY_ADD_AT_END);
         if(aip->ai_family == PF_INET) {
             sin4 = (struct sockaddr_in *)aip->ai_addr;
             inet_ntop(PF_INET, &sin4->sin_addr, buf, INET6_ADDRSTRLEN);
@@ -102,7 +102,7 @@ int host_constructor(FeriteScript *script, FeriteObject *self, char *host, int t
         }
         fv = ferite_create_string_variable_from_ptr(script, "", buf, 0,
 	                                 FE_CHARSET_DEFAULT, FE_STATIC);
-        ferite_uarray_add(script, VAUA(ar3), fv, NULL, FE_ARRAY_ADD_AT_END);
+        (ferite_array->append)(script, VAUA(ar3), fv, NULL, FE_ARRAY_ADD_AT_END);
     }
 
     freeaddrinfo(ai);
@@ -165,10 +165,10 @@ int host_constructor(FeriteScript *script, FeriteObject *self, char *host, int t
         inp = (struct in_addr *)he->h_addr_list[i];
         p = inet_ntoa(*inp);
         fv = ferite_create_number_long_variable(script, "", 0, FE_STATIC);
-        ferite_uarray_add(script, VAUA(ar1), fv, NULL, FE_ARRAY_ADD_AT_END);
+        (ferite_array->append)(script, VAUA(ar1), fv, NULL, FE_ARRAY_ADD_AT_END);
         fv = ferite_create_string_variable_from_ptr(script, "", p, 0,
                                       FE_CHARSET_DEFAULT, FE_STATIC);
-        ferite_uarray_add(script, VAUA(ar2), fv, NULL, FE_ARRAY_ADD_AT_END);
+        (ferite_array->append)(script, VAUA(ar2), fv, NULL, FE_ARRAY_ADD_AT_END);
     }
 
     if(reverse) {
@@ -196,7 +196,7 @@ int host_constructor(FeriteScript *script, FeriteObject *self, char *host, int t
                 fv = ferite_create_string_variable_from_ptr(script, "",
                          inet_ntoa(inp[i]), 0, FE_CHARSET_DEFAULT, FE_STATIC);
             }
-            ferite_uarray_add(script, VAUA(ar1), fv, NULL, FE_ARRAY_ADD_AT_END);
+            (ferite_array->append)(script, VAUA(ar1), fv, NULL, FE_ARRAY_ADD_AT_END);
         }
         ffree(inp);
     }
@@ -358,7 +358,7 @@ FeriteVariable *servent_to_Service(FeriteScript *script, struct servent *se)
         for(i = 0; se->s_aliases[i]; i++) {
             fv = ferite_create_string_variable_from_ptr(script, "",
                            se->s_aliases[i], 0, FE_CHARSET_DEFAULT, FE_STATIC);
-            ferite_uarray_add(script, VAUA(ar), fv, NULL, FE_ARRAY_ADD_AT_END);
+            (ferite_array->append)(script, VAUA(ar), fv, NULL, FE_ARRAY_ADD_AT_END);
         }
     }
 

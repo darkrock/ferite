@@ -75,19 +75,19 @@ FeriteVariable *ferite_generate_backtrace( FeriteScript *script, int skip_first 
 			cont = "closure";
 
 		value = fe_new_str_static( "function", name, 0, FE_CHARSET_DEFAULT );
-		ferite_uarray_add( script, VAUA(subArray), value, "function", FE_ARRAY_ADD_AT_END );
+		(ferite_array->append)( script, VAUA(subArray), value, "function", FE_ARRAY_ADD_AT_END );
 
 		value = fe_new_str_static( "file", file, 0, FE_CHARSET_DEFAULT );
-		ferite_uarray_add( script, VAUA(subArray), value, "file", FE_ARRAY_ADD_AT_END );
+		(ferite_array->append)( script, VAUA(subArray), value, "file", FE_ARRAY_ADD_AT_END );
 
 		value = fe_new_lng_static( "line", exec->line );
-		ferite_uarray_add( script, VAUA(subArray), value, "line", FE_ARRAY_ADD_AT_END );
+		(ferite_array->append)( script, VAUA(subArray), value, "line", FE_ARRAY_ADD_AT_END );
 
 		value = ferite_create_boolean_variable( script, "static", function->is_static, FE_STATIC );
-		ferite_uarray_add( script, VAUA(subArray), value, "static", FE_ARRAY_ADD_AT_END );
+		(ferite_array->append)( script, VAUA(subArray), value, "static", FE_ARRAY_ADD_AT_END );
 		
 		value = fe_new_str_static( "container", cont, 0, FE_CHARSET_DEFAULT );
-		ferite_uarray_add( script, VAUA(subArray), value, "container", FE_ARRAY_ADD_AT_END );
+		(ferite_array->append)( script, VAUA(subArray), value, "container", FE_ARRAY_ADD_AT_END );
 		
 		if( exec->variable_list ) {
 			int i = 3; // We start at 3 becuase that is where the parameters start
@@ -96,13 +96,13 @@ FeriteVariable *ferite_generate_backtrace( FeriteScript *script, int skip_first 
 					char name_buffer[1024];
 					FeriteVariable *duplicate = ferite_duplicate_variable( script, exec->variable_list[i], NULL );
 					sprintf(name_buffer, "%d:%s", i, duplicate->vname);
-					ferite_uarray_add( script, VAUA(variableArray), duplicate, name_buffer, FE_ARRAY_ADD_AT_END );
+					(ferite_array->append)( script, VAUA(variableArray), duplicate, name_buffer, FE_ARRAY_ADD_AT_END );
 				}
 			}
-			ferite_uarray_add( script, VAUA(subArray), variableArray, "variables", FE_ARRAY_ADD_AT_END );
+			(ferite_array->append)( script, VAUA(subArray), variableArray, "variables", FE_ARRAY_ADD_AT_END );
 		}
 		
-		ferite_uarray_add( script, VAUA(ptr), subArray, NULL, FE_ARRAY_ADD_AT_END );
+		(ferite_array->append)( script, VAUA(ptr), subArray, NULL, FE_ARRAY_ADD_AT_END );
 	}
 	FE_LEAVE_FUNCTION(ptr);
 }

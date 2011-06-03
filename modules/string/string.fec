@@ -363,7 +363,7 @@ namespace String
 						fv = ferite_create_string_variable_from_ptr(script,
 																	"", s->data + left, right - left,
 																	FE_CHARSET_DEFAULT, FE_STATIC);
-						ferite_uarray_add(script, VAUA(a), fv, NULL,
+						(ferite_array->append)(script, VAUA(a), fv, NULL,
 										  FE_ARRAY_ADD_AT_END);
 						cuts++;
 					}
@@ -380,7 +380,7 @@ namespace String
 			fv = ferite_create_string_variable_from_ptr(script, "",
 														s->data + left, s->length - left,
 														FE_CHARSET_DEFAULT, FE_STATIC);
-			ferite_uarray_add(script, VAUA(a), fv, NULL, FE_ARRAY_ADD_AT_END);
+			(ferite_array->append)(script, VAUA(a), fv, NULL, FE_ARRAY_ADD_AT_END);
 		}
 
 		FE_RETURN_VAR(a);
@@ -433,7 +433,7 @@ namespace String
 						if( strlen( name ) >= 0 )
 						{
 							vstr = ferite_create_string_variable_from_ptr( script, "", name, strlen(name), FE_CHARSET_DEFAULT, FE_STATIC );
-							ferite_uarray_add( script, VAUA(array), vstr, NULL, FE_ARRAY_ADD_AT_END );
+							(ferite_array->append)( script, VAUA(array), vstr, NULL, FE_ARRAY_ADD_AT_END );
 						}
 						start = i + j;
 						i += j - 1;
@@ -447,7 +447,7 @@ namespace String
 				strncpy( name, str->data+start, str->length - start ); /* copy the data */
 				name[str->length - start] = '\0';
 				vstr = ferite_create_string_variable_from_ptr( script, "", name, strlen(name), FE_CHARSET_DEFAULT, FE_STATIC );
-				ferite_uarray_add( script, VAUA(array), vstr, NULL, FE_ARRAY_ADD_AT_END );
+				(ferite_array->append)( script, VAUA(array), vstr, NULL, FE_ARRAY_ADD_AT_END );
 			}
 			ffree( name );
 		}
@@ -1476,7 +1476,7 @@ namespace String
 														FE_CHARSET_DEFAULT, FE_STATIC);
 			if(fv)
 			{
-				ferite_uarray_add(script, VAUA(ret), fv, NULL,
+				(ferite_array->append)(script, VAUA(ret), fv, NULL,
 								  FE_ARRAY_ADD_AT_END);
 			}
 		}

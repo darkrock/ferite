@@ -892,7 +892,7 @@ INLINE_OP( ferite_exec_pushattr )
 		case F_VAR_UARRAY:
 		{
 			FeriteVariable *_tmp = fe_new_str_static("var", var_name, 0, FE_CHARSET_DEFAULT);
-			varone = ferite_uarray_get( script, VAUA(vartwo), _tmp );
+			varone = (ferite_array->get)( script, VAUA(vartwo), _tmp );
 			ferite_variable_destroy( script, _tmp );
 			if( varone == NULL ) {
 				ferite_error( script, 0, "Trying to access non-existant keyed variable '%s' in array\n", var_name );
@@ -1602,8 +1602,8 @@ FeriteVariable **ferite_create_parameter_list_from_data( FeriteScript *script, c
 			break;
 		  case 'a':
 			  var = ferite_create_uarray_variable( script, "list_from_data-array", 0, FE_STATIC );
-			  ferite_uarray_destroy( script, VAUA(var) );
-			  VAUA(var) = ferite_uarray_dup( script, va_arg( ap, FeriteUnifiedArray *) );
+			  (ferite_array->destroy)( script, VAUA(var) );
+			  VAUA(var) = (ferite_array->duplicate)( script, va_arg( ap, FeriteUnifiedArray *) );
 			  break;
 		}
 		MARK_VARIABLE_AS_DISPOSABLE( var );

@@ -109,7 +109,7 @@ int update_SelectResult(FeriteScript *script, FeriteObject *obj,
         if(FD_ISSET(VAI(fv), f))
         {
             dup = ferite_duplicate_variable(script, fo, NULL);
-            ferite_uarray_add(script, VAUA(outarray), dup, NULL, FE_ARRAY_ADD_AT_END);
+            (ferite_array->append)(script, VAUA(outarray), dup, NULL, FE_ARRAY_ADD_AT_END);
         }
         if( FE_VAR_IS_DISPOSABLE(fv) )
             ferite_variable_destroy( script, fv );

@@ -56,6 +56,8 @@ FERITE_API void  (*ferite_add_to_gc)( FeriteScript *script, FeriteObject *obj );
 FERITE_API void  (*ferite_check_gc)( FeriteScript *script );
 FERITE_API void  (*ferite_merge_gc)( FeriteScript *script, void *gc );
 
+FERITE_API FeriteAbstractArrayInterface *ferite_array;
+
 #ifdef WIN32
 #pragma data_seg()
 #endif

@@ -557,8 +557,8 @@ FERITE_BINARY_OP( assign )
 
             BEGIN_BLOCK( F_VAR_UARRAY, b )
               DO_OP( F_VAR_UARRAY,
-                     ferite_uarray_destroy( script, VAUA(a));,
-                     VAUA(a) = ferite_uarray_dup( script, VAUA(b) );
+                     (ferite_array->destroy)( script, VAUA(a));,
+                     VAUA(a) = (ferite_array->duplicate)( script, VAUA(b) );
                      retv = ferite_duplicate_variable( script, a, NULL );
                    )
               BLOCK_DIE( "assign" );
@@ -595,7 +595,7 @@ FERITE_BINARY_OP( assign )
 			  )
               DO_OP( F_VAR_UARRAY,
 				 F_VAR_TYPE(a) = F_VAR_UARRAY;
-				 VAUA(a) = ferite_uarray_dup( script, VAUA(b) );,
+				 VAUA(a) = (ferite_array->duplicate)( script, VAUA(b) );,
 				 retv = ferite_duplicate_variable( script, a, NULL );
               )
               DO_OP( F_VAR_VOID, NOWT,
@@ -1236,25 +1236,29 @@ FERITE_MANY_OP(array_slice)
     }
     else
     {
+		FeriteVariable *offsetVariable = ferite_create_number_long_variable(script, "t-index", 0, FE_STATIC);
         result = ferite_create_uarray_variable( script, "spliced_content", VAUA(array)->size, FE_STATIC );
         if(cal_lo > cal_up)
         {
             for(size=cal_lo;size >= cal_up; size--)
             {
-                tmp = ferite_uarray_get_index(script, VAUA(array),(int)size);
-                tmp = ferite_duplicate_variable(script, tmp, NULL);
-                ferite_uarray_add(script, VAUA(result), tmp, NULL, FE_ARRAY_ADD_AT_END);
+				VAI(offsetVariable) = size;
+				tmp = (ferite_array->get)( script, VAUA(array), offsetVariable);
+				tmp = ferite_duplicate_variable(script, tmp, NULL);
+				(ferite_array->append)(script, VAUA(result), tmp, NULL, FE_ARRAY_ADD_AT_END);
             }
         }
         else
         {
             for(size=cal_lo;size <= cal_up; size++)
             {
-                tmp = ferite_uarray_get_index(script, VAUA(array),(int)size);
-                tmp = ferite_duplicate_variable(script, tmp, NULL);
-                ferite_uarray_add(script, VAUA(result), tmp, NULL, FE_ARRAY_ADD_AT_END);
+				VAI(offsetVariable) = size;
+				tmp = (ferite_array->get)( script, VAUA(array), offsetVariable);
+				tmp = ferite_duplicate_variable(script, tmp, NULL);
+				(ferite_array->append)(script, VAUA(result), tmp, NULL, FE_ARRAY_ADD_AT_END);
             }
         }
+		ferite_variable_destroy(script, offsetVariable);
     }
     MARK_VARIABLE_AS_DISPOSABLE( result );
     FE_LEAVE_FUNCTION( result );
@@ -1343,7 +1347,7 @@ FERITE_BINARY_OP( array_index )
         {
 			
             if( !ferite_variable_is_false(script, b) || (F_VAR_TYPE(b) == F_VAR_VOID && FE_VAR_IS_PLACEHOLDER(b)) || F_VAR_TYPE(b) == F_VAR_LONG ) {
-                ptr = ferite_uarray_get( script, VAUA(a), b );
+                ptr = (ferite_array->get)( script, VAUA(a), b );
 				if( ptr == NULL ) {
 					ptr = ferite_create_void_variable( script, "no-entry", FE_STATIC );
 					MARK_VARIABLE_AS_DISPOSABLE( ptr );
@@ -1418,7 +1422,7 @@ FERITE_MANY_OP( array_index_assign )
     }
     if( !ferite_variable_is_false(script, a) || (F_VAR_TYPE(a) == F_VAR_VOID && FE_VAR_IS_PLACEHOLDER(a)) || F_VAR_TYPE(a) == F_VAR_LONG ) {
 		if( sub_op != FERITE_OPCODE_assign ) {
-			FeriteVariable *tmp = ferite_uarray_get( script, VAUA(array), a );
+			FeriteVariable *tmp = (ferite_array->get)( script, VAUA(array), a );
 			FeriteVariable *(*binaryop)( FeriteScript *s, FeriteOp*, FeriteVariable *a, FeriteVariable *b );
 
 			if( !tmp ) {
@@ -1436,7 +1440,7 @@ FERITE_MANY_OP( array_index_assign )
 //				printf("allowed to perform array set\n");
 //			}
 
-			ferite_uarray_set( script, VAUA(array), a, b );
+			(ferite_array->set)( script, VAUA(array), a, b );
 		}
 		
 	} else 
@@ -1465,7 +1469,7 @@ FERITE_UNARY_OP( array_clear )
 		iteration_type = VAUA(a)->iterator_type;
 	
         ferite_uarray_destroy( script, VAUA(a) );
-        VAUA(a) = ferite_uarray_create( script );
+        VAUA(a) = (ferite_array->create)( script );
 	
 		VAUA(a)->iteration = iteration;
 		VAUA(a)->iterator_type = iteration_type;

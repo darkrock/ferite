@@ -58,6 +58,8 @@ int                ferite_is_strict = 0;
 
 int                ferite_show_partial_implementation = 0;
 
+FeriteAbstractArrayInterface *ferite_array;
+
 /*! Generic function for memory management. Hides the actually memory manager */
 void  (*ferite_memory_init)(void);
 /*! Generic function for memory management. Hides the actually memory manager */
