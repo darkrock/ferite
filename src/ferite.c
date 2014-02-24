@@ -60,6 +60,7 @@ int ferite_pow_lookup[32];
  *			  --fe-use-classic - this will tell ferite to use malloc/free rather than the jedi memory manager<nl/>
  *			  --fe-debug - tell ferite to dump debug out to stdout, warning: this will produce a lot of output, ferite also has to be compiled with debugging support.<nl/>
  *			  --fe-show-mem-use - tell ferite to dump to stdout a set of memory statistics, this is useful for detecting leaks<nl/>
+ *			  --fe-profile=&lt;file.json&gt; - enable and save profiling data to &lt;file.json&gt;. Date and time formatting specifications as understood by strftime(3) is supported for &lt;file.json&gt;. Requires compile time switch -DFERITE_PROFILE<nl/>
  *			  <nl/>
  *			  This function can be called multiple times without fear - it will only set things up
  *			  if they are needed.
@@ -70,6 +71,9 @@ int ferite_init( int argc, char **argv )
 {
 	int i = 0;
 	int wantDebugBanner = FE_TRUE;
+#ifdef FERITE_PROFILE
+	char *profile_filename_pattern = NULL;
+#endif
 	
 	FE_ENTER_FUNCTION;
 
@@ -148,6 +152,17 @@ int ferite_init( int argc, char **argv )
 					wantDebugBanner = FE_FALSE;
 				if( strcmp( argv[i], "--fe-show-partial-implementation") == 0 )
 					ferite_show_partial_implementation = FE_TRUE;
+				if( strncmp( argv[i], "--fe-profile", 12) == 0) {
+#ifdef FERITE_PROFILE
+					if (strlen(argv[i]) <= strlen("--fe-profile=")) {
+						fprintf( stderr, "--fe-profile needs argument: --fe-profile=filename\n");
+						exit(1);
+					}
+					profile_filename_pattern = argv[i] + 13;
+#else
+					fprintf( stderr, "Warning: profiling was not enabled at compile time.\n" );
+#endif
+				}
 			}
 		}
 
@@ -193,6 +208,13 @@ int ferite_init( int argc, char **argv )
 			ferite_memory_deinit();
 			FE_LEAVE_FUNCTION( ferite_is_initialised );
 		}
+
+#ifdef FERITE_PROFILE
+		if (profile_filename_pattern != NULL) {
+		   ferite_profile_set_filename_format(profile_filename_pattern);
+		   ferite_profile_toggle(FE_TRUE);
+		}
+#endif
 
 		ferite_init_compiler();
 		ferite_init_regex();
@@ -384,6 +406,7 @@ void ferite_show_help()
 	printf( " --fe-use-classic \t	 Run w/ alternate MM mode. (enables allocation tracking; will cause slow downs)\n" );
 	printf( " --fe-use-std-gc  \t	 Run w/ simple GC mode. (will cause slow downs)\n" );
 	printf( " --fe-show-mem-use\t	 Report memory use at script end.\n" );
+	printf( " --fe-profile=<file.json>\t Enable and save profiling data to <file.json> (may include strftime(3) formatters).\n" );
 	printf( " --fe-use-mm-with-pcre\t Use PCRE [Regular Expression Engine] with ferite's MM\n" );
 	printf( "\n MM = Memory Manager\n" );
 	FE_LEAVE_FUNCTION( NOWT );

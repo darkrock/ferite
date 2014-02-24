@@ -53,6 +53,9 @@ FeriteScript *ferite_new_script()
 
     FE_ENTER_FUNCTION;
     ptr = fmalloc_ngc( sizeof( FeriteScript ) );
+#ifdef FERITE_PROFILE
+    ptr->caller = NULL;
+#endif
     ptr->filename = NULL;
     ptr->scripttext = NULL;
  

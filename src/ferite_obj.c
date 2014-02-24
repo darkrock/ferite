@@ -472,6 +472,12 @@ FeriteVariable *ferite_new_object( FeriteScript *script, FeriteClass *nclass, Fe
 	FeriteVariable *ptr = NULL, *rval = NULL;
 	FeriteFunction *func = NULL;
 	FeriteVariable **params = NULL;
+#ifdef FERITE_PROFILE
+	struct timespec begin_ts = {0, 0};
+	struct timespec duration;
+	FeriteProfileFunction *callee = NULL;
+	FeriteProfileFunction *caller = NULL;
+#endif
 	
 	FE_ENTER_FUNCTION;
 	if(nclass != NULL)
@@ -501,7 +507,15 @@ FeriteVariable *ferite_new_object( FeriteScript *script, FeriteClass *nclass, Fe
 		func = ferite_find_constructor( script, VAO(ptr), params );
 		if( func != NULL ) {
 			FUD(("OPS: Calling constructor in class %s\n", nclass->name ));
-			
+
+#ifdef FERITE_PROFILE
+			if (ferite_profile_enabled) {
+				/* Make a copy of the caller because func might reset it */
+				caller = script->caller;
+				begin_ts = ferite_profile_function_begin(script, NULL, func, &callee);
+			}
+#endif
+
 			if( func->type == FNC_IS_EXTRL ) {
 				EXTERNAL_ENTER(func);
 				rval = (func->fncPtr)( script, VAO(ptr), NULL, func, params );
@@ -509,6 +523,16 @@ FeriteVariable *ferite_new_object( FeriteScript *script, FeriteClass *nclass, Fe
 			}
 			else
 				rval = ferite_script_function_execute( script, VAO(ptr), NULL, func, params );
+
+#ifdef FERITE_PROFILE
+			if (ferite_profile_enabled) {
+				duration = ferite_profile_function_end(script, callee, script->current_op_line, &begin_ts);
+				if (caller != NULL) {
+					ferite_profile_add_caller(callee, caller, caller->calling_line, duration);
+					script->caller = NULL;
+				}
+			}
+#endif
 			
 			if( rval == NULL || (rval != NULL && F_VAR_TYPE(rval) == F_VAR_OBJ && VAO(rval) == NULL) )
 			{

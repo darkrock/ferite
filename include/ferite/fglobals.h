@@ -41,6 +41,9 @@ FERITE_API int ferite_hide_mem_use;
 FERITE_API int ferite_use_mm_with_pcre;
 FERITE_API int ferite_is_strict;
 FERITE_API int ferite_show_partial_implementation;
+#ifdef FERITE_PROFILE
+FERITE_API int ferite_profile_enabled;
+#endif
 FERITE_API FeriteVariable *ferite_ARGV;
 
 FERITE_API void  (*ferite_memory_init)(void);

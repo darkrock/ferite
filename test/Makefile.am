@@ -16,6 +16,6 @@ INCLUDES = -I. -I$(top_srcdir) -I$(top_srcdir)/src -I..     \
 -I$(top_srcdir)/libs/aphex/include -I$(top_srcdir)/include  \
 -I$(includedir) -I$(prefix)/include
 
-DEFS=@thread_defs@  @gc_defs@
+DEFS=@thread_defs@  @gc_defs@ @profile_defs@
 
 LDADD = $(top_builddir)/src/libferite.la -L$(libdir) -L$(prefix)/lib @gc_libs@ 

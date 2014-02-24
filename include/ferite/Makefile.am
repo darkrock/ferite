@@ -8,6 +8,7 @@ feincludes_DATA = \
         fopcode.h \
            fops.h \
         fparser.h \
+       fprofile.h \
            freq.h \
          fstack.h \
        fstructs.h \

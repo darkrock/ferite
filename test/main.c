@@ -118,6 +118,13 @@ void print_version()
     printf( "%s %s [built: %s %s] [%s]\n", PACKAGE, VERSION, __DATE__, __TIME__, PLATFORM );
     printf( "  Base Cross Platform Library Path: %s\n", XPLAT_LIBRARY_DIR );
     printf( "  Base Native Library Path: %s\n", NATIVE_LIBRARY_DIR ); 
+    printf( "  Profiling: %s\n",
+#ifdef FERITE_PROFILE
+                    "enabled"
+#else
+                    "disabled"
+#endif
+          );
 }
 
 void print_copyright()

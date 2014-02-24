@@ -84,6 +84,9 @@ int ferite_script_execute( FeriteScript *script )
 	FeriteNamespaceBucket *nsb = NULL;
 	FeriteFunction *func = NULL;
 	FeriteVariable *err = NULL, *errstr = NULL, *erno = NULL, *rval = NULL;
+#ifdef FERITE_PROFILE
+	FeriteProfileFunction *callee;
+#endif
 
 	FE_ENTER_FUNCTION;
 
@@ -95,8 +98,22 @@ int ferite_script_execute( FeriteScript *script )
 
 		if( nsb != NULL )
 		{
+#ifdef FERITE_PROFILE
+			struct timespec begin_ts = {0, 0};
+#endif
 			func = nsb->data;
+
+#ifdef FERITE_PROFILE
+			if (ferite_profile_enabled) {
+				begin_ts = ferite_profile_function_begin(script, script->mainns, func, &callee);
+			}
+#endif
 			rval = ferite_script_function_execute( script, script->mainns, NULL, func, NULL );
+#ifdef FERITE_PROFILE
+			if (ferite_profile_enabled) {
+				(void) ferite_profile_function_end(script, callee, script->current_op_line, &begin_ts);
+			}
+#endif
 		
 #ifdef THREAD_SAFE
 			ferite_thread_group_wait( script, script->thread_group );
@@ -175,6 +192,9 @@ FE_NATIVE_FUNCTION( ferite_script_function_execute )
 	exec.block_depth = 0;
 	exec.parent = script->gc_stack;
 	script->gc_stack = &exec;
+#ifdef FERITE_PROFILE
+	script->caller = NULL;
+#endif
 	/*}}}*/
 
 	/*{{{ Copy parameter values over to the local variable stack */
@@ -344,6 +364,17 @@ INLINE_OP( ferite_exec_funcall )
 	int					i, j, _arg_count;
 	char				  *method_name = NULL;
 	void				  *function_container = NULL;
+#ifdef FERITE_PROFILE
+	struct timespec duration;
+	struct timespec begin_ts = {0, 0};
+	FeriteProfileFunction *caller = NULL;
+	FeriteProfileFunction *callee = NULL;
+	int caller_line = -1;
+
+	if (ferite_profile_enabled) {
+		caller_line = script->current_op_line;
+	}
+#endif
 
 	/*{{{ Create Parameter List */
 	FUD(("CREATING PARAMETER LIST.\n"));
@@ -366,6 +397,11 @@ INLINE_OP( ferite_exec_funcall )
 				// FUNCALL
 				FeriteFunction *f = ferite_object_get_function( script, current_recipient, "invoke" );
 				FUD(( "%s>>> Deliver: Pre: %p\n", ferite_stroflen(' ', (ferite_execute_call_depth*2)), context->new_yield_block ));
+#ifdef FERITE_PROFILE
+				if (ferite_profile_enabled) {
+					ferite_profile_set_caller(script, container, function);
+				}
+#endif
 				rval = ferite_call_function( script, current_recipient, context->new_yield_block, f, param_list );
 				FUD(( "%s<<< Deliver: Post: %p\n",  ferite_stroflen(' ', (ferite_execute_call_depth*2)),context->new_yield_block ));
 			}	
@@ -617,6 +653,13 @@ INLINE_OP( ferite_exec_funcall )
 			if( trgt_function_call != NULL ) {
 				// FUNCALL
 				LOCK_VARIABLE(trgt_function_call); /* lock the method */
+
+#ifdef FERITE_PROFILE
+				if (ferite_profile_enabled) {
+					caller = ferite_profile_get_function_profile(script, container, function);
+					begin_ts = ferite_profile_function_begin(script, function_container, trgt_function_call, &callee);
+				}
+#endif
 				if( trgt_function_call->type == FNC_IS_EXTRL ) {
 					if( trgt_function_call->fncPtr != NULL ) {
 						EXTERNAL_ENTER( trgt_function_call );
@@ -638,6 +681,13 @@ INLINE_OP( ferite_exec_funcall )
 				{
 					rval = ferite_script_function_execute( script, function_container, context->new_yield_block, trgt_function_call, param_list );
 				}
+#ifdef FERITE_PROFILE
+				if (ferite_profile_enabled) {
+					duration = ferite_profile_function_end(script, callee, script->current_op_line, &begin_ts);
+					callee = ferite_profile_get_function_profile(script, container, trgt_function_call);
+					ferite_profile_add_caller(callee, caller, caller_line, duration);
+				}
+#endif
 				UNLOCK_VARIABLE(trgt_function_call); /* unlock the method */
 				if( script->error_state != FE_ERROR_THROWN ) {
 					script->current_op_file = function->bytecode->filename; /* we do this because the other function might cause it to change */
@@ -658,6 +708,11 @@ INLINE_OP( ferite_exec_funcall )
 				ferite_error( script, 0, "%s is not a class, bad luck, try again :)\n", ferite_variable_id_to_str(script,vartwo->type) );
 				break;
 			}
+#ifdef FERITE_PROFILE
+			if (ferite_profile_enabled) {
+				ferite_profile_set_caller(script, container, function);
+			}
+#endif
 			rval = (void *)ferite_new_object( script, VAC(vartwo), param_list );
 			if( script->error_state != FE_ERROR_THROWN ) {
 				script->current_op_file = function->bytecode->filename; /* we do this because the other function might cause it to change */
@@ -738,6 +793,11 @@ INLINE_OP( ferite_exec_pushattr )
 						FUD(( "%s>>> attribute_missing: Pre: %s: %p\n",  ferite_stroflen(' ', (ferite_execute_call_depth*2)), var_name, context->new_yield_block ));
 						str = ferite_str_new( script, var_name, strlen( var_name ), FE_CHARSET_DEFAULT );
 						pml = ferite_create_parameter_list_from_data( script, "s", str );
+#ifdef FERITE_PROFILE
+						if (ferite_profile_enabled) {
+							ferite_profile_set_caller(script, container, function);
+						}
+#endif
 						varone = ferite_call_function( script, VAP(vartwo), context->new_yield_block, trgt_function_call, pml );
 						ferite_delete_parameter_list( script, pml );
 						ferite_str_destroy( script, str );
@@ -801,6 +861,11 @@ INLINE_OP( ferite_exec_pushattr )
 					{
 						str = ferite_str_new( script, var_name, strlen( var_name ), FE_CHARSET_DEFAULT );
 						pml = ferite_create_parameter_list_from_data( script, "s", str );
+#ifdef FERITE_PROFILE
+						if (ferite_profile_enabled) {
+							ferite_profile_set_caller(script, container, function);
+						}
+#endif
 						varone = ferite_call_function( script, VAP(vartwo), context->new_yield_block, trgt_function_call, pml );
 						ferite_delete_parameter_list( script, pml );
 						ferite_str_destroy( script, str );
@@ -849,6 +914,11 @@ INLINE_OP( ferite_exec_pushattr )
 					FUD(( "%s>>> attribute_missing: Pre: %s: %p\n",  ferite_stroflen(' ', (ferite_execute_call_depth*2)), var_name, context->new_yield_block ));
 					str = ferite_str_new( script, var_name, strlen( var_name ), FE_CHARSET_DEFAULT );
 					pml = ferite_create_parameter_list_from_data( script, "s", str );
+#ifdef FERITE_PROFILE
+					if (ferite_profile_enabled) {
+						ferite_profile_set_caller(script, container, function);
+					}
+#endif
 					varone = ferite_call_function( script, VAP(vartwo), context->new_yield_block, trgt_function_call, pml );
 					ferite_delete_parameter_list( script, pml );
 					ferite_str_destroy( script, str );
@@ -1377,6 +1447,12 @@ FeriteVariable *ferite_script_real_function_execute( FeriteScript *script, void 
 	FeriteVariable *return_val = NULL;
 	FeriteOpcodeContext *context, stack_context;
 	int			 error_op_location = 0, error_array[ERROR_UPPER_BOUND + 1];
+#ifdef FERITE_PROFILE
+	// NOTE: In this function we profile only line duration
+	struct timespec begin_ts = {0, 0};
+	char profile_filename[PATH_MAX];
+	int profile_current_line = -1;
+#endif
 	/*}}}*/
 
 	FE_ENTER_FUNCTION;
@@ -1391,6 +1467,11 @@ FeriteVariable *ferite_script_real_function_execute( FeriteScript *script, void 
 	context->current_op_loc++;
 
 	script->current_op_file = function->bytecode->filename;
+#ifdef FERITE_PROFILE
+	/* Make a copy because by the end of execution script->current_op_file
+	 * might not be pointing to the same file */
+	strcpy(profile_filename, script->current_op_file);
+#endif
 
 	FUD(("EXECUTION STARTING\n"));
 	while( context->keep_function_running && script->keep_execution )
@@ -1399,6 +1480,15 @@ FeriteVariable *ferite_script_real_function_execute( FeriteScript *script, void 
 		exec->line = current_op->line;
 		script->current_op_line = current_op->line;
 		exec->block_depth = current_op->block_depth;
+
+#ifdef FERITE_PROFILE
+		if (ferite_profile_enabled) {
+			if (profile_current_line != current_op->line) {
+				profile_current_line = current_op->line;
+				begin_ts = ferite_profile_line_begin(script, profile_filename, profile_current_line);
+			}
+		}
+#endif
 
 		if( ferite_opcode_table[current_op->OP_TYPE].op != NULL )
 			return_val = CALL_INLINE_OP((ferite_opcode_table[current_op->OP_TYPE].op));
@@ -1471,6 +1561,14 @@ FeriteVariable *ferite_script_real_function_execute( FeriteScript *script, void 
 			}
 		}
 		
+#ifdef FERITE_PROFILE
+		if (ferite_profile_enabled) {
+			if ((current_op != NULL && profile_current_line != current_op->line) ||
+			    !context->keep_function_running || !script->keep_execution) {
+				ferite_profile_line_end(script, profile_filename, profile_current_line, &begin_ts);
+			}
+		}
+#endif
 		if( !context->keep_function_running || !script->keep_execution )
 			break;
 		
@@ -1629,6 +1727,12 @@ FeriteVariable *ferite_call_function( FeriteScript *script, void *container, Fer
 	FeriteFunction *function = NULL;
 	FeriteVariable **plist = NULL;
 	int script_exec_state = 0;
+#ifdef FERITE_PROFILE
+	struct timespec begin_ts = {0, 0};
+	struct timespec duration;
+	FeriteProfileFunction *callee = NULL;
+	FeriteProfileFunction *caller = NULL;
+#endif
 	
 	FE_ENTER_FUNCTION;
 	
@@ -1649,6 +1753,12 @@ FeriteVariable *ferite_call_function( FeriteScript *script, void *container, Fer
 			if( ferite_check_params( script, plist, function ) == 1 )
 			{
 				LOCK_VARIABLE( function );
+#ifdef FERITE_PROFILE
+				if (ferite_profile_enabled) {
+					caller = script->caller;
+					begin_ts = ferite_profile_function_begin(script, container, function, &callee);
+				}
+#endif
 				if( function->type == FNC_IS_EXTRL )
 				{
 					/* This is used to hook up the execute record */
@@ -1665,6 +1775,15 @@ FeriteVariable *ferite_call_function( FeriteScript *script, void *container, Fer
 					if( script->error_state == FE_ERROR_THROWN )
 						retval = ferite_create_void_variable( script, "error...", FE_STATIC );
 				}
+#ifdef FERITE_PROFILE
+				if (ferite_profile_enabled) {
+					duration = ferite_profile_function_end(script, callee, script->current_op_line, &begin_ts);
+					if (caller != NULL) {
+						ferite_profile_add_caller(callee, caller, caller->calling_line, duration);
+						script->caller = NULL;
+					}
+				}
+#endif
 				UNLOCK_VARIABLE( function );
 				break;
 			}
