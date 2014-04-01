@@ -8,7 +8,7 @@ MAINTAINERCLEANFILES = Makefile.in
 
 LDFLAGS		         = -L/usr/local/lib
 
-INCLUDES	         = -I${top_srcdir} -I${top_srcdir}/libs/triton/include -I${top_srcdir}/include -I${prefix}/include -I$(includedir) @TRITON_INCS@
+AM_CPPFLAGS	         = -I${top_srcdir} -I${top_srcdir}/libs/triton/include -I${top_srcdir}/include -I${prefix}/include -I$(includedir) @TRITON_INCS@
 
 DEFS                 = @debugdefs@
 

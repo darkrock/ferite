@@ -233,6 +233,18 @@ namespace modifies Farm {
 			.addProperty( 'CPP', '-fPIC' );
 		}
 	}
+	class ModulePlusLibrary extends Farm.Library {
+		static function constructor() {
+			Farm.Yard.registerTargetType( 'moduleplus', self );
+		}
+		
+		function constructor( string name ) {
+			super( name );
+			.setType( Farm.RuleSet.ModulePlusLibrary );
+			.addProperty( 'C', '-fPIC' );
+			.addProperty( 'CPP', '-fPIC' );
+		}
+	}
 	class StaticLibrary extends Farm.Library {
 		static function constructor() {
 			Farm.Yard.registerTargetType( 'static-library', self );

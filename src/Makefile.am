@@ -10,7 +10,7 @@ CLEANFILES       = *~
 
 LDFLAGS		     = -L${prefix}/lib -lm
 
-INCLUDES	     = -I$(top_srcdir) -I$(top_srcdir)/libs/aphex/include -I$(top_srcdir)/libs/triton/include -I${top_srcdir}/include -I${prefix}/include -I$(includedir) -I${top_srcdir}/include/ferite/ @pcre_cflags@
+AM_CPPFLAGS	     = -I$(top_srcdir) -I$(top_srcdir)/libs/aphex/include -I$(top_srcdir)/libs/triton/include -I${top_srcdir}/include -I${prefix}/include -I$(includedir) -I${top_srcdir}/include/ferite/ @pcre_cflags@
 
 DEFS                 = @debugdefs@ @thread_defs@ @gc_defs@
 

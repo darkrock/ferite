@@ -12,7 +12,7 @@ libferite = -L${top_builddir}/src -lferite -L${top_builddir}/modules/stream -lfe
 endif
 
 LDFLAGS          = $(libferite) -L${libdir} @date_LIBS@
-INCLUDES         = -I$(top_srcdir)/include -I$(prefix)/include -I. @date_CFLAGS@
+AM_CPPFLAGS      = -I$(top_srcdir)/include -I$(prefix)/include -I. @date_CFLAGS@
 DEFS             = @thread_defs@
 
 scripts_DATA     = date.fec

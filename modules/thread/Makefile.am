@@ -12,7 +12,7 @@ libferite = -L${top_builddir}/src -lferite
 endif
 
 LDFLAGS          = $(libferite) -L${libdir} @thread_LIBS@
-INCLUDES         = -I$(top_srcdir)/include -I$(prefix)/include -I. @thread_CFLAGS@
+AM_CPPFLAGS      = -I$(top_srcdir)/include -I$(prefix)/include -I. @thread_CFLAGS@
 DEFS             = @thread_defs@
 
 scripts_DATA     = thread.fec 

@@ -6,7 +6,7 @@ AUTOMAKE_OPTIONS     = 1.4 foreign
 MAINTAINERCLEANFILES = Makefile.in
 
 LDFLAGS          = -L${libdir} @moduledefs@
-INCLUDES         = -I$(top_srcdir)/include -I$(prefix)/include -I.
+AM_CPPFLAGS      = -I$(top_srcdir)/include -I$(prefix)/include -I.
 
 pkgdir           = $(libdir)/ferite/modules
 pkg_LTLIBRARIES  = example_module.la

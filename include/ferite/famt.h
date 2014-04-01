@@ -46,7 +46,7 @@ typedef int (*AMTCompareCallback)(FeriteScript*,void*,void*,void*);
 typedef FeriteString *(*AMTSerializeCallback)(FeriteScript*,void*);
 
 FeriteAMT  *ferite_amt_create( FeriteScript *script, int higherorder );
-void  ferite_amt_destroy( FeriteScript *script, FeriteAMT *tree, void(*delete)(FeriteScript*,void*) );
+void  ferite_amt_destroy( FeriteScript *script, FeriteAMT *tree, void(*_delete)(FeriteScript*,void*) );
 void *ferite_amt_DefaultDuplicate( FeriteScript *script, void *value, void *extra );
 FeriteAMT  *ferite_amt_dup( FeriteScript *script, FeriteAMT *tree, void*(*dup)(FeriteScript*,void*,void*), void *extra );
 void  ferite_amt_print( FeriteScript *script, FeriteAMT *tree );

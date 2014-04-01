@@ -12,7 +12,7 @@ libferite = -L${top_builddir}/src -lferite
 endif
 
 LDFLAGS          = $(libferite) -L${libdir} @reflection_LIBS@
-INCLUDES         = -I$(top_srcdir)/include -I$(prefix)/include -I. @reflection_CFLAGS@
+AM_CPPFLAGS      = -I$(top_srcdir)/include -I$(prefix)/include -I. @reflection_CFLAGS@
 DEFS             = @thread_defs@
 
 scripts_DATA     = reflection.fec 

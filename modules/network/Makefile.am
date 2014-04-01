@@ -12,7 +12,7 @@ libferite = -L${top_builddir}/src -lferite -L${top_builddir}/modules/stream -lfe
 endif
 
 LDFLAGS          = $(libferite) -L${libdir} @network_LIBS@
-INCLUDES         = -I$(top_srcdir)/include -I$(prefix)/include -I. @network_CFLAGS@
+AM_CPPFLAGS      = -I$(top_srcdir)/include -I$(prefix)/include -I. @network_CFLAGS@
 DEFS             = @thread_defs@
 
 scripts_DATA   = network.fec

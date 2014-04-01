@@ -243,7 +243,7 @@ FeriteAMT *ferite_amt_create( FeriteScript *script, int higherorder ) {
 	amt->total = 0;
 	return amt;
 }
-void __ferite_amt_tree_destroy( FeriteScript *script, FeriteAMTTree *tree, void(*delete)(FeriteScript*,void*) ) {
+void __ferite_amt_tree_destroy( FeriteScript *script, FeriteAMTTree *tree, void(*_delete)(FeriteScript*,void*) ) {
 	int i = 0;
 	if( tree ) {
 		if( tree->base ) {
@@ -253,15 +253,15 @@ void __ferite_amt_tree_destroy( FeriteScript *script, FeriteAMTTree *tree, void(
 					FeriteAMTNode *baseItem = (index_functions[tree->index_type].get)( script, tree, i );
 					if( IS_NODE(baseItem) ) {
 						if( baseItem->type == FeriteAMTType_ANode ) {
-							if( delete )
-								(delete)(script,baseItem->u.value.data);
+							if( _delete )
+								(_delete)(script,baseItem->u.value.data);
 						} else {
-							if( delete )
-								(delete)(script,baseItem->u.value.data);
+							if( _delete )
+								(_delete)(script,baseItem->u.value.data);
 							ffree( baseItem->u.value.key );
 						}
 					} else if( baseItem->type == FeriteAMTType_Tree ) {
-						__ferite_amt_tree_destroy( script,baseItem->u.tree, delete );
+						__ferite_amt_tree_destroy( script,baseItem->u.tree, _delete );
 					}
 					ffree(baseItem);
 				}
@@ -271,8 +271,8 @@ void __ferite_amt_tree_destroy( FeriteScript *script, FeriteAMTTree *tree, void(
 		ffree( tree );
 	}
 }
-void ferite_amt_destroy( FeriteScript *script, FeriteAMT *tree, void(*delete)(FeriteScript*,void*) ) {
-	__ferite_amt_tree_destroy( script, tree->root, delete );
+void ferite_amt_destroy( FeriteScript *script, FeriteAMT *tree, void(*_delete)(FeriteScript*,void*) ) {
+	__ferite_amt_tree_destroy( script, tree->root, _delete );
 	ffree( tree );
 }
 

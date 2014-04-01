@@ -12,7 +12,7 @@ ferite_LDFLAGS =
 cache_ferite_DEPENDENCIES = $(top_builddir)/src/libferite.la
 cache_ferite_LDFLAGS =
 
-INCLUDES = -I. -I$(top_srcdir) -I$(top_srcdir)/src -I..     \
+AM_CPPFLAGS = -I. -I$(top_srcdir) -I$(top_srcdir)/src -I..     \
 -I$(top_srcdir)/libs/aphex/include -I$(top_srcdir)/include  \
 -I$(includedir) -I$(prefix)/include
 

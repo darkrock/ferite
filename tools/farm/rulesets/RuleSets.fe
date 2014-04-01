@@ -59,6 +59,7 @@ namespace modifies Farm {
 		final string StaticLibrary = "Farm.StaticLibrary";
 		final string SharedLibrary = "Farm.SharedLibrary";
 		final string ModuleLibrary = "Farm.ModuleLibrary";
+		final string ModulePlusLibrary = "Farm.ModulePlusLibrary";
 		
 		array sourceHandlers;
 		array buildHandlers;
@@ -144,7 +145,9 @@ namespace GeneralRules {
 	
 	class Builder extends Farm.RuleSet.SourceRule {
 		
-		static function constructor() { Farm.RuleSet.registerSourceHandler( new GeneralRules.Builder() ); }
+		static function constructor() { 
+			Farm.RuleSet.registerSourceHandler( new GeneralRules.Builder() ); 
+		}
 		
 		function types() {
 			return [ 'fec' ];
@@ -155,9 +158,10 @@ namespace GeneralRules {
 		}
 		
 		function translate( object target, string file, string prefix ) {
-			string filename = Farm.basename(file);						
+			string filename = Farm.basename(file);
 			string filelocation = Farm.dirname(file);
 			string module = target.getProperty('name');
+			string extra = (target instanceof Farm.ModulePlusLibrary ? "--want-cpp" : "");
 				
 			// Go to the file location
 			Directory.setCurrent(filelocation);
@@ -165,7 +169,7 @@ namespace GeneralRules {
 			Directory.build(prefix);
 			
 			// Generate the various files
-			Farm.invokeExternalProgram( "builder -m $module -f -nc -fp $prefix/ $filename" );
+			Farm.invokeExternalProgram( "builder -m $module -f $extra -nc -fp $prefix/ $filename" );
 			
 			// Move the xml to the products dir
 			File.move( "$prefix/$module.xml", "${Farm.productsDirForTarget(target)}/$module.xml" );
@@ -179,6 +183,8 @@ namespace GeneralRules {
 			// Sort out the include path
 			target.addProperty('C', "-I$prefix");
 			target.addProperty('C', "-I$prefix");
+			target.addProperty('CPP', "-I$prefix");
+			target.addProperty('CPP', "-I$prefix");
 		}
 	}		
 }

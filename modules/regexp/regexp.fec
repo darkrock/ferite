@@ -427,7 +427,9 @@ class Regexp {
 		}
 		
 		/* get the number of subparts */
-		captured_str_cnt = pcre_info( rgx->compiled_re, NULL, NULL ) + 1;
+		pcre_fullinfo( rgx->compiled_re, NULL, PCRE_INFO_CAPTURECOUNT, &captured_str_cnt );
+		captured_str_cnt++;
+		
 		/* create an offset array */
 		size_offsets = (int)(captured_str_cnt * 3);
 		offsets = (int *)fmalloc(size_offsets * sizeof(int));

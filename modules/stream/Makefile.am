@@ -12,7 +12,7 @@ libferite = -L${top_builddir}/src -lferite
 endif
 
 LDFLAGS          = $(libferite) -L${libdir} @stream_LIBS@
-INCLUDES         = -I$(top_srcdir)/include -I$(prefix)/include -I. @stream_CFLAGS@
+AM_CPPFLAGS      = -I$(top_srcdir)/include -I$(prefix)/include -I. @stream_CFLAGS@
 DEFS             = @thread_defs@
 
 lib_LTLIBRARIES  = libferitestream.la

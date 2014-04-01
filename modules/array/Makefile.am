@@ -12,7 +12,7 @@ libferite = -L${top_builddir}/src -lferite
 endif
 
 LDFLAGS          = $(libferite) -L${libdir} @array_LIBS@
-INCLUDES         = -I$(top_srcdir)/include -I$(prefix)/include -I. @array_CFLAGS@
+AM_CPPFLAGS      = -I$(top_srcdir)/include -I$(prefix)/include -I. @array_CFLAGS@
 DEFS             = @thread_defs@
 
 scripts_DATA     = array.fec 

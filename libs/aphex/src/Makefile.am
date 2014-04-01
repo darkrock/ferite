@@ -8,7 +8,7 @@ MAINTAINERCLEANFILES = Makefile.in
 
 LDFLAGS		         = -L${prefix}/lib
 
-INCLUDES	         = -I${top_srcdir}/libs/aphex/include -I${top_srcdir}/include -I${prefix}/include -I$(includedir) @aphex_INCS@
+AM_CPPFLAGS         = -I${top_srcdir}/libs/aphex/include -I${top_srcdir}/include -I${prefix}/include -I$(includedir) @aphex_INCS@
                        
 			
 DEFS                 = @debugdefs@ @thread_defs@ @gc_defs@

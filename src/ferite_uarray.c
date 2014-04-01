@@ -731,7 +731,7 @@ FeriteAbstractArrayInterface *ferite_array_interface() {
 	interface->append = ferite_uarray_add;
 	interface->get = ferite_uarray_get;
 	interface->set = ferite_uarray_set;
-	interface->delete = ferite_uarray_del_var;
+	interface->_delete = ferite_uarray_del_var;
 	
 	interface->pop = ferite_uarray_pop;
 	interface->push = ferite_uarray_push;

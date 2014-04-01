@@ -120,12 +120,14 @@ int            want_deinit = 1;
 int            want_makefile = 1;
 int            want_configm4 = 1;
 int            force_makefile = 0;
+int            want_cpp = 0;
 int            want_xml = 1;
 int            is_open = FE_TRUE;
 char           default_builder_path[] = "@BUILDER@";
 char           default_module_path[] = "@MODULE_SRC_PREFIX@";
 char          *builder_path = NULL, *module_path = NULL;
 char           generated_file_prefix[8096];
+char          *file_extension = "c";
 
 void print_version()
 {
@@ -162,6 +164,7 @@ void show_help()
     printf( "\t--no-makefile       -f       Stop builder generating a 'Makfile.am'\n" );
     printf( "\t--no-configm4       -nc      Stop builder generating a 'config.m4'\n" );
     printf( "\t--no-xml            -x       Stop builder generating a 'modulename.xml'\n" );
+    printf( "\t--want-cpp          -+       Stop builder generating a 'modulename.xml'\n" );
     printf( "\t--force-makefile    -k       Force builder to generate a 'Makefile.am'\n" );
     printf( "\t--add-dist-file     -A       Add a file to the distributed files.\n" );
     printf( "\t--builder-path      -b       The value to use for the builder location in the Makefile.am (default: @BUILDER@).\n" );
@@ -252,6 +255,11 @@ void parse_args( int argc, char **argv )
             if((!strcmp(argv[i], "--no-xml")) || (!strcmp(argv[i], "-x")))
             {
                 want_xml = 0;
+            }
+            if((!strcmp(argv[i], "--want-cpp")) || (!strcmp(argv[i], "-+")))
+            {
+                want_cpp = 1;
+				file_extension = "cpp";
             }
             if((!strcmp(argv[i], "--closed")) || (!strcmp(argv[i], "-cc")))
             {
@@ -678,7 +686,7 @@ void builder_process_open_class( FeriteScript *script, FeriteClass *cls, char *p
 
     FE_ENTER_FUNCTION;
     ferite_stack_push( FE_NoScript, current_module->name_stack, cls->name );
-    sprintf( buf, "%s.c", builder_generate_current_name(FE_TRUE,FE_FALSE) );
+    sprintf( buf, "%s.%s", builder_generate_current_name(FE_TRUE,FE_FALSE), file_extension );
     strcat( internal_file_list, buf ); strcat( internal_file_list, " " );
     if( opt.verbose )
       printf( "Generating file %s for class %s\n", buf, parent );
@@ -745,7 +753,7 @@ void builder_process_closed_class( FeriteScript *script, FeriteClass *cls, char 
     }
 
     ferite_stack_push( FE_NoScript, current_module->name_stack, cls->name );
-    sprintf( buf, "%s.c", builder_generate_current_name(FE_TRUE,FE_FALSE) );
+    sprintf( buf, "%s.%s", builder_generate_current_name(FE_TRUE,FE_FALSE), file_extension );
     strcat( internal_file_list, buf ); strcat( internal_file_list, " " );
     if( opt.verbose )
       printf( "Generating file %s for class %s\n", buf, parent );
@@ -818,7 +826,7 @@ void builder_process_open_namespace_element( FeriteScript *script, FeriteNamespa
         {
           case FENS_NS:
             ferite_stack_push( FE_NoScript, current_module->name_stack, parent );
-            sprintf( buf, "%s.c", builder_generate_current_name(FE_TRUE,FE_FALSE) );
+            sprintf( buf, "%s.%s", builder_generate_current_name(FE_TRUE,FE_FALSE), file_extension );
             strcat( internal_file_list, buf ); strcat( internal_file_list, " " );
             if( opt.verbose )
               printf( "Generating file %s for namespace %s\n", buf, parent );
@@ -859,7 +867,7 @@ void builder_process_closed_namespace_element( FeriteScript *script, FeriteNames
         {
           case FENS_NS:
             ferite_stack_push( FE_NoScript, current_module->name_stack, parent );
-            sprintf( buf, "%s.c", builder_generate_current_name(FE_TRUE,FE_FALSE) );
+            sprintf( buf, "%s.%s", builder_generate_current_name(FE_TRUE,FE_FALSE), file_extension );
             strcat( internal_file_list, buf ); strcat( internal_file_list, " " );
             if( opt.verbose )
               printf( "Generating file %s for namespace %s\n", buf, parent );
@@ -956,7 +964,7 @@ char *builder_get_local_dependancy_list()
         {
             sprintf( current_file, "%s", internal_file_list + start );
             if( start > 0 )
-              ferite_buffer_printf( FE_NoScript, buf, "%s: %s_core.c\n", current_file, current_module->name );
+              ferite_buffer_printf( FE_NoScript, buf, "%s: %s_core.%s\n", current_file, current_module->name, file_extension );
             start = i + 1;
         }
     }
@@ -982,7 +990,7 @@ void builder_dump_plan( FeriteScript *script )
     current_module->name_stack = ferite_create_stack( NULL, 30 );
     ferite_stack_push( FE_NoScript, current_module->name_stack, current_module->name );
 
-    sprintf( buf, "%s_core.c", current_module->name );
+    sprintf( buf, "%s_core.%s", current_module->name, file_extension );
     strcat( internal_file_list, buf ); strcat( internal_file_list, " " );
     if( opt.verbose )
       printf( "Generating file %s for the module core\n", buf );
@@ -992,7 +1000,7 @@ void builder_dump_plan( FeriteScript *script )
                  "#include \"%s_header.h\"  /* this is the module header */\n\n", current_module->name );
     fprintf( current_module->core, "void %s()\n{\n", module_init_name );
 
-    sprintf( buf, "%s_misc.c", current_module->name );
+    sprintf( buf, "%s_misc.%s", current_module->name, file_extension );
     strcat( internal_file_list, buf ); strcat( internal_file_list, " " );
     current_module->misc = builder_fopen( buf, "w" );
     fprintf( current_module->misc, "/* This file has been automatically generated by builder part of the ferite distribution */\n" \
@@ -1026,11 +1034,7 @@ void builder_dump_plan( FeriteScript *script )
                  "#ifndef __%s_HEADER__\n" \
                  "#define __%s_HEADER__\n\n", current_module->name, current_module->name );
     fprintf( current_module->header, "#include <ferite.h>\n\n" );
-    fprintf( current_module->header, "FERITE_API void ferite_%s_register();\n", current_module->name );
-    fprintf( current_module->header, "FERITE_API void ferite_%s_unregister();\n", current_module->name );
-    fprintf( current_module->header, "FERITE_API void ferite_%s_init( FeriteScript *script );\n", current_module->name );
-    fprintf( current_module->header, "FERITE_API void ferite_%s_deinit( FeriteScript *script );\n\n", current_module->name );
-    
+	
     nsb = ferite_namespace_element_exists( script, script->mainns, "'module-header" );
     if( nsb != NULL && nsb->data != NULL )
     {
@@ -1039,6 +1043,17 @@ void builder_dump_plan( FeriteScript *script )
         fprintf( current_module->header, "%s\n", FE_STR2PTR(var) );
         fprintf( current_module->header, "    /* End user defined header code */\n\n" );
     }
+	
+	if( want_cpp ) {
+		fprintf( current_module->header, "\n#ifdef __cplusplus\n");
+		fprintf( current_module->header, "extern \"C\" {\n");
+		fprintf( current_module->header, "#endif\n");
+	}
+
+    fprintf( current_module->header, "FERITE_API void ferite_%s_register();\n", current_module->name );
+    fprintf( current_module->header, "FERITE_API void ferite_%s_unregister();\n", current_module->name );
+    fprintf( current_module->header, "FERITE_API void ferite_%s_init( FeriteScript *script );\n", current_module->name );
+    fprintf( current_module->header, "FERITE_API void ferite_%s_deinit( FeriteScript *script );\n\n", current_module->name );    
 
     if( is_open == FE_TRUE )
     {
@@ -1106,6 +1121,12 @@ void builder_dump_plan( FeriteScript *script )
         fprintf( current_module->core, "    /* End user defined unregister code */\n" );
     }
     fprintf( current_module->core, "}\n\n" );
+
+	if( want_cpp ) {
+		fprintf( current_module->header, "\n#ifdef __cplusplus\n");
+		fprintf( current_module->header, "}\n");
+		fprintf( current_module->header, "#endif\n");
+	}
 
     fprintf( current_module->header, "\n#endif /* __%s_HEADER__ */\n", current_module->name );
     if( current_module->core )

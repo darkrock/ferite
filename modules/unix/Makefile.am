@@ -12,7 +12,7 @@ libferite = -L${top_builddir}/src -lferite -L${top_builddir}/modules/stream -lfe
 endif
 
 LDFLAGS          = $(libferite) -L${libdir} @unix_LIBS@
-INCLUDES         = -I$(top_srcdir)/include -I$(prefix)/include -I. @unix_CFLAGS@
+AM_CPPFLAGS      = -I$(top_srcdir)/include -I$(prefix)/include -I. @unix_CFLAGS@
 DEFS             = @thread_defs@
 
 scripts_DATA   = unix.fec syslog.fec unixsocket.fec

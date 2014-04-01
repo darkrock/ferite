@@ -107,6 +107,15 @@ namespace Darwin {
 		}		
 	}
 	
+	class ModulePlusLibrary extends ModuleLibrary {
+		
+		static function constructor() { Farm.RuleSet.registerBuildHandler( new Darwin.ModulePlusLibrary() ); }
+
+		function type() {
+			return Farm.RuleSet.ModulePlusLibrary;
+		}
+	}
+	
 	class Executable extends Farm.RuleSet.BuildRule {
 		
 		static function constructor() { Farm.RuleSet.registerBuildHandler( new Darwin.Executable() ); }

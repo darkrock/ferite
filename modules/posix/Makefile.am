@@ -12,7 +12,7 @@ libferite = -L${top_builddir}/src -lferite -L${top_builddir}/modules/stream -lfe
 endif
 
 LDFLAGS          = $(libferite) -L${libdir} @posix_LIBS@
-INCLUDES         = -I$(top_srcdir)/include -I$(prefix)/include -I. @posix_CFLAGS@
+AM_CPPFLAGS      = -I$(top_srcdir)/include -I$(prefix)/include -I. @posix_CFLAGS@
 DEFS             = @thread_defs@
 
 scripts_DATA   = posix.fec posix_consts.fec

@@ -14,7 +14,7 @@
 <!-- TODO v1.1: type hinting, remove operator overloading, exception handling, atomic on functions -->
 
 <document id="ferite-manual">
-    <title>The Ferite Programming Language 1.1.19</title>
+    <title>The Ferite Programming Language 1.2</title>
 
     <section id="introduction">
     	<title>Introduction</title>

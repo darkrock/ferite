@@ -52,7 +52,7 @@ extern "C"
 #endif
   
 #define FERITE_NAME       "ferite"
-#define FERITE_VERSION    "1.1.19"
+#define FERITE_VERSION    "1.2"
 #define FERITE_MAJOR      1
 #define FERITE_MINOR      1
 #define FERITE_RELEASE    19

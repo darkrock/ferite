@@ -81,6 +81,14 @@ namespace Linux {
 			return "${Farm.productsDirForTarget(target)}/${target.getProperty('name')}.so";
 		}
 	}
+	class ModulePlusLibrary extends ModuleLibrary {
+		
+		static function constructor() { Farm.RuleSet.registerBuildHandler( new Darwin.ModulePlusLibrary() ); }
+
+		function type() {
+			return Farm.RuleSet.ModulePlusLibrary;
+		}
+	}
 	class Executable extends Farm.RuleSet.BuildRule {
 		
 		static function constructor() { Farm.RuleSet.registerBuildHandler( new Linux.Executable() ); }

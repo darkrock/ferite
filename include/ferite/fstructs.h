@@ -533,7 +533,7 @@ typedef struct __ferite_array_interface {
 	void                 (*append)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *variable, char *key, size_t location );
 	FeriteVariable      *(*get)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *index );
 	FeriteVariable      *(*set)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *index, FeriteVariable *value );
-	void                *(*delete)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *index );
+	void                *(*_delete)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *index );
 
 	FeriteVariable      *(*pop)( FeriteScript *script, FeriteAbstractArray *array );
 	FeriteVariable      *(*push)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *value );

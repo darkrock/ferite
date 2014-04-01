@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 
 BLD_SRT=`./shtool echo -n -e %B`
 BLD_END=`./shtool echo -n -e %b`
