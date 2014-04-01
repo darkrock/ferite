@@ -61,7 +61,7 @@ FeriteScript *ferite_new_script()
     ptr->include_list = ferite_create_stack( NULL, FE_COMPILER_INTERNAL_STACK_SIZE );
 
     ptr->current_op_file = NULL;
-    ptr->current_op_line = 0;
+    ptr->current_op_line = 1;
 
     ptr->error_state = 0;
     ptr->keep_execution = 0;
