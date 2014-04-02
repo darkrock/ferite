@@ -149,7 +149,6 @@ FE_NATIVE_FUNCTION( ferite_script_function_execute )
 {
 	FeriteExecuteRec	 exec;
 	FeriteStack			 exec_stack;
-	void 				*stack_array[32];
 	FeriteVariable	  *targetvar = NULL, *rval = NULL;
 	int i = 0, stop_execute = 0;
 	int sig_count = function->arg_count;
@@ -170,7 +169,7 @@ FE_NATIVE_FUNCTION( ferite_script_function_execute )
 	exec.function = function;
 	exec.variable_list = (FeriteVariable**)ferite_duplicate_stack_contents( script, function->localvars, (void*(*)(FeriteScript*,void*,void*))ferite_duplicate_variable, NULL );
 	exec.stack = &exec_stack;
-	exec.stack->stack = stack_array;
+	exec.stack->stack = fmalloc( sizeof( void * ) * 32 );
 	exec.stack->stack_ptr = 0;
 	exec.stack->size = 32;
 	exec.block_depth = 0;
@@ -286,6 +285,7 @@ FE_NATIVE_FUNCTION( ferite_script_function_execute )
 
 	script->gc_stack = exec.parent;
 	ferite_clean_up_exec_rec( script, &exec );
+	ffree(exec.stack->stack);
 
 	if( stop_execute )
 		script->is_executing = FE_FALSE;
