@@ -168,6 +168,7 @@ namespace modifies Farm {
 			return true;
 		
 		Console.println( "\nError Invoking '$command'\n" );
+		Sys.system(command);
 		return false;
 	}
 	
@@ -228,16 +229,20 @@ namespace modifies Farm {
 	array locatedPrograms;
 	function locateBinary( string name, array paths ) {
 		string fullPath = "";
-		if( Array.keyExists(.locatedPrograms, name ) )
+		if( name[0] == "/" ) {
+			.locatedPrograms[name] = name;
+			fullPath = name;
+		}
+		else if( Array.keyExists(.locatedPrograms, name ) ) {
 			return .locatedPrograms[name];
-		else
-		{
+		} 
+		else {
 			Array.each( paths ) using ( path ) {
 				if( Posix.stat( path + '/' + name ) != null ) {
 					fullPath = "$path/$name";
 					.locatedPrograms[name] = fullPath;
 					return false;
-				}				
+				}
 			};
 		}
 		return fullPath;
