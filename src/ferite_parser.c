@@ -945,40 +945,40 @@ static const yytype_uint16 yyrline[] =
      398,   399,   400,   401,   402,   406,   407,   408,   411,   413,
      417,   418,   419,   421,   426,   454,   454,   461,   469,   477,
      477,   481,   511,   515,   519,   530,   535,   544,   551,   548,
-     564,   566,   570,   570,   582,   588,   590,   591,   592,   596,
-     597,   601,   602,   605,   607,   611,   612,   616,   617,   618,
-     619,   620,   621,   625,   629,   631,   635,   636,   640,   640,
-     645,   646,   647,   648,   652,   658,   658,   672,   672,   685,
-     685,   696,   697,   700,   702,   706,   715,   722,   728,   729,
-     733,   741,   745,   746,   749,   751,   755,   755,   759,   767,
-     778,   778,   798,   799,   800,   804,   811,   831,   851,   873,
-     893,   917,   918,   922,   923,   927,   936,   947,   949,   953,
-     962,   971,   980,   989,   998,  1007,  1018,  1020,  1024,  1025,
-    1029,  1030,  1034,  1035,  1039,  1048,  1052,  1062,  1063,  1064,
-    1065,  1066,  1067,  1068,  1069,  1070,  1071,  1072,  1073,  1074,
-    1078,  1084,  1089,  1084,  1098,  1102,  1098,  1117,  1121,  1117,
-    1130,  1132,  1136,  1137,  1142,  1142,  1148,  1148,  1155,  1156,
-    1160,  1163,  1165,  1168,  1172,  1175,  1176,  1179,  1180,  1184,
-    1185,  1189,  1190,  1194,  1195,  1196,  1197,  1198,  1199,  1200,
-    1204,  1205,  1209,  1216,  1219,  1221,  1230,  1231,  1232,  1234,
-    1230,  1239,  1239,  1241,  1242,  1246,  1247,  1247,  1252,  1252,
-    1264,  1268,  1270,  1274,  1275,  1281,  1280,  1289,  1291,  1291,
-    1298,  1299,  1299,  1304,  1310,  1314,  1315,  1319,  1327,  1331,
-    1335,  1336,  1337,  1341,  1327,  1353,  1354,  1353,  1356,  1356,
-    1360,  1364,  1365,  1366,  1370,  1378,  1385,  1392,  1399,  1406,
-    1412,  1421,  1426,  1427,  1428,  1433,  1433,  1440,  1447,  1457,
-    1461,  1471,  1472,  1473,  1473,  1478,  1479,  1483,  1484,  1488,
-    1493,  1497,  1509,  1510,  1530,  1531,  1532,  1536,  1537,  1540,
-    1542,  1546,  1547,  1546,  1552,  1556,  1560,  1564,  1568,  1572,
-    1576,  1580,  1585,  1590,  1594,  1598,  1602,  1607,  1612,  1617,
-    1622,  1627,  1627,  1628,  1628,  1629,  1629,  1630,  1630,  1631,
-    1631,  1632,  1632,  1633,  1633,  1634,  1634,  1635,  1635,  1636,
-    1636,  1637,  1648,  1652,  1657,  1661,  1665,  1669,  1673,  1677,
-    1681,  1685,  1692,  1696,  1697,  1698,  1699,  1700,  1701,  1702,
-    1703,  1704,  1705,  1706,  1710,  1711,  1710,  1715,  1717,  1718,
-    1722,  1722,  1735,  1735,  1746,  1746,  1757,  1771,  1777,  1777,
-    1787,  1788,  1792,  1792,  1796,  1796,  1815,  1817,  1821,  1822,
-    1826,  1836,  1842,  1846,  1846,  1855,  1855
+     564,   566,   570,   570,   586,   592,   594,   595,   596,   600,
+     601,   605,   606,   609,   611,   615,   616,   620,   621,   622,
+     623,   624,   625,   629,   633,   635,   639,   640,   644,   644,
+     649,   650,   651,   652,   656,   662,   662,   676,   676,   689,
+     689,   700,   701,   704,   706,   710,   719,   726,   732,   733,
+     737,   745,   749,   750,   753,   755,   759,   759,   763,   771,
+     782,   782,   802,   803,   804,   808,   815,   835,   855,   877,
+     897,   921,   922,   926,   927,   931,   940,   951,   953,   957,
+     966,   975,   984,   993,  1002,  1011,  1022,  1024,  1028,  1029,
+    1033,  1034,  1038,  1039,  1043,  1052,  1056,  1066,  1067,  1068,
+    1069,  1070,  1071,  1072,  1073,  1074,  1075,  1076,  1077,  1078,
+    1082,  1088,  1093,  1088,  1102,  1106,  1102,  1121,  1125,  1121,
+    1134,  1136,  1140,  1141,  1146,  1146,  1152,  1152,  1159,  1160,
+    1164,  1167,  1169,  1172,  1176,  1179,  1180,  1183,  1184,  1188,
+    1189,  1193,  1194,  1198,  1199,  1200,  1201,  1202,  1203,  1204,
+    1208,  1209,  1213,  1220,  1223,  1225,  1234,  1235,  1236,  1238,
+    1234,  1243,  1243,  1245,  1246,  1250,  1251,  1251,  1256,  1256,
+    1268,  1272,  1274,  1278,  1279,  1285,  1284,  1293,  1295,  1295,
+    1302,  1303,  1303,  1308,  1314,  1318,  1319,  1323,  1331,  1335,
+    1339,  1340,  1341,  1345,  1331,  1357,  1358,  1357,  1360,  1360,
+    1364,  1368,  1369,  1370,  1374,  1382,  1389,  1396,  1403,  1410,
+    1416,  1425,  1430,  1431,  1432,  1437,  1437,  1444,  1451,  1461,
+    1465,  1475,  1476,  1477,  1477,  1482,  1483,  1487,  1488,  1492,
+    1497,  1501,  1513,  1514,  1534,  1535,  1536,  1540,  1541,  1544,
+    1546,  1550,  1551,  1550,  1556,  1560,  1564,  1568,  1572,  1576,
+    1580,  1584,  1589,  1594,  1598,  1602,  1606,  1611,  1616,  1621,
+    1626,  1631,  1631,  1632,  1632,  1633,  1633,  1634,  1634,  1635,
+    1635,  1636,  1636,  1637,  1637,  1638,  1638,  1639,  1639,  1640,
+    1640,  1641,  1652,  1656,  1661,  1665,  1669,  1673,  1677,  1681,
+    1685,  1689,  1696,  1700,  1701,  1702,  1703,  1704,  1705,  1706,
+    1707,  1708,  1709,  1710,  1714,  1715,  1714,  1719,  1721,  1722,
+    1726,  1726,  1739,  1739,  1750,  1750,  1761,  1775,  1781,  1781,
+    1791,  1792,  1796,  1796,  1800,  1800,  1819,  1821,  1825,  1826,
+    1830,  1840,  1846,  1850,  1850,  1859,  1859
 };
 #endif
 
@@ -3167,6 +3167,10 @@ yyreduce:
   case 103:
 #line 573 "ferite_parser.y"
     {
+										ferite_hint_current_type = ferite_subtype_link( CURRENT_SCRIPT, ferite_hint_typestring );
+										if( ferite_hint_current_type == NULL && CURRENT_SCRIPT->error_state == FE_ERROR_THROWN ) {
+											feperror(NULL);
+										}
 										FUD(("PARSER: Parameter Declared		 %s (%d)\n", (yyvsp[(5) - (5)].text), ferite_last_type));
 										ferite_do_add_variable_to_paramlist( (yyvsp[(5) - (5)].text), ferite_last_type, ferite_hint_current_type, ferite_var_pass_type );
 										ffree_ngc( (yyvsp[(5) - (5)].text) ); FECT;
@@ -3175,7 +3179,7 @@ yyreduce:
     break;
 
   case 104:
-#line 582 "ferite_parser.y"
+#line 586 "ferite_parser.y"
     {
 										FUD(("PARSER: Parameter Declared - Multiple Args\n"));
 										ferite_do_add_variable_to_paramlist( "...", F_VAR_VOID, ferite_subtype_link(CURRENT_SCRIPT, "V"), FE_BY_VALUE );
@@ -3183,27 +3187,27 @@ yyreduce:
     break;
 
   case 111:
-#line 601 "ferite_parser.y"
+#line 605 "ferite_parser.y"
     { ferite_do_namespace_header( (yyvsp[(2) - (2)].text) ); ffree_ngc( (yyvsp[(2) - (2)].text) ); FECT; ;}
     break;
 
   case 112:
-#line 602 "ferite_parser.y"
+#line 606 "ferite_parser.y"
     { ferite_do_namespace_extends( (yyvsp[(3) - (3)].text) ); ffree_ngc( (yyvsp[(3) - (3)].text) );  FECT; ;}
     break;
 
   case 123:
-#line 626 "ferite_parser.y"
+#line 630 "ferite_parser.y"
     { ferite_do_namespace_footer(); ;}
     break;
 
   case 128:
-#line 640 "ferite_parser.y"
+#line 644 "ferite_parser.y"
     { ferite_item_state = -1; ;}
     break;
 
   case 134:
-#line 652 "ferite_parser.y"
+#line 656 "ferite_parser.y"
     {
 										FUD(("CLASS START\n" ));
 										ferite_do_class_header( (yyvsp[(1) - (1)].text), NULL, ferite_class_state );
@@ -3213,14 +3217,14 @@ yyreduce:
     break;
 
   case 135:
-#line 658 "ferite_parser.y"
+#line 662 "ferite_parser.y"
     {
 										ferite_scanner_want_dot_label();
 									;}
     break;
 
   case 136:
-#line 661 "ferite_parser.y"
+#line 665 "ferite_parser.y"
     {
 										FUD(("CLASS START\n" ));
 										ferite_scanner_stop_dot_label();
@@ -3232,14 +3236,14 @@ yyreduce:
     break;
 
   case 137:
-#line 672 "ferite_parser.y"
+#line 676 "ferite_parser.y"
     {
 										ferite_scanner_want_dot_label();
 									;}
     break;
 
   case 138:
-#line 675 "ferite_parser.y"
+#line 679 "ferite_parser.y"
     {
 										FUD(("CLASS START\n" ));
 										ferite_scanner_stop_dot_label();
@@ -3250,14 +3254,14 @@ yyreduce:
     break;
 
   case 139:
-#line 685 "ferite_parser.y"
+#line 689 "ferite_parser.y"
     {
 										ferite_scanner_want_dot_label();
 									;}
     break;
 
   case 140:
-#line 688 "ferite_parser.y"
+#line 692 "ferite_parser.y"
     {
 										ferite_scanner_stop_dot_label();
 										ferite_do_class_implements( (yyvsp[(2) - (2)].text) );
@@ -3266,7 +3270,7 @@ yyreduce:
     break;
 
   case 145:
-#line 708 "ferite_parser.y"
+#line 712 "ferite_parser.y"
     {
 										FUD(("CLASS END\n" ));
 										ferite_do_class_footer();
@@ -3274,14 +3278,14 @@ yyreduce:
     break;
 
   case 146:
-#line 716 "ferite_parser.y"
+#line 720 "ferite_parser.y"
     {
 										ferite_do_class_footer();
 									;}
     break;
 
   case 150:
-#line 733 "ferite_parser.y"
+#line 737 "ferite_parser.y"
     {
 							ferite_do_class_header( (yyvsp[(2) - (2)].text), NULL, FE_ITEM_IS_PROTOCOL );
 							ferite_class_state = 0;
@@ -3290,19 +3294,19 @@ yyreduce:
     break;
 
   case 156:
-#line 755 "ferite_parser.y"
+#line 759 "ferite_parser.y"
     { ferite_class_state = -1; ;}
     break;
 
   case 158:
-#line 760 "ferite_parser.y"
+#line 764 "ferite_parser.y"
     {
 										ferite_do_class_footer();
 									;}
     break;
 
   case 159:
-#line 767 "ferite_parser.y"
+#line 771 "ferite_parser.y"
     {
 										FUD(("PARSER: Variable Declared		 %s(%d)\n", (yyvsp[(1) - (1)].text), ferite_last_type));
 										if( ferite_var_is_native )
@@ -3317,7 +3321,7 @@ yyreduce:
     break;
 
   case 160:
-#line 778 "ferite_parser.y"
+#line 782 "ferite_parser.y"
     {
 										FUD(("PARSER: Variable Declared		 %s(%d)\n", (yyvsp[(1) - (2)].text), ferite_last_type));
 										if( ferite_var_is_native )
@@ -3333,7 +3337,7 @@ yyreduce:
     break;
 
   case 161:
-#line 790 "ferite_parser.y"
+#line 794 "ferite_parser.y"
     {
 										ferite_do_binary_op( FERITE_OPCODE_assign );
 										FUD(("PARSER: op->assign	   pop,pop\n"));
@@ -3342,22 +3346,22 @@ yyreduce:
     break;
 
   case 162:
-#line 798 "ferite_parser.y"
+#line 802 "ferite_parser.y"
     {   ferite_namespace_naturaln = 0 - (yyvsp[(2) - (2)].inumber); ;}
     break;
 
   case 163:
-#line 799 "ferite_parser.y"
+#line 803 "ferite_parser.y"
     {   ferite_namespace_naturaln = (yyvsp[(2) - (2)].inumber); ;}
     break;
 
   case 164:
-#line 800 "ferite_parser.y"
+#line 804 "ferite_parser.y"
     {   ferite_namespace_naturaln = (yyvsp[(1) - (1)].inumber); ;}
     break;
 
   case 165:
-#line 804 "ferite_parser.y"
+#line 808 "ferite_parser.y"
     {
 										FUD(("PARSER: Variable Declared		 %s(%d)\n", (yyvsp[(1) - (1)].text), ferite_last_type));
 										if( ferite_var_is_native )
@@ -3368,7 +3372,7 @@ yyreduce:
     break;
 
   case 166:
-#line 811 "ferite_parser.y"
+#line 815 "ferite_parser.y"
     {
 										if( ferite_var_is_native )
 										  ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", (yyvsp[(1) - (3)].text), ferite_scanner_lineno, ferite_scanner_file );
@@ -3392,7 +3396,7 @@ yyreduce:
     break;
 
   case 167:
-#line 831 "ferite_parser.y"
+#line 835 "ferite_parser.y"
     {
 										if( ferite_var_is_native )
 										  ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", (yyvsp[(1) - (3)].text), ferite_scanner_lineno, ferite_scanner_file );
@@ -3416,7 +3420,7 @@ yyreduce:
     break;
 
   case 168:
-#line 851 "ferite_parser.y"
+#line 855 "ferite_parser.y"
     {
 										if( ferite_var_is_native )
 										  ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", (yyvsp[(1) - (3)].text), ferite_scanner_lineno, ferite_scanner_file );
@@ -3442,7 +3446,7 @@ yyreduce:
     break;
 
   case 169:
-#line 873 "ferite_parser.y"
+#line 877 "ferite_parser.y"
     {
 									   if( ferite_var_is_native )
 										 ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", (yyvsp[(1) - (3)].text), ferite_scanner_lineno, ferite_scanner_file );
@@ -3466,7 +3470,7 @@ yyreduce:
     break;
 
   case 170:
-#line 893 "ferite_parser.y"
+#line 897 "ferite_parser.y"
     {
 									   if( ferite_var_is_native )
 										 ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", (yyvsp[(1) - (3)].text), ferite_scanner_lineno, ferite_scanner_file );
@@ -3490,7 +3494,7 @@ yyreduce:
     break;
 
   case 175:
-#line 927 "ferite_parser.y"
+#line 931 "ferite_parser.y"
     {
 									  if( ferite_class_state > 0 )
 									  {
@@ -3503,7 +3507,7 @@ yyreduce:
     break;
 
   case 176:
-#line 936 "ferite_parser.y"
+#line 940 "ferite_parser.y"
     {
 									  if( ferite_class_state > 0 )
 									  {
@@ -3516,7 +3520,7 @@ yyreduce:
     break;
 
   case 179:
-#line 953 "ferite_parser.y"
+#line 957 "ferite_parser.y"
     {
 									  if( ferite_var_is_final )
 									  {
@@ -3529,7 +3533,7 @@ yyreduce:
     break;
 
   case 180:
-#line 962 "ferite_parser.y"
+#line 966 "ferite_parser.y"
     {
 									  if( ferite_var_is_static )
 									  {
@@ -3542,7 +3546,7 @@ yyreduce:
     break;
 
   case 181:
-#line 971 "ferite_parser.y"
+#line 975 "ferite_parser.y"
     {
 									  if( ferite_var_is_atomic )
 									  {
@@ -3555,7 +3559,7 @@ yyreduce:
     break;
 
   case 182:
-#line 980 "ferite_parser.y"
+#line 984 "ferite_parser.y"
     {
 									  if( ferite_var_is_native )
 									  {
@@ -3568,7 +3572,7 @@ yyreduce:
     break;
 
   case 183:
-#line 989 "ferite_parser.y"
+#line 993 "ferite_parser.y"
     {
 									  if( ferite_item_state > -1 )
 									  {
@@ -3581,7 +3585,7 @@ yyreduce:
     break;
 
   case 184:
-#line 998 "ferite_parser.y"
+#line 1002 "ferite_parser.y"
     {
 									  if( ferite_item_state > -1 )
 									  {
@@ -3594,7 +3598,7 @@ yyreduce:
     break;
 
   case 185:
-#line 1007 "ferite_parser.y"
+#line 1011 "ferite_parser.y"
     {
 									  if( ferite_item_state > -1 )
 									  {
@@ -3607,7 +3611,7 @@ yyreduce:
     break;
 
   case 194:
-#line 1039 "ferite_parser.y"
+#line 1043 "ferite_parser.y"
     {
 									  if( ferite_var_is_final )
 									  {
@@ -3620,7 +3624,7 @@ yyreduce:
     break;
 
   case 196:
-#line 1052 "ferite_parser.y"
+#line 1056 "ferite_parser.y"
     {
 						if( ferite_hint_typestring[strlen(ferite_hint_typestring) - 1] == 'A' ) {
 							strcat( ferite_hint_typestring, "O" );
@@ -3634,72 +3638,72 @@ yyreduce:
     break;
 
   case 197:
-#line 1062 "ferite_parser.y"
+#line 1066 "ferite_parser.y"
     { ferite_error(CURRENT_SCRIPT, 0, "Quoted string hint type not supported\n" ); ffree_ngc((yyvsp[(1) - (1)].text)); FECT; feperror( NULL ); ;}
     break;
 
   case 198:
-#line 1063 "ferite_parser.y"
+#line 1067 "ferite_parser.y"
     { ferite_error(CURRENT_SCRIPT, 0, "Floating point hint type not supported\n" ); feperror( NULL ); ;}
     break;
 
   case 199:
-#line 1064 "ferite_parser.y"
+#line 1068 "ferite_parser.y"
     { ferite_error(CURRENT_SCRIPT, 0, "Natural nunber hint type not supported\n" ); feperror( NULL ); ;}
     break;
 
   case 200:
-#line 1065 "ferite_parser.y"
-    { strcat( ferite_hint_typestring, "L" ); ;}
+#line 1069 "ferite_parser.y"
+    { strcpy( ferite_hint_typestring, "L" ); ;}
     break;
 
   case 201:
-#line 1066 "ferite_parser.y"
-    { strcat( ferite_hint_typestring, "L" ); ;}
+#line 1070 "ferite_parser.y"
+    { strcpy( ferite_hint_typestring, "L" ); ;}
     break;
 
   case 202:
-#line 1067 "ferite_parser.y"
-    { strcat( ferite_hint_typestring, "D" ); ;}
+#line 1071 "ferite_parser.y"
+    { strcpy( ferite_hint_typestring, "D" ); ;}
     break;
 
   case 203:
-#line 1068 "ferite_parser.y"
+#line 1072 "ferite_parser.y"
     { strcat( ferite_hint_typestring, "S" ); ;}
     break;
 
   case 204:
-#line 1069 "ferite_parser.y"
+#line 1073 "ferite_parser.y"
     { strcat( ferite_hint_typestring, "V" ); ;}
     break;
 
   case 205:
-#line 1070 "ferite_parser.y"
+#line 1074 "ferite_parser.y"
     { strcat( ferite_hint_typestring, "O" ); ;}
     break;
 
   case 206:
-#line 1071 "ferite_parser.y"
+#line 1075 "ferite_parser.y"
     { strcat( ferite_hint_typestring, "A" ); ;}
     break;
 
   case 207:
-#line 1072 "ferite_parser.y"
+#line 1076 "ferite_parser.y"
     { strcat( ferite_hint_typestring, "B" ); ;}
     break;
 
   case 208:
-#line 1073 "ferite_parser.y"
+#line 1077 "ferite_parser.y"
     { strcat( ferite_hint_typestring, "C" ); ;}
     break;
 
   case 209:
-#line 1074 "ferite_parser.y"
+#line 1078 "ferite_parser.y"
     { strcat( ferite_hint_typestring, "N" ); ;}
     break;
 
   case 210:
-#line 1078 "ferite_parser.y"
+#line 1082 "ferite_parser.y"
     {
 										if( ferite_seeking_return_type_fix && ferite_hint_depth == 0 ) {
 											yyclearin; 
@@ -3709,7 +3713,7 @@ yyreduce:
     break;
 
   case 211:
-#line 1084 "ferite_parser.y"
+#line 1088 "ferite_parser.y"
     {
 										ferite_hint_depth++;
 										ferite_scanner_want_end_hint(); 
@@ -3718,12 +3722,12 @@ yyreduce:
     break;
 
   case 212:
-#line 1089 "ferite_parser.y"
+#line 1093 "ferite_parser.y"
     { ferite_scanner_stop_typing_label(); ;}
     break;
 
   case 213:
-#line 1091 "ferite_parser.y"
+#line 1095 "ferite_parser.y"
     { 
 										ferite_scanner_stop_end_hint();
 										ferite_hint_depth--;
@@ -3731,7 +3735,7 @@ yyreduce:
     break;
 
   case 214:
-#line 1098 "ferite_parser.y"
+#line 1102 "ferite_parser.y"
     {
 										FUD(("PARSER: Setting current type to %d\n", ferite_last_type ));
 										ferite_hint_depth = 0;
@@ -3739,7 +3743,7 @@ yyreduce:
     break;
 
   case 215:
-#line 1102 "ferite_parser.y"
+#line 1106 "ferite_parser.y"
     {
 										ferite_hint_current_type = ferite_subtype_link( CURRENT_SCRIPT, ferite_hint_typestring );
 										if( ferite_hint_current_type == NULL && CURRENT_SCRIPT->error_state == FE_ERROR_THROWN ) {
@@ -3749,7 +3753,7 @@ yyreduce:
     break;
 
   case 216:
-#line 1108 "ferite_parser.y"
+#line 1112 "ferite_parser.y"
     { 
 										ferite_var_is_final = FE_FALSE; 
 										ferite_var_is_static = FE_FALSE; 
@@ -3759,7 +3763,7 @@ yyreduce:
     break;
 
   case 217:
-#line 1117 "ferite_parser.y"
+#line 1121 "ferite_parser.y"
     {
 										FUD(("PARSER: Setting current type to %d\n", ferite_last_type ));
 										ferite_hint_depth = 0;
@@ -3767,7 +3771,7 @@ yyreduce:
     break;
 
   case 218:
-#line 1121 "ferite_parser.y"
+#line 1125 "ferite_parser.y"
     {
 										ferite_hint_current_type = ferite_subtype_link( CURRENT_SCRIPT, ferite_hint_typestring );
 										if( ferite_hint_current_type == NULL && CURRENT_SCRIPT->error_state == FE_ERROR_THROWN ) {
@@ -3777,32 +3781,32 @@ yyreduce:
     break;
 
   case 219:
-#line 1127 "ferite_parser.y"
+#line 1131 "ferite_parser.y"
     { ferite_var_is_final = FE_FALSE; ferite_var_is_static = FE_FALSE; ferite_var_is_atomic = FE_FALSE; ferite_var_is_native = FE_FALSE; ;}
     break;
 
   case 224:
-#line 1142 "ferite_parser.y"
+#line 1146 "ferite_parser.y"
     { ferite_do_begin_block(); ;}
     break;
 
   case 225:
-#line 1145 "ferite_parser.y"
+#line 1149 "ferite_parser.y"
     { ferite_do_end_block(); ;}
     break;
 
   case 226:
-#line 1148 "ferite_parser.y"
+#line 1152 "ferite_parser.y"
     { ferite_do_begin_block(); ;}
     break;
 
   case 227:
-#line 1151 "ferite_parser.y"
+#line 1155 "ferite_parser.y"
     { ferite_do_end_block(); ;}
     break;
 
   case 233:
-#line 1168 "ferite_parser.y"
+#line 1172 "ferite_parser.y"
     {
 								ferite_error( CURRENT_SCRIPT, 0, "You are not allowed to have empty handle blocks.\n" );
 	  							feperror( NULL );
@@ -3810,27 +3814,27 @@ yyreduce:
     break;
 
   case 243:
-#line 1194 "ferite_parser.y"
+#line 1198 "ferite_parser.y"
     { ferite_do_pop(); /* clear up the stupid stack ie wham = 2 + 3 leaves a variable on the stack*/ ;}
     break;
 
   case 247:
-#line 1198 "ferite_parser.y"
+#line 1202 "ferite_parser.y"
     { ferite_do_break(); ;}
     break;
 
   case 248:
-#line 1199 "ferite_parser.y"
+#line 1203 "ferite_parser.y"
     { ferite_do_continue(); ;}
     break;
 
   case 249:
-#line 1200 "ferite_parser.y"
+#line 1204 "ferite_parser.y"
     { ferite_do_raise(); ;}
     break;
 
   case 252:
-#line 1209 "ferite_parser.y"
+#line 1213 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_void_variable( NULL, "compiled-in-return-value", FE_STATIC );
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -3841,12 +3845,12 @@ yyreduce:
     break;
 
   case 253:
-#line 1216 "ferite_parser.y"
+#line 1220 "ferite_parser.y"
     {  ferite_do_exit(); ;}
     break;
 
   case 255:
-#line 1221 "ferite_parser.y"
+#line 1225 "ferite_parser.y"
     {
 						ferite_do_add_variable( (yyvsp[(2) - (3)].text), F_VAR_OBJ, ferite_subtype_link(CURRENT_SCRIPT, "O"), FE_FALSE, FE_TRUE, FE_FALSE, FE_FALSE, FE_ITEM_IS_PUBLIC, FE_FALSE );
 						ferite_do_variable_push( (yyvsp[(2) - (3)].text) );
@@ -3856,97 +3860,97 @@ yyreduce:
     break;
 
   case 256:
-#line 1230 "ferite_parser.y"
+#line 1234 "ferite_parser.y"
     { ferite_do_monitor_block(); ;}
     break;
 
   case 257:
-#line 1231 "ferite_parser.y"
+#line 1235 "ferite_parser.y"
     { ferite_do_before_handle_block(); ;}
     break;
 
   case 258:
-#line 1232 "ferite_parser.y"
+#line 1236 "ferite_parser.y"
     { ferite_do_begin_block(); ;}
     break;
 
   case 259:
-#line 1234 "ferite_parser.y"
+#line 1238 "ferite_parser.y"
     { ferite_do_end_block() ; ;}
     break;
 
   case 261:
-#line 1239 "ferite_parser.y"
+#line 1243 "ferite_parser.y"
     { ferite_do_if_statement(); ;}
     break;
 
   case 265:
-#line 1246 "ferite_parser.y"
+#line 1250 "ferite_parser.y"
     { ferite_do_after_then_statement(); ;}
     break;
 
   case 266:
-#line 1247 "ferite_parser.y"
+#line 1251 "ferite_parser.y"
     { ferite_do_after_then_before_else_statement(); ;}
     break;
 
   case 267:
-#line 1248 "ferite_parser.y"
+#line 1252 "ferite_parser.y"
     {  ferite_do_after_else_statement(); ;}
     break;
 
   case 268:
-#line 1252 "ferite_parser.y"
+#line 1256 "ferite_parser.y"
     {
 										ferite_do_pre_switch();
 									;}
     break;
 
   case 269:
-#line 1258 "ferite_parser.y"
+#line 1262 "ferite_parser.y"
     {
 										ferite_do_post_switch();
 									;}
     break;
 
   case 275:
-#line 1281 "ferite_parser.y"
+#line 1285 "ferite_parser.y"
     {
 										ferite_do_case_block_start();
 									;}
     break;
 
   case 276:
-#line 1284 "ferite_parser.y"
+#line 1288 "ferite_parser.y"
     {
 										ferite_do_case_block_end();
 									;}
     break;
 
   case 278:
-#line 1291 "ferite_parser.y"
+#line 1295 "ferite_parser.y"
     {
 										ferite_do_default_block_start();
 									;}
     break;
 
   case 280:
-#line 1298 "ferite_parser.y"
+#line 1302 "ferite_parser.y"
     { ferite_do_after_fix_block(); ;}
     break;
 
   case 281:
-#line 1299 "ferite_parser.y"
+#line 1303 "ferite_parser.y"
     { ferite_do_after_fix_before_else_block(); ;}
     break;
 
   case 282:
-#line 1300 "ferite_parser.y"
+#line 1304 "ferite_parser.y"
     { ferite_do_after_fix_else_statement(); ;}
     break;
 
   case 283:
-#line 1304 "ferite_parser.y"
+#line 1308 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_number_long_variable( NULL, "forconst", 1, FE_STATIC );
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -3956,12 +3960,12 @@ yyreduce:
     break;
 
   case 285:
-#line 1314 "ferite_parser.y"
+#line 1318 "ferite_parser.y"
     { ferite_do_pop(); ;}
     break;
 
   case 287:
-#line 1319 "ferite_parser.y"
+#line 1323 "ferite_parser.y"
     {
 										ferite_error( CURRENT_SCRIPT, 0, "'foreach' has been removed from ferite for more elegant methods.\n" );
 										ferite_error( CURRENT_SCRIPT, 0, "Please console the documentation for the Array module.\n" );
@@ -3970,7 +3974,7 @@ yyreduce:
     break;
 
   case 288:
-#line 1327 "ferite_parser.y"
+#line 1331 "ferite_parser.y"
     {
 									ferite_do_begin_block();
 										FUD(("PARSER: [FOR] Begin Initial Expression\n"));
@@ -3978,7 +3982,7 @@ yyreduce:
     break;
 
   case 289:
-#line 1331 "ferite_parser.y"
+#line 1335 "ferite_parser.y"
     {
 										FUD(("PARSER: [FOR] End Initial Expression\n"));
 										ferite_do_for_loop_start();
@@ -3986,17 +3990,17 @@ yyreduce:
     break;
 
   case 290:
-#line 1335 "ferite_parser.y"
+#line 1339 "ferite_parser.y"
     { FUD(("PARSER: [FOR] Begin Test Expression\n")); ;}
     break;
 
   case 291:
-#line 1336 "ferite_parser.y"
+#line 1340 "ferite_parser.y"
     { FUD(("PARSER: [FOR] End Test Expression\n")); ;}
     break;
 
   case 292:
-#line 1337 "ferite_parser.y"
+#line 1341 "ferite_parser.y"
     {
 										FUD(("PARSER: [FOR] Begin Itterator Expression\n"));
 										ferite_do_for_loop_itterate();
@@ -4004,7 +4008,7 @@ yyreduce:
     break;
 
   case 293:
-#line 1341 "ferite_parser.y"
+#line 1345 "ferite_parser.y"
     {
 										FUD(("PARSER: [FOR] End Itterator Expression\n"));
 										ferite_do_pop();
@@ -4013,7 +4017,7 @@ yyreduce:
     break;
 
   case 294:
-#line 1347 "ferite_parser.y"
+#line 1351 "ferite_parser.y"
     {
 										FUD(("PARSER: [FOR] Jump back to test expression\n"));
 										ferite_do_for_loop_end();
@@ -4022,32 +4026,32 @@ yyreduce:
     break;
 
   case 295:
-#line 1353 "ferite_parser.y"
+#line 1357 "ferite_parser.y"
     { ferite_do_while_begin(); ;}
     break;
 
   case 296:
-#line 1354 "ferite_parser.y"
+#line 1358 "ferite_parser.y"
     { ferite_do_while_after_expr(); ;}
     break;
 
   case 297:
-#line 1355 "ferite_parser.y"
+#line 1359 "ferite_parser.y"
     { ferite_do_while_end(); ;}
     break;
 
   case 298:
-#line 1356 "ferite_parser.y"
+#line 1360 "ferite_parser.y"
     { ferite_do_do_start(); ;}
     break;
 
   case 299:
-#line 1358 "ferite_parser.y"
+#line 1362 "ferite_parser.y"
     { ferite_do_do_end(); ;}
     break;
 
   case 304:
-#line 1370 "ferite_parser.y"
+#line 1374 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_string_variable_from_ptr( NULL, "strconst", (yyvsp[(1) - (1)].text), 0, FE_CHARSET_DEFAULT, FE_STATIC );
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -4059,7 +4063,7 @@ yyreduce:
     break;
 
   case 305:
-#line 1378 "ferite_parser.y"
+#line 1382 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_boolean_variable( NULL, "true", FE_TRUE, FE_STATIC );
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -4070,7 +4074,7 @@ yyreduce:
     break;
 
   case 306:
-#line 1385 "ferite_parser.y"
+#line 1389 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_boolean_variable( NULL, "false", FE_FALSE, FE_STATIC );
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -4081,7 +4085,7 @@ yyreduce:
     break;
 
   case 307:
-#line 1392 "ferite_parser.y"
+#line 1396 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_number_long_variable( NULL, "longconst", (yyvsp[(1) - (1)].inumber), FE_STATIC );
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -4092,7 +4096,7 @@ yyreduce:
     break;
 
   case 308:
-#line 1399 "ferite_parser.y"
+#line 1403 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_number_double_variable( NULL, "doubleconst", (yyvsp[(1) - (1)].fnumber), FE_STATIC );
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -4103,7 +4107,7 @@ yyreduce:
     break;
 
   case 309:
-#line 1406 "ferite_parser.y"
+#line 1410 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_number_long_variable( NULL, "__LINE__", ferite_scanner_lineno, FE_STATIC );
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -4113,7 +4117,7 @@ yyreduce:
     break;
 
   case 310:
-#line 1412 "ferite_parser.y"
+#line 1416 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_string_variable_from_ptr( NULL, "__FILE__", ferite_scanner_file, 0, FE_CHARSET_DEFAULT, FE_STATIC );
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -4123,7 +4127,7 @@ yyreduce:
     break;
 
   case 311:
-#line 1421 "ferite_parser.y"
+#line 1425 "ferite_parser.y"
     {
 										ferite_do_variable_push( (yyvsp[(1) - (1)].text) );
 										FUD(("PARSER: push(cvar)	   %s\n", (yyvsp[(1) - (1)].text)));
@@ -4132,17 +4136,17 @@ yyreduce:
     break;
 
   case 312:
-#line 1426 "ferite_parser.y"
+#line 1430 "ferite_parser.y"
     {   ferite_do_variable_push( "self" ); ferite_objcall_is_self = FE_TRUE; ;}
     break;
 
   case 313:
-#line 1427 "ferite_parser.y"
+#line 1431 "ferite_parser.y"
     {   ferite_do_variable_push( "super" ); ferite_objcall_is_super = FE_TRUE; ;}
     break;
 
   case 314:
-#line 1429 "ferite_parser.y"
+#line 1433 "ferite_parser.y"
     {
 										FUD(("PARSER: op->array_slice\n"));
 										ferite_do_many_op( FERITE_OPCODE_array_slice,3);
@@ -4150,7 +4154,7 @@ yyreduce:
     break;
 
   case 315:
-#line 1433 "ferite_parser.y"
+#line 1437 "ferite_parser.y"
     {
 										FUD(("PARSER: op->array_slice\n"));
 										ferite_temp_variable = ferite_create_number_long_variable( NULL, "slice_first",0, FE_STATIC );
@@ -4160,12 +4164,12 @@ yyreduce:
     break;
 
   case 316:
-#line 1439 "ferite_parser.y"
+#line 1443 "ferite_parser.y"
     { ferite_do_many_op(FERITE_OPCODE_array_slice,3); ;}
     break;
 
   case 317:
-#line 1440 "ferite_parser.y"
+#line 1444 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_void_variable( NULL, "sliceconst", FE_STATIC );
 										MARK_VARIABLE_AS_PLACEHOLDER( ferite_temp_variable );
@@ -4176,7 +4180,7 @@ yyreduce:
     break;
 
   case 318:
-#line 1447 "ferite_parser.y"
+#line 1451 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_number_long_variable( NULL, "slice_first",0, FE_STATIC );
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -4190,7 +4194,7 @@ yyreduce:
     break;
 
   case 319:
-#line 1457 "ferite_parser.y"
+#line 1461 "ferite_parser.y"
     {
 										FUD(("PARSER: op->array_index"));
 										ferite_do_binary_op(FERITE_OPCODE_array_index);
@@ -4198,7 +4202,7 @@ yyreduce:
     break;
 
   case 320:
-#line 1461 "ferite_parser.y"
+#line 1465 "ferite_parser.y"
     {   /* that dash cunning end of array index type thingy.... */
 										/* it wasnt cunning enough because it broke with the introduction of negative indices ;) - ntropy*/
 										ferite_temp_variable = ferite_create_void_variable( NULL, "void-placeholder", FE_STATIC );
@@ -4212,12 +4216,12 @@ yyreduce:
     break;
 
   case 323:
-#line 1473 "ferite_parser.y"
+#line 1477 "ferite_parser.y"
     { ferite_do_self_push(); ferite_objcall_is_self = FE_TRUE; ;}
     break;
 
   case 329:
-#line 1488 "ferite_parser.y"
+#line 1492 "ferite_parser.y"
     {
 										ferite_do_variable_push( (yyvsp[(1) - (1)].text) );
 										FUD(("PARSER: push(cvar)	   %s\n", (yyvsp[(1) - (1)].text)));
@@ -4226,7 +4230,7 @@ yyreduce:
     break;
 
   case 331:
-#line 1497 "ferite_parser.y"
+#line 1501 "ferite_parser.y"
     {
 										ferite_do_variable_pushattr( (yyvsp[(2) - (2)].text), ferite_objcall_is_self, ferite_objcall_is_super );
 										if( ferite_objcall_is_self || ferite_objcall_is_super ) {
@@ -4239,7 +4243,7 @@ yyreduce:
     break;
 
   case 333:
-#line 1512 "ferite_parser.y"
+#line 1516 "ferite_parser.y"
     {
 										int *value = ferite_stack_pop( FE_NoScript, ferite_argcount_stack );
 										FUD(("PARSER: op->c_obj_func	   %s\n", (yyvsp[(2) - (6)].text) ));
@@ -4258,27 +4262,27 @@ yyreduce:
     break;
 
   case 334:
-#line 1530 "ferite_parser.y"
+#line 1534 "ferite_parser.y"
     { ferite_do_add_variable_to_paramlist( (yyvsp[(1) - (1)].text), F_VAR_VOID, ferite_subtype_link(CURRENT_SCRIPT, "V"), FE_BY_VALUE ); ffree_ngc( (yyvsp[(1) - (1)].text) ); FECT; ;}
     break;
 
   case 341:
-#line 1546 "ferite_parser.y"
+#line 1550 "ferite_parser.y"
     { ferite_do_closure_start(); ;}
     break;
 
   case 342:
-#line 1547 "ferite_parser.y"
+#line 1551 "ferite_parser.y"
     { ferite_do_closure_end_of_args(); ;}
     break;
 
   case 343:
-#line 1548 "ferite_parser.y"
+#line 1552 "ferite_parser.y"
     { ferite_do_closure_end(); ;}
     break;
 
   case 345:
-#line 1556 "ferite_parser.y"
+#line 1560 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_add );
 										 FUD(("PARSER: op->add		  pop,pop\n"));
@@ -4286,7 +4290,7 @@ yyreduce:
     break;
 
   case 346:
-#line 1560 "ferite_parser.y"
+#line 1564 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_minus );
 										 FUD(("PARSER: op->minus		pop,pop\n"));
@@ -4294,7 +4298,7 @@ yyreduce:
     break;
 
   case 347:
-#line 1564 "ferite_parser.y"
+#line 1568 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_mult );
 										 FUD(("PARSER: op->mult		 pop,pop\n"));
@@ -4302,7 +4306,7 @@ yyreduce:
     break;
 
   case 348:
-#line 1568 "ferite_parser.y"
+#line 1572 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_divide );
 										 FUD(("PARSER: op->divide	   pop,pop\n"));
@@ -4310,7 +4314,7 @@ yyreduce:
     break;
 
   case 349:
-#line 1572 "ferite_parser.y"
+#line 1576 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_modulus );
 										 FUD(("PARSER: op->modulus	  pop,pop\n"));
@@ -4318,7 +4322,7 @@ yyreduce:
     break;
 
   case 350:
-#line 1576 "ferite_parser.y"
+#line 1580 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_equals );
 										 FUD(("PARSER: op->equals	   pop,pop\n"));
@@ -4326,7 +4330,7 @@ yyreduce:
     break;
 
   case 351:
-#line 1581 "ferite_parser.y"
+#line 1585 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_less_than_equals );
 										 FUD(("PARSER: op->less_than_eq pop,pop\n"));
@@ -4334,7 +4338,7 @@ yyreduce:
     break;
 
   case 352:
-#line 1586 "ferite_parser.y"
+#line 1590 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_greater_than_equals );
 										 FUD(("PARSER: op->grtr_then_eq pop,pop\n"));
@@ -4342,7 +4346,7 @@ yyreduce:
     break;
 
   case 353:
-#line 1590 "ferite_parser.y"
+#line 1594 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_less_than );
 										 FUD(("PARSER: op->less_than	pop,pop\n"));
@@ -4350,7 +4354,7 @@ yyreduce:
     break;
 
   case 354:
-#line 1594 "ferite_parser.y"
+#line 1598 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_greater_than );
 										 FUD(("PARSER: op->grtr_then	pop,pop\n"));
@@ -4358,7 +4362,7 @@ yyreduce:
     break;
 
   case 355:
-#line 1598 "ferite_parser.y"
+#line 1602 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_notequals );
 										 FUD(("PARSER: op->not_equal	pop,pop\n"));
@@ -4366,7 +4370,7 @@ yyreduce:
     break;
 
   case 356:
-#line 1603 "ferite_parser.y"
+#line 1607 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_left_shift );
 										 FUD(("PARSER: op->left_shift	pop,pop\n"));
@@ -4374,7 +4378,7 @@ yyreduce:
     break;
 
   case 357:
-#line 1608 "ferite_parser.y"
+#line 1612 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_right_shift );
 										 FUD(("PARSER: op->right_shift	pop,pop\n"));
@@ -4382,7 +4386,7 @@ yyreduce:
     break;
 
   case 358:
-#line 1613 "ferite_parser.y"
+#line 1617 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_binary_or );
 										 FUD(("PARSER: op->binary_or	pop,pop\n"));
@@ -4390,7 +4394,7 @@ yyreduce:
     break;
 
   case 359:
-#line 1618 "ferite_parser.y"
+#line 1622 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_binary_and );
 										 FUD(("PARSER: op->binary_and   pop,pop\n"));
@@ -4398,7 +4402,7 @@ yyreduce:
     break;
 
   case 360:
-#line 1623 "ferite_parser.y"
+#line 1627 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_binary_xor );
 										 FUD(("PARSER: op->binary_xor	pop,pop\n"));
@@ -4406,107 +4410,107 @@ yyreduce:
     break;
 
   case 361:
-#line 1627 "ferite_parser.y"
+#line 1631 "ferite_parser.y"
     { ASSIGNMENT_SETUP() ;}
     break;
 
   case 362:
-#line 1627 "ferite_parser.y"
+#line 1631 "ferite_parser.y"
     { ASSIGNMENT_TEARDOWN( FERITE_OPCODE_assign, FERITE_OPCODE_assign ); ;}
     break;
 
   case 363:
-#line 1628 "ferite_parser.y"
+#line 1632 "ferite_parser.y"
     { ASSIGNMENT_SETUP() ;}
     break;
 
   case 364:
-#line 1628 "ferite_parser.y"
+#line 1632 "ferite_parser.y"
     { ASSIGNMENT_TEARDOWN( FERITE_OPCODE_add_assign, FERITE_OPCODE_add ); ;}
     break;
 
   case 365:
-#line 1629 "ferite_parser.y"
+#line 1633 "ferite_parser.y"
     { ASSIGNMENT_SETUP() ;}
     break;
 
   case 366:
-#line 1629 "ferite_parser.y"
+#line 1633 "ferite_parser.y"
     { ASSIGNMENT_TEARDOWN( FERITE_OPCODE_minus_assign, FERITE_OPCODE_minus ); ;}
     break;
 
   case 367:
-#line 1630 "ferite_parser.y"
+#line 1634 "ferite_parser.y"
     { ASSIGNMENT_SETUP() ;}
     break;
 
   case 368:
-#line 1630 "ferite_parser.y"
+#line 1634 "ferite_parser.y"
     { ASSIGNMENT_TEARDOWN( FERITE_OPCODE_mult_assign, FERITE_OPCODE_mult ); ;}
     break;
 
   case 369:
-#line 1631 "ferite_parser.y"
+#line 1635 "ferite_parser.y"
     { ASSIGNMENT_SETUP() ;}
     break;
 
   case 370:
-#line 1631 "ferite_parser.y"
+#line 1635 "ferite_parser.y"
     { ASSIGNMENT_TEARDOWN( FERITE_OPCODE_divide_assign, FERITE_OPCODE_divide ); ;}
     break;
 
   case 371:
-#line 1632 "ferite_parser.y"
+#line 1636 "ferite_parser.y"
     { ASSIGNMENT_SETUP() ;}
     break;
 
   case 372:
-#line 1632 "ferite_parser.y"
+#line 1636 "ferite_parser.y"
     { ASSIGNMENT_TEARDOWN( FERITE_OPCODE_left_shift_assign, FERITE_OPCODE_left_shift ); ;}
     break;
 
   case 373:
-#line 1633 "ferite_parser.y"
+#line 1637 "ferite_parser.y"
     { ASSIGNMENT_SETUP() ;}
     break;
 
   case 374:
-#line 1633 "ferite_parser.y"
+#line 1637 "ferite_parser.y"
     { ASSIGNMENT_TEARDOWN( FERITE_OPCODE_right_shift_assign, FERITE_OPCODE_right_shift ); ;}
     break;
 
   case 375:
-#line 1634 "ferite_parser.y"
+#line 1638 "ferite_parser.y"
     { ASSIGNMENT_SETUP() ;}
     break;
 
   case 376:
-#line 1634 "ferite_parser.y"
+#line 1638 "ferite_parser.y"
     { ASSIGNMENT_TEARDOWN( FERITE_OPCODE_binary_and_assign, FERITE_OPCODE_binary_and ); ;}
     break;
 
   case 377:
-#line 1635 "ferite_parser.y"
+#line 1639 "ferite_parser.y"
     { ASSIGNMENT_SETUP() ;}
     break;
 
   case 378:
-#line 1635 "ferite_parser.y"
+#line 1639 "ferite_parser.y"
     { ASSIGNMENT_TEARDOWN( FERITE_OPCODE_binary_or_assign, FERITE_OPCODE_binary_or ); ;}
     break;
 
   case 379:
-#line 1636 "ferite_parser.y"
+#line 1640 "ferite_parser.y"
     { ASSIGNMENT_SETUP() ;}
     break;
 
   case 380:
-#line 1636 "ferite_parser.y"
+#line 1640 "ferite_parser.y"
     { ASSIGNMENT_TEARDOWN( FERITE_OPCODE_binary_xor_assign, FERITE_OPCODE_binary_xor ); ;}
     break;
 
   case 381:
-#line 1638 "ferite_parser.y"
+#line 1642 "ferite_parser.y"
     {
 										 int *value = ferite_stack_pop( FE_NoScript, ferite_argcount_stack );
 										 ferite_do_new_object( ferite_current_arg_count );
@@ -4520,7 +4524,7 @@ yyreduce:
     break;
 
   case 382:
-#line 1648 "ferite_parser.y"
+#line 1652 "ferite_parser.y"
     {
 										 FUD(("PARSER: unary plus\n"));
 										 ferite_do_unary_op( FERITE_OPCODE_positive_var );
@@ -4528,7 +4532,7 @@ yyreduce:
     break;
 
   case 383:
-#line 1653 "ferite_parser.y"
+#line 1657 "ferite_parser.y"
     {
 										 FUD(("PARSER: unary minus\n"));
 										 ferite_do_unary_op( FERITE_OPCODE_negative_var );
@@ -4536,7 +4540,7 @@ yyreduce:
     break;
 
   case 384:
-#line 1657 "ferite_parser.y"
+#line 1661 "ferite_parser.y"
     {
 										 FUD(("PARSER: right increment\n"));
 										 ferite_do_unary_op( FERITE_OPCODE_right_incr );
@@ -4544,7 +4548,7 @@ yyreduce:
     break;
 
   case 385:
-#line 1661 "ferite_parser.y"
+#line 1665 "ferite_parser.y"
     {
 										 FUD(("PARSER: left increment\n"));
 										 ferite_do_unary_op( FERITE_OPCODE_left_incr );
@@ -4552,7 +4556,7 @@ yyreduce:
     break;
 
   case 386:
-#line 1665 "ferite_parser.y"
+#line 1669 "ferite_parser.y"
     {
 										 FUD(("PARSER: right decrement\n"));
 										 ferite_do_unary_op( FERITE_OPCODE_right_decr );
@@ -4560,7 +4564,7 @@ yyreduce:
     break;
 
   case 387:
-#line 1669 "ferite_parser.y"
+#line 1673 "ferite_parser.y"
     {
 										 FUD(("PARSER: left decrement\n"));
 										 ferite_do_unary_op( FERITE_OPCODE_left_decr );
@@ -4568,7 +4572,7 @@ yyreduce:
     break;
 
   case 388:
-#line 1673 "ferite_parser.y"
+#line 1677 "ferite_parser.y"
     {
 										 ferite_do_unary_op( FERITE_OPCODE_not_op );
 										 FUD(("PARSER: op->not_op		   pop\n" ));
@@ -4576,7 +4580,7 @@ yyreduce:
     break;
 
   case 389:
-#line 1677 "ferite_parser.y"
+#line 1681 "ferite_parser.y"
     {
 										 ferite_do_unary_op( FERITE_OPCODE_eval );
 										 FUD(("PARSER: op->eval\n"));
@@ -4584,7 +4588,7 @@ yyreduce:
     break;
 
   case 390:
-#line 1681 "ferite_parser.y"
+#line 1685 "ferite_parser.y"
     {
 										 ferite_do_unary_op( FERITE_OPCODE_include );
 										 FUD(("PARSER: op->include\n"));
@@ -4592,7 +4596,7 @@ yyreduce:
     break;
 
   case 391:
-#line 1685 "ferite_parser.y"
+#line 1689 "ferite_parser.y"
     {
 										 ferite_temp_variable = ferite_create_string_variable_from_ptr( NULL, "strconst", ferite_variable_id_to_str( NULL,ferite_last_type), 0, FE_CHARSET_DEFAULT, FE_STATIC );
 										 MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
@@ -4603,7 +4607,7 @@ yyreduce:
     break;
 
   case 392:
-#line 1692 "ferite_parser.y"
+#line 1696 "ferite_parser.y"
     {
 										 ferite_do_binary_op( FERITE_OPCODE_instanceof );
 										 FUD(("PARSER: op->include\n"));
@@ -4611,47 +4615,47 @@ yyreduce:
     break;
 
   case 393:
-#line 1696 "ferite_parser.y"
+#line 1700 "ferite_parser.y"
     { ferite_do_get_args(); ;}
     break;
 
   case 394:
-#line 1697 "ferite_parser.y"
+#line 1701 "ferite_parser.y"
     { ferite_do_get_yield_block(); ;}
     break;
 
   case 404:
-#line 1710 "ferite_parser.y"
+#line 1714 "ferite_parser.y"
     { ferite_do_if_statement(); ;}
     break;
 
   case 405:
-#line 1711 "ferite_parser.y"
+#line 1715 "ferite_parser.y"
     { ferite_do_after_then_before_else_statement(); ;}
     break;
 
   case 406:
-#line 1712 "ferite_parser.y"
+#line 1716 "ferite_parser.y"
     { ferite_do_after_else_statement(); ;}
     break;
 
   case 408:
-#line 1717 "ferite_parser.y"
+#line 1721 "ferite_parser.y"
     { ferite_do_yield_block( FE_FALSE ); ;}
     break;
 
   case 409:
-#line 1718 "ferite_parser.y"
+#line 1722 "ferite_parser.y"
     { ferite_do_yield_block( FE_TRUE ); ;}
     break;
 
   case 410:
-#line 1722 "ferite_parser.y"
+#line 1726 "ferite_parser.y"
     { ferite_do_push_main_namespace(); ;}
     break;
 
   case 411:
-#line 1724 "ferite_parser.y"
+#line 1728 "ferite_parser.y"
     {
 										int *value = ferite_stack_pop( FE_NoScript, ferite_argcount_stack );
 										FUD(("PARSER: op->c_func	   %s\n", (yyvsp[(1) - (6)].text) ));
@@ -4666,12 +4670,12 @@ yyreduce:
     break;
 
   case 412:
-#line 1735 "ferite_parser.y"
+#line 1739 "ferite_parser.y"
     { ferite_do_super_push(); ;}
     break;
 
   case 413:
-#line 1737 "ferite_parser.y"
+#line 1741 "ferite_parser.y"
     {
 										int *value = ferite_stack_pop( FE_NoScript, ferite_argcount_stack );
 										ferite_do_object_function_call( "constructor", ferite_current_arg_count, FE_FALSE, FE_TRUE );
@@ -4684,12 +4688,12 @@ yyreduce:
     break;
 
   case 414:
-#line 1746 "ferite_parser.y"
+#line 1750 "ferite_parser.y"
     { ferite_do_self_push(); ;}
     break;
 
   case 415:
-#line 1748 "ferite_parser.y"
+#line 1752 "ferite_parser.y"
     {
 										int *value = ferite_stack_pop( FE_NoScript, ferite_argcount_stack );
 										ferite_do_object_function_call( "constructor", ferite_current_arg_count, FE_TRUE, FE_FALSE );
@@ -4702,7 +4706,7 @@ yyreduce:
     break;
 
   case 416:
-#line 1758 "ferite_parser.y"
+#line 1762 "ferite_parser.y"
     {
 										int *value = ferite_stack_pop( FE_NoScript, ferite_argcount_stack );
 										FUD(("PARSER: op->yield\n"));
@@ -4716,7 +4720,7 @@ yyreduce:
     break;
 
   case 417:
-#line 1771 "ferite_parser.y"
+#line 1775 "ferite_parser.y"
     {
 										int *value = fmalloc_ngc(sizeof(int));
 										*value = ferite_current_arg_count;
@@ -4726,7 +4730,7 @@ yyreduce:
     break;
 
   case 418:
-#line 1777 "ferite_parser.y"
+#line 1781 "ferite_parser.y"
     {
 										int *value = fmalloc_ngc(sizeof(int));
 										*value = ferite_current_arg_count;
@@ -4736,12 +4740,12 @@ yyreduce:
     break;
 
   case 422:
-#line 1792 "ferite_parser.y"
+#line 1796 "ferite_parser.y"
     { ferite_current_arg_count++ ;}
     break;
 
   case 424:
-#line 1796 "ferite_parser.y"
+#line 1800 "ferite_parser.y"
     {
 										char *buf = fmalloc_ngc(256);
 										ferite_var_array_count++;
@@ -4757,7 +4761,7 @@ yyreduce:
     break;
 
   case 425:
-#line 1808 "ferite_parser.y"
+#line 1812 "ferite_parser.y"
     {
 										char *buf = ferite_stack_pop( FE_NoScript, ferite_compiled_arrays_stack );
 										ferite_do_variable_push( buf );
@@ -4766,7 +4770,7 @@ yyreduce:
     break;
 
   case 430:
-#line 1827 "ferite_parser.y"
+#line 1831 "ferite_parser.y"
     {
 										ferite_do_variable_push( ferite_stack_top( FE_NoScript, ferite_compiled_arrays_stack ) );
 										ferite_do_swap_top(0);
@@ -4778,7 +4782,7 @@ yyreduce:
     break;
 
   case 431:
-#line 1836 "ferite_parser.y"
+#line 1840 "ferite_parser.y"
     {
 										ferite_temp_variable = ferite_create_void_variable( NULL, "void-placeholder", FE_STATIC );
 										MARK_VARIABLE_AS_PLACEHOLDER( ferite_temp_variable );
@@ -4788,17 +4792,17 @@ yyreduce:
     break;
 
   case 432:
-#line 1842 "ferite_parser.y"
+#line 1846 "ferite_parser.y"
     {   ferite_do_swap_top(0); ;}
     break;
 
   case 433:
-#line 1846 "ferite_parser.y"
+#line 1850 "ferite_parser.y"
     { ferite_do_if_statement(); ;}
     break;
 
   case 434:
-#line 1847 "ferite_parser.y"
+#line 1851 "ferite_parser.y"
     {
 										ferite_do_after_then_before_else_statement();
 										/* we have to push a value onto the stack, otherwise we end up with a smashed stack */
@@ -4810,12 +4814,12 @@ yyreduce:
     break;
 
   case 435:
-#line 1855 "ferite_parser.y"
+#line 1859 "ferite_parser.y"
     { ferite_do_not_if_statement(); ;}
     break;
 
   case 436:
-#line 1856 "ferite_parser.y"
+#line 1860 "ferite_parser.y"
     {
 										ferite_do_after_then_before_else_statement();
 										/* we have to push a value onto the stack, otherwise we end up with a smashed stack */
@@ -4828,7 +4832,7 @@ yyreduce:
 
 
 /* Line 1267 of yacc.c.  */
-#line 4832 "ferite_parser.tab.c"
+#line 4836 "ferite_parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -5042,7 +5046,7 @@ yyreturn:
 }
 
 
-#line 1866 "ferite_parser.y"
+#line 1870 "ferite_parser.y"
 
 
 int ferite_parse()

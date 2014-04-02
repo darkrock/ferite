@@ -568,9 +568,13 @@ parameter_byref:
 
 parameter_define_item:
 	param_var_type					{ ferite_hint_depth = 0; }
-	optional_variable_type_hint
+	optional_variable_type_hint		
 	parameter_byref 
 	T_LABEL							{
+										ferite_hint_current_type = ferite_subtype_link( CURRENT_SCRIPT, ferite_hint_typestring );
+										if( ferite_hint_current_type == NULL && CURRENT_SCRIPT->error_state == FE_ERROR_THROWN ) {
+											feperror(NULL);
+										}
 										FUD(("PARSER: Parameter Declared		 %s (%d)\n", $5, ferite_last_type));
 										ferite_do_add_variable_to_paramlist( $5, ferite_last_type, ferite_hint_current_type, ferite_var_pass_type );
 										ffree_ngc( $5 ); FECT;
@@ -1062,9 +1066,9 @@ optional_variable_type_hint_t:
 |	T_QSTRING        { ferite_error(CURRENT_SCRIPT, 0, "Quoted string hint type not supported\n" ); ffree_ngc($1); FECT; feperror( NULL ); }
 |	T_RNUMBER        { ferite_error(CURRENT_SCRIPT, 0, "Floating point hint type not supported\n" ); feperror( NULL ); }
 |	T_NNUMBER        { ferite_error(CURRENT_SCRIPT, 0, "Natural nunber hint type not supported\n" ); feperror( NULL ); }
-|	T_VAR_NUMBER     { strcat( ferite_hint_typestring, "L" ); }
-|	T_VAR_NUMBER_LNG { strcat( ferite_hint_typestring, "L" ); }
-|	T_VAR_NUMBER_DBL { strcat( ferite_hint_typestring, "D" ); }
+|	T_VAR_NUMBER     { strcpy( ferite_hint_typestring, "L" ); }
+|	T_VAR_NUMBER_LNG { strcpy( ferite_hint_typestring, "L" ); }
+|	T_VAR_NUMBER_DBL { strcpy( ferite_hint_typestring, "D" ); }
 |	T_VAR_STRING     { strcat( ferite_hint_typestring, "S" ); }
 |	T_VAR_VOID	     { strcat( ferite_hint_typestring, "V" ); }
 |	T_VAR_OBJECT     { strcat( ferite_hint_typestring, "O" ); }
