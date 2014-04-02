@@ -54,3 +54,6 @@ scratch
 *.lo
 *.o
 *.libs
+compile
+.DS_Store
+test/ferite_script
