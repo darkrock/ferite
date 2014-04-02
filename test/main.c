@@ -201,8 +201,7 @@ int parse_args( int argc, char **argv )
                 print_copyright();
                 exit(0);
             }
-            if((!strcmp(argv[i], "--execute")) || (!strcmp(argv[i], "-e")) &&
-               argv[i + 1])
+            if( (!strcmp(argv[i], "--execute") || !strcmp(argv[i], "-e")) && argv[i + 1] )
             {
                 opt.scriptname = aphex_strdup( argv[++i] );
                 opt.estring = FE_TRUE;

@@ -28,16 +28,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- *
- * This code is terible, I wouldn't show it to anyone, it needs to be
- * re-written actually in ferite or something. But, it does work! So
- * please forgive me. Infact, I would look anywhere but here for examples of
- * my coding skillz! =P
- */
-
-
 #include <ferite.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -569,8 +559,7 @@ void builder_process_open_function( FeriteScript *script, FeriteFunction *fnc, c
         target = current_module->misc;
     
     ferite_stack_push( FE_NoScript, current_module->name_stack, fnc->name );
-    if( opt.verbose )
-        printf( "  Writing function %s\n", parent );
+    printf( "  Writing function %s\n", parent );
     
     sig = ferite_function_generate_sig_string( script, fnc );
     fprintf( current_module->header, "FE_NATIVE_FUNCTION( %s_%s );\n", builder_generate_current_name(FE_TRUE,FE_TRUE), sig );
@@ -580,11 +569,8 @@ void builder_process_open_function( FeriteScript *script, FeriteFunction *fnc, c
     fprintf( target, "FE_NATIVE_FUNCTION( %s_%s )\n{\n", builder_generate_current_name(FE_TRUE,FE_TRUE), sig );
     ffree( sig );
     
-    for( i = 0; i < fnc->arg_count; i++ )
-    {
+    for( i = 0; i < fnc->arg_count; i++ ) {
         FeriteVariable *currentVariable = fnc->signature[i]->variable;
-
-		printf("currentVariable = %s; type = %d; subtype = %d\n", currentVariable->vname, currentVariable->type, (currentVariable->subtype ? currentVariable->subtype->type : -1));
 
         memset( &c_variable_init, '\0', 512 );
         if( currentVariable ) {

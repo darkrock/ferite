@@ -1577,7 +1577,7 @@ namespace modifies Posix
 
         for(i = 0; i < args->size; i++)
         {
-            fv = ferite_uarray_get_index(script, args, i);
+            fv = (ferite_array->getByIndex)(script, args, i);
             if(F_VAR_TYPE(fv) != F_VAR_STR)
             {
                 ferite_set_error(script, 0, "argv[%d] not a string", i);
@@ -1588,7 +1588,7 @@ namespace modifies Posix
 
         for(i = 0; i < env->size; i++)
         {
-            fv = ferite_uarray_get_index(script, env, i);
+            fv = (ferite_array->getByIndex)(script, env, i);
             if(F_VAR_TYPE(fv) != F_VAR_STR)
             {
                 ferite_set_error(script, 0, "env[%d] not a string", i);

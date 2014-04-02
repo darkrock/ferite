@@ -43,6 +43,7 @@ FERITE_API void ferite_raise_script_error( FeriteScript *script, int err, char *
 FERITE_API void ferite_vwarning(FeriteScript *script, char *errormsg, va_list *ap );
 FERITE_API FeriteVariable *ferite_generate_backtrace( FeriteScript *script, int skip_first );
 FERITE_API void ferite_error( FeriteScript *script, int err, char *errormsg, ... );
+FERITE_API void ferite_verror( FeriteScript *script, int err, char *errormsg, va_list *ap );
 FERITE_API void ferite_vwarning(FeriteScript *script, char *errormsg, va_list *ap );
 FERITE_API void ferite_warning( FeriteScript *script, char *errormsg, ... );
 FERITE_API void ferite_set_error( FeriteScript *script, int num, char *fmt, ... );

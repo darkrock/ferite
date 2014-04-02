@@ -182,8 +182,9 @@ void sax_startElement (void *ctxt, const xmlChar *name, const xmlChar **atts)
         {
             for( i = 0; atts[i] != NULL; i++ )
             {
-                var = fe_new_str( (char *)atts[i], (atts[i++] == NULL ? "" : (char *)atts[i]), 0, FE_CHARSET_DEFAULT );
-                ferite_uarray_add( script, VAUA( array ), var, (char *)atts[i-1], FE_ARRAY_ADD_AT_END );
+                var = fe_new_str( (char *)atts[i], (atts[i+1] == NULL ? "" : (char *)atts[i+1]), 0, FE_CHARSET_DEFAULT );
+                (ferite_array->append)( script, VAUA( array ), var, (char *)atts[i], FE_ARRAY_ADD_AT_END );
+				i++;
             }
         }
         params = ferite_create_parameter_list_from_data( script, "sa", tname, VAUA(array) );
@@ -260,7 +261,7 @@ void sax_fatalError (void *ctxt, const char *msg, ...)
     va_list ap;
 
     va_start( ap, msg );
-    ferite_verror( sr->script, (char *)msg, &ap );
+    ferite_verror( sr->script, 0, (char *)msg, &ap );
     va_end( ap );
 }
 

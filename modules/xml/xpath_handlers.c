@@ -57,7 +57,7 @@ FeriteVariable *ParseXPath( FeriteScript *script, XMLDoc *tree, const char *str 
             for (i = 0 ; i < cur->nodeNr ; i++)
             {
                 element = create_element_node( script, tree->doc, cur->nodeTab[i] );		
-                ferite_uarray_add( script, VAUA( array ), element, NULL, FE_ARRAY_ADD_AT_END );
+                (ferite_array->append)( script, VAUA( array ), element, NULL, FE_ARRAY_ADD_AT_END );
             }
             break;
 
@@ -68,12 +68,12 @@ FeriteVariable *ParseXPath( FeriteScript *script, XMLDoc *tree, const char *str 
             else
               element = fe_new_dbl_static("xpath_result", res->floatval);
 
-            ferite_uarray_add( script, VAUA( array ), element, NULL, FE_ARRAY_ADD_AT_END );
+            (ferite_array->append)( script, VAUA( array ), element, NULL, FE_ARRAY_ADD_AT_END );
             break;
 
           case XPATH_STRING:
-            element = fe_new_str_static("xpath_result", res->stringval, 0, FE_CHARSET_DEFAULT);
-            ferite_uarray_add( script, VAUA( array ), element, NULL, FE_ARRAY_ADD_AT_END );
+            element = fe_new_str_static("xpath_result", (char*)res->stringval, 0, FE_CHARSET_DEFAULT);
+            (ferite_array->append)( script, VAUA( array ), element, NULL, FE_ARRAY_ADD_AT_END );
             break;
 
           case XPATH_BOOLEAN:
@@ -83,7 +83,7 @@ FeriteVariable *ParseXPath( FeriteScript *script, XMLDoc *tree, const char *str 
             else
               element = fe_new_str_static("xpath_result", "false", 0, FE_CHARSET_DEFAULT);
 
-            ferite_uarray_add( script, VAUA( array ), element, NULL, FE_ARRAY_ADD_AT_END );
+            (ferite_array->append)( script, VAUA( array ), element, NULL, FE_ARRAY_ADD_AT_END );
             break;
 
           default:

@@ -204,7 +204,7 @@ namespace Array
      */
     native function push( array a, void var ) : undefined
     {
-        ferite_uarray_push( script, a, var );
+		(ferite_array->push)( script, a, var );
     }
 
    /**
@@ -219,7 +219,7 @@ namespace Array
     */
     native function pop( array a ) : void
     {
-        FeriteVariable *var = ferite_uarray_pop( script, a );
+        FeriteVariable *var = (ferite_array->pop)( script, a );
         FE_RETURN_VAR( var );
     }
 
@@ -235,7 +235,7 @@ namespace Array
    */
     native function unshift( array a, void var ) : undefined
     {
-        ferite_uarray_unshift( script, a, var );
+        (ferite_array->unshift)( script, a, var );
     }
 
   /**
@@ -250,7 +250,7 @@ namespace Array
    */
     native function shift( array a ) : void
     {
-        FeriteVariable *var = ferite_uarray_shift( script, a );
+        FeriteVariable *var = (ferite_array->shift)( script, a );
         FE_RETURN_VAR( var );
     }
 
@@ -270,7 +270,7 @@ namespace Array
    */
     native function del( array a, void var ) : undefined
     {
-        ferite_uarray_del_var( script, a, var );
+        (ferite_array->_delete)( script, a, var );
     }
 
   /**
@@ -411,7 +411,7 @@ namespace Array
                       FE_RETURN_TRUE;
                     break;
                   case F_VAR_UARRAY:
-                    if (ferite_uarray_cmp(script, VAUA(a->array[i]), VAUA(value)))
+                    if ((ferite_array->is_equal)(script, VAUA(a->array[i]), VAUA(value)))
                       FE_RETURN_TRUE;
                     break;
                 }
@@ -683,7 +683,7 @@ namespace Array
         if(a->size == 0) FE_RETURN_VAR(ret);
 
         for(i = 0; i < a->size; i++) {
-            arr[i].var = ferite_uarray_get_index(script, a, i);
+            arr[i].var = (ferite_array->getByIndex)(script, a, i);
             /* This ugliness is because the compare function needs the script
              * pointer, but the standard libc qsort() function doesn't have the
              * ability to pass a context pointer to the compare function. So
@@ -830,7 +830,7 @@ namespace Array
      * Array.resize(a,1000000); &raquo a = very big</code><nl/>
      */
     native function resize( array a, number size ) : undefined {
-        ferite_uarray_set_size( script, a, VAI(params[1]) );
+        (ferite_array->prepare)( script, a, VAI(params[1]) );
     }
 	
 	/**

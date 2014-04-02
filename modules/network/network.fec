@@ -170,7 +170,7 @@ namespace modifies Network
 	            struct Stream *Stream = self->odata;
 				int fd = Stream->file_descriptor;
 				char *buf = s->data;
-				size_t amount_sent = 0, total_sent = 0, total_amount = s->length;
+				ssize_t amount_sent = 0, total_sent = 0, total_amount = s->length;
 				int flags = 0;
 
 				while( total_sent < total_amount ) {
@@ -816,10 +816,10 @@ namespace modifies Network
               char *buf = NULL;
 
 #ifdef ENABLE_IPV6
-              int rlen = sizeof(struct sockaddr_in6);
+              socklen_t rlen = sizeof(struct sockaddr_in6);
               unsigned char rbuf[sizeof(struct sockaddr_in6)];
 #else
-              int rlen = sizeof(struct sockaddr_in);
+              socklen_t rlen = sizeof(struct sockaddr_in);
               unsigned char rbuf[sizeof(struct sockaddr_in)];
 #endif                
               ferite_set_error(script, 0, "");

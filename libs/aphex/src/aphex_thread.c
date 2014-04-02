@@ -139,6 +139,8 @@ int aphex_init( int allowed_to_use_gc ) {
 		_aphex_free    = aphex_gc_free;
 		_aphex_strdup  = aphex_gc_strdup;
 	}
+	
+	return 1;
 }
 
 /***************************************************

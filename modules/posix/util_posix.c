@@ -57,7 +57,7 @@ int make_fd_set(FeriteScript *script, FeriteUnifiedArray *array, fd_set *f)
 
     for(i = 0; i < array->size; i++)
     {
-        fv = ferite_uarray_get_index(script, array, i);
+        fv = (ferite_array->getByIndex)(script, array, i);
         if(F_VAR_TYPE(fv) != F_VAR_OBJ || VAO(fv) == NULL)
         {
             ferite_set_error(script, 0, "Wrong variable type in array");
@@ -103,7 +103,7 @@ int update_SelectResult(FeriteScript *script, FeriteObject *obj,
 
     for(i = 0; i < inarray->size; i++)
     {
-        fo = ferite_uarray_get_index(script, inarray, i);
+        fo = (ferite_array->getByIndex)(script, inarray, i);
         func = ferite_object_get_function_for_params(script, VAO(fo), "getDescriptor", NULL);
         fv = ferite_call_function(script, VAO(fo), NULL, func, NULL);
         if(FD_ISSET(VAI(fv), f))

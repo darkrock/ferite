@@ -178,7 +178,7 @@ class Test
                            if( ret > -2 )
                                printf("<FAILED> function %s() returned error: %d\n",fnc->name, ret);
                            else
-                               printf("{IGNORE} function %s() is ignored\n",fnc->name, ret);
+                               printf("{IGNORE} function %s() is ignored\n",fnc->name);
                            
                            if( ret == -1 )
                            {

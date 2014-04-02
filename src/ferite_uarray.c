@@ -731,6 +731,10 @@ FeriteAbstractArrayInterface *ferite_array_interface() {
 
 	interface->append = (void(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable *, char *, size_t  ))ferite_uarray_add;
 	interface->get = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable * ))ferite_uarray_get;
+	interface->getByString = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, char * ))ferite_uarray_get_from_string;
+	interface->getByIndex = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, int  ))ferite_uarray_get_index;
+	
+	
 	interface->set = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable *, FeriteVariable * ))ferite_uarray_set;
 	interface->_delete = (void*(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable * ))ferite_uarray_del_var;
 	

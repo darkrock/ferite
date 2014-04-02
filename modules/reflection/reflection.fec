@@ -908,7 +908,7 @@ class Object
 			{
 				var = buk->data;
 				
-				if( !FE_VAR_IS_STATIC(var) && var->state == FE_ITEM_IS_PUBLIC && ferite_uarray_get_from_string(script,VAUA(array),var->vname) == NULL )
+				if( !FE_VAR_IS_STATIC(var) && var->state == FE_ITEM_IS_PUBLIC && (ferite_array->getByString)(script,VAUA(array),var->vname) == NULL )
 				{
 					(ferite_array->append)(script,VAUA(array),
 									 ferite_duplicate_variable(script,var, NULL),

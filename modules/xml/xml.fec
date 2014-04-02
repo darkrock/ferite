@@ -710,7 +710,9 @@ namespace XML {
 					for (i = 0 ; i < cur->nodeNr ; i++) {
 						xmlUnlinkNode( cur->nodeTab[i] );
 					}
-					break;		
+					break;
+				default:
+					;
 		}
 			xmlXPathFreeObject( res );
 		FE_RETURN_LONG( i );	

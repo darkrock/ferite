@@ -430,11 +430,8 @@ namespace String
 					{
 						strncpy( name, str->data+start, i - start ); /* copy the data */
 						name[i-start] = '\0';
-						if( strlen( name ) >= 0 )
-						{
-							vstr = ferite_create_string_variable_from_ptr( script, "", name, strlen(name), FE_CHARSET_DEFAULT, FE_STATIC );
-							(ferite_array->append)( script, VAUA(array), vstr, NULL, FE_ARRAY_ADD_AT_END );
-						}
+						vstr = ferite_create_string_variable_from_ptr( script, "", name, strlen(name), FE_CHARSET_DEFAULT, FE_STATIC );
+						(ferite_array->append)( script, VAUA(array), vstr, NULL, FE_ARRAY_ADD_AT_END );
 						start = i + j;
 						i += j - 1;
 						splits++;
@@ -1223,7 +1220,9 @@ namespace String
 		long l;
 		int i, buflen = 0;
 		FeriteVariable *ret;
-		unsigned char *buf, c, tmp[4];
+		char *buf;
+		unsigned char c;
+		char tmp[4];
 
 		/* We know the output can't be longer than the input when unescaping: */
 		if(str->length == 0 || !(buf = fmalloc(str->length)))

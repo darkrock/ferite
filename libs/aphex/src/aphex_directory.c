@@ -168,9 +168,9 @@ AphexDirectory  *aphex_directory_read_with_filter( char *path, char *filter )
 #ifdef WIN32
                                            FindFileData.cFileName
 #else
-                                           ent->d_name
+                                           (unsigned char *)ent->d_name
 #endif
-                                           , filter ) )
+                                           , (unsigned char *)filter ) )
                     {
                         retval->size++;
                         retval->contents = (char **)aphex_realloc( retval->contents, sizeof(char *) * retval->size );
