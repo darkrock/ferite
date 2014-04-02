@@ -36,7 +36,7 @@
 #include <math.h>
 #include <ferite/fmem_jedi.h>
 #include <ferite/fmem_libgc.h>
-
+#include "aphex.h"
 
 int ferite_is_initialised = 0;
 int ferite_pow_lookup[32];

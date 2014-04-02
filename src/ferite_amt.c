@@ -333,7 +333,8 @@ void *_ferite_amt_set( FeriteScript *script, FeriteAMT *tree, unsigned long inde
 	if( index > tree->upper_bound )
 		tree->upper_bound = index;
 	if( index < tree->lower_bound )
-		tree->lower_bound;
+		tree->lower_bound = index;
+	
 	tree->last_index = index;
 	
 	while( FE_TRUE ) {

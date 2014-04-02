@@ -982,7 +982,7 @@ INLINE_OP( ferite_exec_args )
 	for( i = 0; i < argcount; i++ )
 	{
 		vartwo = ferite_duplicate_variable( script, params[i], NULL );
-		ferite_uarray_add( script, VAUA(varone), vartwo, NULL, FE_ARRAY_ADD_AT_END );
+		(ferite_array->append)( script, VAUA(varone), vartwo, NULL, FE_ARRAY_ADD_AT_END );
 	}
 	MARK_VARIABLE_AS_DISPOSABLE( varone );
 	ferite_stack_push( script, exec->stack, varone );

@@ -651,7 +651,7 @@ FeriteVariable *ferite_uarray_pop( FeriteScript *script, FeriteUnifiedArray *arr
  */
 FeriteVariable *ferite_uarray_shift( FeriteScript *script, FeriteUnifiedArray *array )
 {
-    FeriteVariable *out;
+    FeriteVariable *out = NULL;
 
     FE_ENTER_FUNCTION;
 	FE_ASSERT( array != NULL );
@@ -723,23 +723,25 @@ int ferite_uarray_cmp( FeriteScript *script, FeriteUnifiedArray *left, FeriteUni
 
 FeriteAbstractArrayInterface *ferite_array_interface() {
 	FeriteAbstractArrayInterface *interface = fmalloc_ngc(sizeof(FeriteAbstractArrayInterface));
-	interface->create = ferite_uarray_create;
-	interface->destroy = ferite_uarray_destroy;
-	interface->duplicate = ferite_uarray_dup;
-	interface->to_str = ferite_uarray_to_str;
 	
-	interface->append = ferite_uarray_add;
-	interface->get = ferite_uarray_get;
-	interface->set = ferite_uarray_set;
-	interface->_delete = ferite_uarray_del_var;
+	interface->create = (FeriteAbstractArray*(*)(FeriteScript*))ferite_uarray_create;
+	interface->destroy = (void(*)(FeriteScript *, FeriteAbstractArray *))ferite_uarray_destroy;
+	interface->duplicate = (FeriteAbstractArray *(*)(FeriteScript *, FeriteAbstractArray *))ferite_uarray_dup;
+	interface->to_str = (FeriteString*(*)(FeriteScript *, FeriteAbstractArray *))ferite_uarray_to_str;
+
+	interface->append = (void(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable *, char *, size_t  ))ferite_uarray_add;
+	interface->get = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable * ))ferite_uarray_get;
+	interface->set = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable *, FeriteVariable * ))ferite_uarray_set;
+	interface->_delete = (void*(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable * ))ferite_uarray_del_var;
 	
-	interface->pop = ferite_uarray_pop;
-	interface->push = ferite_uarray_push;
-	interface->shift = ferite_uarray_shift;
-	interface->unshift = ferite_uarray_unshift;
-	
-	interface->prepare = ferite_uarray_set_size;
-	interface->is_equal = ferite_uarray_cmp;
+	interface->pop = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray * ))ferite_uarray_pop;
+	interface->push = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable * ))ferite_uarray_push;
+	interface->shift = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray * ))ferite_uarray_shift;
+	interface->unshift = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable * ))ferite_uarray_unshift;
+
+	interface->prepare = (void(*)( FeriteScript *, FeriteAbstractArray *, size_t  ))ferite_uarray_set_size;
+	interface->is_equal = (int(*)( FeriteScript *, FeriteAbstractArray *, FeriteAbstractArray * ))ferite_uarray_cmp;
+
 	return interface;
 }
 

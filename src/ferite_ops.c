@@ -513,7 +513,7 @@ FERITE_BINARY_OP( assign )
               DO_OP( F_VAR_BOOL, VAB(a) = VAB(b);, retv = ferite_create_boolean_variable( script, RETVNAME( "assign" ), VAB(a), FE_STATIC ); )
               DO_OP( F_VAR_LONG, 
 					if( VAI(b) == 1 || VAI(b) == 0 ) {
-						VAB(a) == VAB(b);
+						VAB(a) = VAB(b);
 						retv = ferite_create_number_long_variable( script, RETVNAME( "assign" ), VAB(a), FE_STATIC );
 					}
 					else {
@@ -839,7 +839,7 @@ FERITE_BINARY_OP( equals )
           FE_VAR_TEST( (VAO(a) == VAO(b)), "equals" );
           break;
       case F_VAR_UARRAY:
-          FE_VAR_TEST( (ferite_uarray_cmp( script, VAUA(a), VAUA(b) ) == 1), "equals" );
+          FE_VAR_TEST( ((ferite_array->is_equal)( script, VAUA(a), VAUA(b) ) == 1), "equals" );
           break;
       case F_VAR_VOID:
           FE_VAR_TEST( FE_TRUE, "equals" );
@@ -1320,8 +1320,8 @@ FERITE_BINARY_OP( array_index )
                 break;
               case F_VAR_DOUBLE:
                 {
-                    size_t index = (size_t)VAF(b);
-                    if( VAI(b) > (signed)FE_STRLEN( a ) )
+                    long index = (long)VAF(b);
+                    if( index > (signed)FE_STRLEN( a ) )
                     {
                         ferite_error( script, 0, "String index out of range [%d]\n", index );
                         break;
@@ -1468,7 +1468,7 @@ FERITE_UNARY_OP( array_clear )
 		iteration = VAUA(a)->iteration;
 		iteration_type = VAUA(a)->iterator_type;
 	
-        ferite_uarray_destroy( script, VAUA(a) );
+        (ferite_array->destroy)( script, VAUA(a) );
         VAUA(a) = (ferite_array->create)( script );
 	
 		VAUA(a)->iteration = iteration;

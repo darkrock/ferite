@@ -788,7 +788,7 @@ int  ferite_scanner_block_read( char current_character, char lhs, char rhs, char
 		if( ferite_native_code_has_started == FE_FALSE )
 		{
 			ferite_native_code_has_started = FE_TRUE;
-			*ferite_cstrptr--;
+			ferite_cstrptr--;
 		}
 	}
 	else if( current_character == rhs )
@@ -803,7 +803,7 @@ int  ferite_scanner_block_read( char current_character, char lhs, char rhs, char
 	}
 	else if( ferite_native_code_bracket_depth == 0 && ferite_native_code_has_started )
 	{
-		*ferite_cstrptr--;
+		ferite_cstrptr--;
 		*ferite_cstrptr = '\0'; /* we always terminate in this case */
 		ferite_buffer_add_str( FE_NoScript, ferite_cstring_buffer, ferite_cstring_buf );
 
