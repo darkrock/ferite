@@ -319,20 +319,20 @@ directive_decl_with_out_semi_colon:
 									FeriteHashBucket *bucket = NULL;
 
 									ferite_expansion_map_hash = ferite_hash_get( FE_NoScript, ferite_expansion_hash, $2 );
-									printf("Got expansion call: %s\n", $2);
+									FUD(("Got expansion call: %s\n", $2));
 									body = ferite_hash_get( FE_NoScript, ferite_expansion_map_hash, "!_BODY_");
-									printf( "With body: %s\n", body );
+									FUD(( "With body: %s\n", body ));
 
 									while( (bucket = ferite_hash_walk(FE_NoScript, ferite_expansion_map_hash, iter)) != NULL ) {
 										long offset = (long)(bucket->data);
 										if( strcmp( bucket->id, "!_BODY_" ) ) { /* No body */
 											FeriteString *var = ferite_variable_to_str( FE_NoScript, ferite_directive_parameters->stack[offset+1], FE_FALSE );
-											printf( "bucket: %s -> %ld\n", bucket->id, offset );
-											printf( "replacement: %s\n", var->data );
+											FUD(( "bucket: %s -> %ld\n", bucket->id, offset ));
+											FUD(( "replacement: %s\n", var->data ));
 											body = ferite_replace_string( body, bucket->id, var->data );
 										}
 									}
-									printf( "new body: %s\n", body );
+									FUD(( "new body: %s\n", body ));
 
 									/* Now we want to parse this code in the current context */
 									ferite_scanner_parse_macro(body);
@@ -346,7 +346,7 @@ directive_decl_with_out_semi_colon:
 
 expansion_decl:
 	T_EXPANSION directive_expansion_capture_mask { ferite_scanner_go_native(); }
-	T_NATIVE_CODE_BLOCK  { printf("Code block: '%s'\n", $4);
+	T_NATIVE_CODE_BLOCK  { FUD(("Code block: '%s'\n", $4));
 		ferite_hash_add( FE_NoScript, ferite_expansion_map_hash, "!_BODY_", $4 );
 	}
 	;
@@ -357,9 +357,9 @@ directive_expansion_capture_mask_arguments:
 	;
 
 non_empty_directive_mask_list_item:
-	T_LABEL { printf("Label: %s [%ld]\n", $1, ferite_expansion_map_offset ); ferite_expansion_map_offset++; }
+	T_LABEL { FUD(("Label: %s [%ld]\n", $1, ferite_expansion_map_offset )); ferite_expansion_map_offset++; }
 |	T_DIRECTIVE_LABEL {
-		printf("DirectiveLabel: %s [%ld]\n", $1, ferite_expansion_map_offset );
+		FUD(("DirectiveLabel: %s [%ld]\n", $1, ferite_expansion_map_offset));
 		ferite_hash_add( FE_NoScript, ferite_expansion_map_hash, $1, (void*)ferite_expansion_map_offset );
 		ferite_expansion_map_offset++;
 	}
@@ -373,7 +373,7 @@ non_empty_directive_mask_list:
 directive_expansion_capture_mask:
 	 '['
 	 		T_LABEL {
-			printf("expansion name: %s\n", $2);
+			FUD(("expansion name: %s\n", $2));
 			if( ferite_expansion_hash == NULL ) {
 				ferite_expansion_hash = ferite_create_hash( FE_NoScript, 10 );
 			}

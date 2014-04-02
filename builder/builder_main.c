@@ -586,11 +586,11 @@ void builder_process_open_function( FeriteScript *script, FeriteFunction *fnc, c
                     is_ptr = 0;
                     if( currentVariable->subtype && currentVariable->subtype->type == F_VAR_LONG ) {
                         strcpy( c_variable_type, "long" );
-                        sprintf( c_variable_init, " = VAI(params[%i])", i );
+                        sprintf( c_variable_init, " = (params[%i]->type == F_VAR_LONG ? VAI(params[%i]) : (long)VAF(params[%i]))", i, i, i );
                     }
                     else {
                         strcpy( c_variable_type, "double" );
-                        sprintf( c_variable_init, " = VAF(params[%i])", i );
+                        sprintf( c_variable_init, " = (params[%i]->type == F_VAR_LONG ? (double)VAI(params[%i]) : VAF(params[%i]))", i, i, i );
                     }
                     break;
                 }

@@ -22710,7 +22710,7 @@ YY_RULE_SETUP
 case 141:
 YY_RULE_SETUP
 #line 420 "ferite_scanner.l"
-{ printf("double\n"); return T_VAR_NUMBER_DBL; }
+{ return T_VAR_NUMBER_DBL; }
 	YY_BREAK
 case 142:
 YY_RULE_SETUP

@@ -2841,20 +2841,20 @@ yyreduce:
 									FeriteHashBucket *bucket = NULL;
 
 									ferite_expansion_map_hash = ferite_hash_get( FE_NoScript, ferite_expansion_hash, (yyvsp[(2) - (5)].text) );
-									printf("Got expansion call: %s\n", (yyvsp[(2) - (5)].text));
+									FUD(("Got expansion call: %s\n", (yyvsp[(2) - (5)].text)));
 									body = ferite_hash_get( FE_NoScript, ferite_expansion_map_hash, "!_BODY_");
-									printf( "With body: %s\n", body );
+									FUD(( "With body: %s\n", body ));
 
 									while( (bucket = ferite_hash_walk(FE_NoScript, ferite_expansion_map_hash, iter)) != NULL ) {
 										long offset = (long)(bucket->data);
 										if( strcmp( bucket->id, "!_BODY_" ) ) { /* No body */
 											FeriteString *var = ferite_variable_to_str( FE_NoScript, ferite_directive_parameters->stack[offset+1], FE_FALSE );
-											printf( "bucket: %s -> %ld\n", bucket->id, offset );
-											printf( "replacement: %s\n", var->data );
+											FUD(( "bucket: %s -> %ld\n", bucket->id, offset ));
+											FUD(( "replacement: %s\n", var->data ));
 											body = ferite_replace_string( body, bucket->id, var->data );
 										}
 									}
-									printf( "new body: %s\n", body );
+									FUD(( "new body: %s\n", body ));
 
 									/* Now we want to parse this code in the current context */
 									ferite_scanner_parse_macro(body);
@@ -2873,20 +2873,20 @@ yyreduce:
 
   case 56:
 #line 349 "ferite_parser.y"
-    { printf("Code block: '%s'\n", (yyvsp[(4) - (4)].text));
+    { FUD(("Code block: '%s'\n", (yyvsp[(4) - (4)].text)));
 		ferite_hash_add( FE_NoScript, ferite_expansion_map_hash, "!_BODY_", (yyvsp[(4) - (4)].text) );
 	;}
     break;
 
   case 59:
 #line 360 "ferite_parser.y"
-    { printf("Label: %s [%ld]\n", (yyvsp[(1) - (1)].text), ferite_expansion_map_offset ); ferite_expansion_map_offset++; ;}
+    { FUD(("Label: %s [%ld]\n", (yyvsp[(1) - (1)].text), ferite_expansion_map_offset )); ferite_expansion_map_offset++; ;}
     break;
 
   case 60:
 #line 361 "ferite_parser.y"
     {
-		printf("DirectiveLabel: %s [%ld]\n", (yyvsp[(1) - (1)].text), ferite_expansion_map_offset );
+		FUD(("DirectiveLabel: %s [%ld]\n", (yyvsp[(1) - (1)].text), ferite_expansion_map_offset));
 		ferite_hash_add( FE_NoScript, ferite_expansion_map_hash, (yyvsp[(1) - (1)].text), (void*)ferite_expansion_map_offset );
 		ferite_expansion_map_offset++;
 	;}
@@ -2895,7 +2895,7 @@ yyreduce:
   case 63:
 #line 375 "ferite_parser.y"
     {
-			printf("expansion name: %s\n", (yyvsp[(2) - (2)].text));
+			FUD(("expansion name: %s\n", (yyvsp[(2) - (2)].text)));
 			if( ferite_expansion_hash == NULL ) {
 				ferite_expansion_hash = ferite_create_hash( FE_NoScript, 10 );
 			}
