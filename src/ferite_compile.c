@@ -937,6 +937,7 @@ void ferite_do_function_header( char *name, int is_static, int is_native, int is
 	}
 	
 	new_function = ferite_create_internal_function( CURRENT_SCRIPT, real_function_name );
+	new_function->line = ferite_scanner_lineno;
 	new_function->bytecode->filename = fstrdup( (ferite_scanner_file == NULL ? "" : ferite_scanner_file) );
 	new_function->is_static = is_static;
 	new_function->state = FE_ITEM_IS_PUBLIC;

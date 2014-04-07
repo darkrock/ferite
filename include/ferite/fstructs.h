@@ -274,6 +274,7 @@ struct _ferite_function  /* Encapsulate a native and script function */
     FeriteVariable         *(*fncPtr)( FeriteScript*,void*,FeriteObject*,FeriteFunction*,FeriteVariable**);
                                        /* If it is native, it's function pointer */
     FeriteFunctionNative   *native_information; /* The native infomation about the function */
+    int                    line;       /* For non-native function, the line it was declared on */
     void                   *odata;     /* If we happen to have any native data */
     int                     arg_count; /* The number of arguments in the signature */
     char                    is_static; /* If the function is a static class method */

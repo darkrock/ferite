@@ -358,11 +358,7 @@ static void get_filename_and_start_line(FeriteScript *script, FeriteFunction *f,
 		*start_line = f->native_information->line;
 	} else if (f->bytecode != NULL) {
 		*filename = ferite_strdup(f->bytecode->filename, __FILE__, __LINE__);
-		*start_line = f->bytecode->list[0]->line;
-		/* Assume that the function definition is just before its first instruction.
-		 * TODO: teach the parser to include the function location
-		 * (line number where it is defined) */
-		*start_line -= 1;
+		*start_line = f->line;
 	} else {
 		// Both filename and bytecode are null - assume builtin obj methods
 		if (f->klass != NULL) {
