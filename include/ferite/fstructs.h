@@ -264,7 +264,6 @@ struct _ferite_function_native_information /* Stores the native code info for bu
 {
     char *code;   /* The code in the block */
     char *file;   /* The file it was declared in */
-    int   line;   /* The line it was declared on */
 };
 
 struct _ferite_function  /* Encapsulate a native and script function */
@@ -274,7 +273,7 @@ struct _ferite_function  /* Encapsulate a native and script function */
     FeriteVariable         *(*fncPtr)( FeriteScript*,void*,FeriteObject*,FeriteFunction*,FeriteVariable**);
                                        /* If it is native, it's function pointer */
     FeriteFunctionNative   *native_information; /* The native infomation about the function */
-    int                    line;       /* For non-native function, the line it was declared on */
+    int                    line;       /* The line it was declared on */
     void                   *odata;     /* If we happen to have any native data */
     int                     arg_count; /* The number of arguments in the signature */
     char                    is_static; /* If the function is a static class method */

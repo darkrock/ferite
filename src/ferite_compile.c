@@ -1104,7 +1104,7 @@ void ferite_do_function_native_block( char *code, char *file, int line )
 	ptr = fmalloc_ngc( sizeof(FeriteFunctionNative) );
 	ptr->code = NULL;
 	ptr->file = fstrdup( file );
-	ptr->line = line;
+	CURRENT_FUNCTION->line = line;
 	CURRENT_FUNCTION->native_information = ptr;
 
 	if( ferite_keep_native_function_data == 1 )

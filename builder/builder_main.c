@@ -528,7 +528,7 @@ void builder_process_closed_function( FeriteScript *script, FeriteFunction *fnc,
 
     if( (buf = strrchr( native_info->file, '/' )) != NULL )
       buf++;
-    fprintf( target, "#line %d \"%s\"\n", native_info->line, 
+    fprintf( target, "#line %d \"%s\"\n", fnc->line,
 		ferite_replace_string( (buf != NULL ? buf : native_info->file), "\\", "\\\\" ) );
     fprintf( target, "%s\n   }\n   FE_RETURN_VOID;\n   self = NULL;\n}\n\n", native_info->code );
     ferite_stack_pop( FE_NoScript, current_module->name_stack );
@@ -649,7 +649,7 @@ void builder_process_open_function( FeriteScript *script, FeriteFunction *fnc, c
 
     if( (buf = strrchr( native_info->file, '/' )) != NULL )
       buf++;
-    fprintf( target, "#line %d \"%s\"\n", native_info->line,  
+    fprintf( target, "#line %d \"%s\"\n", fnc->line,
 		ferite_replace_string( (buf != NULL ? buf : native_info->file), "\\", "\\\\" ) );
     fprintf( target, "%s\n   }\n   FE_RETURN_VOID;\n   self = NULL;\n", native_info->code );
     if( fnc->klass != NULL && !fnc->is_static )

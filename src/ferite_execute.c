@@ -667,7 +667,7 @@ INLINE_OP( ferite_exec_funcall )
 							FE_ENTER_NAMED_FUNCTION( trgt_function_call->name );
 							if( trgt_function_call->native_information != NULL ) {
 								script->current_op_file = trgt_function_call->native_information->file;
-								script->current_op_line = trgt_function_call->native_information->line;
+								script->current_op_line = trgt_function_call->line;
 							}
 							rval = (trgt_function_call->fncPtr)( script, function_container, context->new_yield_block, trgt_function_call, param_list );
 							FE_LEAVE_NAMED_FUNCTION( trgt_function_call->name );

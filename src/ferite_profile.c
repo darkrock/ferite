@@ -355,7 +355,7 @@ static void get_filename_and_start_line(FeriteScript *script, FeriteFunction *f,
 {
 	if (f->native_information != NULL) {
 		*filename = ferite_strdup(f->native_information->file, __FILE__, __LINE__);
-		*start_line = f->native_information->line;
+		*start_line = f->line;
 	} else if (f->bytecode != NULL) {
 		*filename = ferite_strdup(f->bytecode->filename, __FILE__, __LINE__);
 		*start_line = f->line;
