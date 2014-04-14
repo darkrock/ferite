@@ -122,7 +122,7 @@ FeriteOp *ferite_get_next_op_address( FeriteOpcodeList *oplist )
 }
 
 /* returns the index of the next operator with out incrmenting the internal program counter */
-int ferite_get_next_op_loc( FeriteOpcodeList *oplist )
+long ferite_get_next_op_loc(FeriteOpcodeList *oplist)
 {
     FE_ENTER_FUNCTION;
     /* We need room for the current op and the next op to be NULL */

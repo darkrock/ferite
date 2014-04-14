@@ -438,18 +438,16 @@ FeriteVariable *ferite_create_object_variable_with_data( FeriteScript *script, c
  * @param int alloc Whether or not to set the variable's name as static or allocated
  * @return Returns a newly created array variable
  */
-FeriteVariable *ferite_create_uarray_variable( FeriteScript *script, char *name, int size, int alloc )
+FeriteVariable *ferite_create_uarray_variable( FeriteScript *script, char *name, long size, int alloc )
 {
     FeriteVariable *ptr;
-    int rsize = 0;
 
     FE_ENTER_FUNCTION;
-    rsize = ( size == 0 ) ? FE_ARRAY_DEFAULT_SIZE  : size;
     ptr = ferite_variable_alloc(script, name, alloc);
     F_VAR_TYPE(ptr) = F_VAR_UARRAY;
     VAUA(ptr) = (ferite_array->create)( script );
- 	ptr->subtype = ferite_subtype_link( script, "A" );
-   FE_LEAVE_FUNCTION( ptr );
+    ptr->subtype = ferite_subtype_link( script, "A" );
+    FE_LEAVE_FUNCTION( ptr );
 }
 
 /**
@@ -1260,7 +1258,7 @@ FeriteString *ferite_subtype_to_string( FeriteScript *script, FeriteVariableSubT
 FeriteVariableSubType *ferite_subtype_link( FeriteScript *script, char *type ) {
 	FeriteVariableSubType *subtype = NULL;
 	char target_class[1024];
-	int length = 0, i = 0;
+	size_t length = 0, i = 0;
 	
 	if( script == NULL )
 		return NULL;
@@ -1349,6 +1347,8 @@ FeriteVariableSubType *ferite_subtype_link( FeriteScript *script, char *type ) {
 				}
 			}
 			break;
+        default:
+            break;
 	}
 
 	if( subtype ) {

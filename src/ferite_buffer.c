@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2007 Stephan Engström
+ * Copyright (C) 2001-2007 Stephan Engstrï¿½m
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -369,7 +369,7 @@ size_t ferite_buffer_get_size( FeriteScript *script, FeriteBuffer *buf )
  * @description You must call ffree() on the memory returned otherwise leaks will occur
  * @return A pointer to a memory block containing len number of bytes of data
  */
-void *ferite_buffer_get( FeriteScript *script, FeriteBuffer *buf, int *len )
+void *ferite_buffer_get( FeriteScript *script, FeriteBuffer *buf, size_t *len )
 {
     size_t count;
     char *p, *result;
@@ -400,12 +400,13 @@ void *ferite_buffer_get( FeriteScript *script, FeriteBuffer *buf, int *len )
  * @param int fd The file descriptor to write to
  * @return The number of bytes written to the descriptor
  */
-int ferite_buffer_to_fd( FeriteScript *script, FeriteBuffer *buf, int fd )
+size_t ferite_buffer_to_fd( FeriteScript *script, FeriteBuffer *buf, int fd )
 {
 #ifndef WIN32
     struct iovec *vec;
 #endif
-    int i = 0, count = 0;
+    int i = 0;
+    size_t count = 0;
 
     FE_ENTER_FUNCTION;
 #ifndef WIN32
@@ -476,7 +477,7 @@ FeriteVariable *ferite_buffer_to_var( FeriteScript *script, FeriteBuffer *buf )
  */
 FeriteString *ferite_buffer_to_str( FeriteScript *script, FeriteBuffer *buf )
 {
-    int len;
+    size_t len;
     char *ptr;
     FeriteString *str;
     FE_ENTER_FUNCTION;
@@ -560,7 +561,7 @@ int ferite_format( FeriteScript *script, FeriteBuffer *buf, char *format, Ferite
             current++;
         }
     }
-    return 0;
+    FE_LEAVE_FUNCTION(0);
 }
 
 /**

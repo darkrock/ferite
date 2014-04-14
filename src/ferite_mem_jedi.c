@@ -204,7 +204,7 @@ void ferite_jedi_dump_memory( int bucket )
 void *ferite_jedi_malloc( size_t size, char *file, int line, FeriteScript *script )
 {
     char *return_ptr = NULL, *magic = NULL;
-    int target_bucket = 2 /* 2^3 = 8 bytes lower water level */, i = 0, *allocated_size = NULL;
+    int target_bucket = 2 /* 2^3 = 8 bytes lower water level */, *allocated_size = NULL;
     FeriteMemoryChunkHeader *ptr = NULL;
 	size_t actual_size = 0;
 	
@@ -253,7 +253,7 @@ void *ferite_jedi_malloc( size_t size, char *file, int line, FeriteScript *scrip
 	/* Get the memory chunk */
     return_ptr = PTR_GET_BODY(ptr);
 	/* FILL_BYTE up the rest of the memory */
-	for( i = size; i <= actual_size && (i - size) < 256; i++ ) {
+	for( size_t i = size; i <= actual_size && (i - size) < 256; i++ ) {
 		return_ptr[i] = FILL_BYTE;
 	}
 	/* Setup the allocated size */
@@ -263,7 +263,7 @@ void *ferite_jedi_malloc( size_t size, char *file, int line, FeriteScript *scrip
 	magic = ((char*)return_ptr) + actual_size + 1;
 	*magic = (char)MAGIC;
 	
-    FUD(( "returning: %p, %d\n", return_ptr, (int)((void *)return_ptr - (void *)ptr) ));
+    FUD(( "returning: %p, %d\n", (void*)return_ptr, (int)((void *)return_ptr - (void *)ptr) ));
     vrtl_stats.malloc_c++;
     UNLOCK_MEMORY();
 	
@@ -295,43 +295,44 @@ void *ferite_jedi_calloc( size_t size, size_t blk_size, char *file, int line, Fe
 int ferite_jedi_validate_pointer( char *ptr, char *file, int line ) 
 {
     FeriteMemoryChunkHeader *hdr = NULL;
-    int bucket = 0;
-	
+
     if( ptr != NULL )
     {
         hdr = PTR_GET_HEADER(ptr);
         FUD(( "validating %p (hdr=%p,diff=%ld)\n", ptr, hdr, (long)((void*)ptr) - (long)((void*)hdr) ));
         if( hdr->assigned_info.magic == MAGIC )
         {
-			int actual_size = 0, i = 0, *allocated_size = NULL;
-			int want_catch = FE_FALSE;
-			char *magic = NULL, *cptr = (char*)ptr;
-			
-            bucket = hdr->assigned_info.index;
+			int actual_size = 0, *allocated_size = NULL;
 			actual_size = ferite_pow_lookup[hdr->assigned_info.index];
 			allocated_size = (int*)(((char *)ptr) + actual_size + 2);
 #ifdef DEBUG
-			magic = ((char*)ptr) + actual_size + 1;
-			/* Check the tail magic */
-			if( *magic != MAGIC ) {
-				fprintf( stderr, "JEDI: Detected memory corruption. Expecting %d for tail magic, but got %d (addy %p) (culprit %s, line %d) [%d:%d] [%d]\n", MAGIC, *magic, ptr, file, line, bucket, actual_size, *allocated_size );
-				ferite_jedi_catch();
-				return 0;
+            {
+                int want_catch = FE_FALSE;
+                char *magic = NULL, *cptr = (char*)ptr;
+                int bucket = hdr->assigned_info.index;
+
+                magic = ((char*)ptr) + actual_size + 1;
+                /* Check the tail magic */
+                if( *magic != MAGIC ) {
+                    fprintf( stderr, "JEDI: Detected memory corruption. Expecting %d for tail magic, but got %d (addy %p) (culprit %s, line %d) [%d:%d] [%d]\n", MAGIC, *magic, ptr, file, line, bucket, actual_size, *allocated_size );
+                    ferite_jedi_catch();
+                    return 0;
+                }
+                /* Check the overwrite issues */
+                for( int i = *allocated_size; i <= actual_size && (i - *allocated_size) < 256 ; i++ ) {
+                    if( (char)cptr[i] != FILL_BYTE )
+                    {
+                        fprintf( stderr, "JEDI: Detected memory overwrite at %d bytes after memory block (addy %p) (culprit %s, line %d)\n", (i - *allocated_size), ptr, file, line );
+                        fprintf( stderr, "      (Start: %d, End: %ld)\n", *allocated_size, (actual_size - sizeof(int) - 1) );
+                        want_catch = FE_TRUE;
+                    }
+                }
+                if( want_catch ) {
+                    ferite_jedi_catch();
+                    return 0;
+                }
+                return *allocated_size;
 			}
-			/* Check the overwrite issues */
-			for( i = *allocated_size; i <= actual_size && (i - *allocated_size) < 256 ; i++ ) {
-				if( (char)cptr[i] != FILL_BYTE ) 
-				{	
-					fprintf( stderr, "JEDI: Detected memory overwrite at %d bytes after memory block (addy %p) (culprit %s, line %d)\n", (i - *allocated_size), ptr, file, line );
-					fprintf( stderr, "      (Start: %d, End: %ld)\n", *allocated_size, (actual_size - sizeof(int) - 1) );
-					want_catch = FE_TRUE;
-				}
-			}
-			if( want_catch ) {
-				ferite_jedi_catch();
-				return 0;
-			}
-			return *allocated_size;
         }
         else if( hdr->assigned_info.magic == DEAD_MAGIC ) /* We have a double free */
 		{
@@ -339,8 +340,8 @@ int ferite_jedi_validate_pointer( char *ptr, char *file, int line )
 			ferite_jedi_catch();
 		}
 #else
-		return *allocated_size;
- 	}
+		    return *allocated_size;
+ 	    }
 #endif
 		else /* fubar'd pointer -> we must know about these */
         {
@@ -383,18 +384,20 @@ void *ferite_jedi_realloc( void *ptr, size_t size, FeriteScript *script )
         old_index = hdr->assigned_info.index;
 		
 		/* we now have two options, either keep the same buffer, or copy to a bigger one */
-		while( size > (size_t)ferite_pow_lookup[target_bucket] )
-			target_bucket++;
+        while( size > (size_t)ferite_pow_lookup[target_bucket] ) {
+            target_bucket++;
+        }
 		
 		if( target_bucket <= old_index ) 
 		{
-			int *new_allocated_size = NULL, i= 0;
+			int *new_allocated_size = NULL;
 			char *new_magic = NULL;
 			char *cptr = (char*)ptr;
 			
 			/* FILL_BYTE up the rest of the memory */
-			for( i = size; i <= old_size; i++ ) 
+			for( size_t i = size; i <= old_size; i++ ) {
 				cptr[i] = FILL_BYTE;
+            }
 			/* Setup the allocated size */
 			new_allocated_size = (int*)(((char *)cptr) + old_size + 2);
 			*new_allocated_size = (int)size;

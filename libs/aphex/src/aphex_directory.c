@@ -51,7 +51,7 @@ char            *aphex_get_home_directory()
     char *str = NULL;
 
     if( (str = getenv("HOME")) != NULL )
-      return strdup( str );
+        return strdup( str );
     return NULL;
 }
 
@@ -60,7 +60,7 @@ char            *aphex_get_temp_directory()
     char *str = NULL;
 
     if( (str = getenv("TMP")) != NULL )
-      return strdup( str );
+        return strdup( str );
 #ifndef WIN32
     return strdup( "/tmp" );
 #else
@@ -98,25 +98,25 @@ AphexDirectory  *aphex_directory_read( char *path )
 #else
           while( dir != INVALID_HANDLE_VALUE && GetLastError() != ERROR_NO_MORE_FILES )
 #endif
-          {
+        {
 #ifndef WIN32
-              if( strcmp( ent->d_name, "." ) != 0 && strcmp( ent->d_name, ".." ) != 0 )
+            if( strcmp( ent->d_name, "." ) != 0 && strcmp( ent->d_name, ".." ) != 0 )
 #else
                 if( strcmp( FindFileData.cFileName, "." ) != 0 && strcmp( FindFileData.cFileName, ".." ) != 0 )
 #endif
-                {
-                    retval->size++;
-                    retval->contents = (char **)aphex_realloc( retval->contents, sizeof(char *) * retval->size );
+            {
+                retval->size++;
+                retval->contents = (char **)aphex_realloc( retval->contents, sizeof(char *) * retval->size );
 #ifndef WIN32
-                    retval->contents[retval->size-1] = strdup( ent->d_name );
+                retval->contents[retval->size-1] = strdup( ent->d_name );
 #else
                     retval->contents[retval->size-1] = strdup( FindFileData.cFileName );
 #endif
-                }
+            }
 #ifdef WIN32
               FindNextFile( dir, &FindFileData );
 #endif
-          }
+        }
 #ifndef WIN32
         closedir( dir );
 #else
@@ -156,35 +156,35 @@ AphexDirectory  *aphex_directory_read_with_filter( char *path, char *filter )
 #else
           while( dir != INVALID_HANDLE_VALUE && GetLastError() != ERROR_NO_MORE_FILES )
 #endif
-          {
+        {
 #ifndef WIN32
-              if( strcmp( ent->d_name, "." ) != 0 && strcmp( ent->d_name, ".." ) != 0 )
+            if( strcmp( ent->d_name, "." ) != 0 && strcmp( ent->d_name, ".." ) != 0 )
 
 #else
                 if( strcmp( FindFileData.cFileName, "." ) != 0 && strcmp( FindFileData.cFileName, ".." ) != 0 )
 #endif
-                {
-                    if( __aphex_wild_match(
+            {
+                if( __aphex_wild_match(
 #ifdef WIN32
                                            FindFileData.cFileName
 #else
-                                           (unsigned char *)ent->d_name
+                        (unsigned char *)ent->d_name
 #endif
-                                           , (unsigned char *)filter ) )
-                    {
-                        retval->size++;
-                        retval->contents = (char **)aphex_realloc( retval->contents, sizeof(char *) * retval->size );
+                        , (unsigned char *)filter ) )
+                {
+                    retval->size++;
+                    retval->contents = (char **)aphex_realloc( retval->contents, sizeof(char *) * retval->size );
 #ifndef WIN32
-                        retval->contents[retval->size-1] = strdup( ent->d_name );
+                    retval->contents[retval->size-1] = strdup( ent->d_name );
 #else
                         retval->contents[retval->size-1] = strdup( FindFileData.cFileName );
 #endif
-                    }
                 }
+            }
 #ifdef WIN32
               FindNextFile( dir, &FindFileData );
 #endif
-          }
+        }
 #ifndef WIN32
         closedir( dir );
 #else
@@ -227,44 +227,44 @@ AphexDirectory  *aphex_directory_read_unique_prefix( char *path )
 #else
           while( dir != INVALID_HANDLE_VALUE && GetLastError() != ERROR_NO_MORE_FILES )
 #endif
-          {
+        {
 #ifndef WIN32
-              if( strcmp( ent->d_name, "." ) != 0 && strcmp( ent->d_name, ".." ) != 0 )
+            if( strcmp( ent->d_name, "." ) != 0 && strcmp( ent->d_name, ".." ) != 0 )
 
 #else
                 if( strcmp( FindFileData.cFileName, "." ) != 0 && strcmp( FindFileData.cFileName, ".." ) != 0 )
 #endif
-                {
+            {
 #ifndef WIN32
-                    strcpy( filename, ent->d_name );
+                strcpy( filename, ent->d_name );
 #else
                     strcpy( filename, FindFileData.cFileName );
 #endif
-                    ext = strrchr( filename, '.' );
-                    if( ext != NULL )
+                ext = strrchr( filename, '.' );
+                if( ext != NULL )
+                {
+                    *ext = '\0';
+                    got_name = 0;
+                    for( i = 0; i < retval->size; i++ )
                     {
-                        *ext = '\0';
-                        got_name = 0;
-                        for( i = 0; i < retval->size; i++ )
+                        if( strcmp( retval->contents[i], filename ) == 0 )
                         {
-                            if( strcmp( retval->contents[i], filename ) == 0 )
-                            {
-                                got_name = 1;
-                                break;
-                            }
-                        }
-                        if( !got_name )
-                        {
-                            retval->size++;
-                            retval->contents = (char **)aphex_realloc( retval->contents, sizeof(char *) * retval->size );
-                            retval->contents[retval->size-1] = strdup( filename );
+                            got_name = 1;
+                            break;
                         }
                     }
+                    if( !got_name )
+                    {
+                        retval->size++;
+                        retval->contents = (char **)aphex_realloc( retval->contents, sizeof(char *) * retval->size );
+                        retval->contents[retval->size-1] = strdup( filename );
+                    }
                 }
+            }
 #ifdef WIN32
               FindNextFile( dir, &FindFileData );
 #endif
-          }
+        }
 #ifndef WIN32
         closedir( dir );
 #else
@@ -286,7 +286,7 @@ void             aphex_directory_delete( AphexDirectory *dir )
     if( dir != NULL )
     {
         for( i = 0; i < dir->size; i++ )
-          aphex_free( dir->contents[i] );
+            aphex_free( dir->contents[i] );
         aphex_free( dir->contents );
         aphex_free( dir );
     }
@@ -311,23 +311,23 @@ char *aphex_remove_symlinks( char *filename )
 
 char *aphex_relative_to_absolute( char *path )
 {
- /* ok this is what we do:
-  * if the directory starts with the dir delim, return a copy of it
-  * else
-  *   get current working directory
-  *   cat the two together
-  *   flatten all ./'s to nothing
-  *   flatten all ../'s
-  *     this is done like so:
-  *       if( ../ )
-  *         backup
-  *
-  *   eg.
-  *
-  *   /ferite/ferite/modules/file/../../builder/builder
-  *   /ferite/ferite/modules/../builder/builder
-  *   /ferite/ferite/builder/builder
-  */
+    /* ok this is what we do:
+     * if the directory starts with the dir delim, return a copy of it
+     * else
+     *   get current working directory
+     *   cat the two together
+     *   flatten all ./'s to nothing
+     *   flatten all ../'s
+     *     this is done like so:
+     *       if( ../ )
+     *         backup
+     *
+     *   eg.
+     *
+     *   /ferite/ferite/modules/file/../../builder/builder
+     *   /ferite/ferite/modules/../builder/builder
+     *   /ferite/ferite/builder/builder
+     */
 
     char *cwd = aphex_calloc( PATH_MAX, sizeof(char) );
     char *buf = aphex_calloc( strlen( path ) + PATH_MAX + 1, sizeof(char) );
@@ -357,8 +357,8 @@ char *aphex_relative_to_absolute( char *path )
         {
             j = i - 2; /* before the dir delimiter */
             for( ; j > 0; j-- )
-              if( buf[j] == DIR_DELIM )
-                break;
+                if( buf[j] == DIR_DELIM )
+                    break;
             /* now j points to the start block we have to delete */
             memmove( buf+j, buf+i+2, strlen(buf+i+2)+1 );
             i = j;
@@ -367,9 +367,9 @@ char *aphex_relative_to_absolute( char *path )
     for( i = 0; i < strlen( buf ) - 1; i++ )
     {
         if( buf[i] == '.' && buf[i+1] == DIR_DELIM )        /* remove './'s */
-          memmove( buf+i-1, buf+i+1, strlen(buf+i+1)+1 );
+                memmove( buf+i-1, buf+i+1, strlen(buf+i+1)+1 );
         if( buf[i] == DIR_DELIM && buf[i+1] == DIR_DELIM )  /* remove '//'s */
-          memmove( buf+i, buf+i+1, strlen(buf+i+1)+1 );
+                memmove( buf+i, buf+i+1, strlen(buf+i+1)+1 );
     }
     aphex_free( cwd );
     return buf;
@@ -384,59 +384,65 @@ char            *aphex_absolute_to_relative( char *path )
 
     if( path[0] != DIR_DELIM )
     {
-      return path;
+        return path;
     }
-    
+
     cwd = aphex_calloc( PATH_MAX, sizeof(char) );
     getcwd( cwd, PATH_MAX );
     if( cwd[strlen(cwd)-1] != DIR_DELIM )
         cwd[strlen(cwd)] = DIR_DELIM;
-    
+
     for( i = 0; i < len; i++ )
     {
-	if( path[i] != cwd[i] )
-	{
-	    aphex_free( cwd );
-	    return p;
-	}
-	else
-	  p++;
+        if( path[i] != cwd[i] )
+        {
+            aphex_free( cwd );
+            return p;
+        }
+        else
+            p++;
     }
     aphex_free( cwd );
     return path;
 }
 
-char *aphex_directory_name( char *path ) 
+char *aphex_directory_name( char *path )
 {
-	int i, len = strlen( path );
-	if( path[len - 1] == DIR_DELIM )
-		return path;
-	
-	for( i = len - 1; i >= 0; i-- ) 
-    {
-		if( path[i] == DIR_DELIM )
-		{
-			char *ret = aphex_calloc( i + 2, sizeof(char) );
-			strncpy( ret, path, i + 1 );
-			return ret;
-		}
+    size_t len = strlen( path );
+    size_t i = len;
+
+    if( path[len - 1] == DIR_DELIM ) {
+        return path;
     }
-	return NULL;
+
+    do {
+        i--;
+        if( path[i] == DIR_DELIM ) {
+            char *ret = aphex_calloc( i + 2, sizeof(char) );
+            strncpy( ret, path, i + 1 );
+            return ret;
+        }
+    } while( i > 0 );
+
+    return NULL;
 }
-char *aphex_file_name( char *path ) 
+char *aphex_file_name( char *path )
 {
-	int i, len = strlen( path );
-	if( path[len - 1] == DIR_DELIM )
-		return path;
-	
-	for( i = len - 1; i >= 0; i-- ) 
-    {
-		if( path[i] == DIR_DELIM )
-		{
-			char *ret = aphex_calloc( len, sizeof(char) );
-			strcpy( ret, path + i + 1 );
-			return ret;
-		}
+    size_t len = strlen( path );
+    size_t i = len;
+
+    if( path[len - 1] == DIR_DELIM ) {
+        return path;
     }
-	return NULL;
+
+    do {
+        i--;
+        if( path[i] == DIR_DELIM ) {
+            char *ret = aphex_calloc( len, sizeof(char) );
+            strcpy( ret, path + i + 1 );
+            return ret;
+        }
+    } while( i > 0 );
+
+    return NULL;
 }

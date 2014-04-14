@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2007 Stephan Engström
+ * Copyright (c) 2002-2007 Stephan Engstrï¿½m
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,8 +48,8 @@ FERITE_API void            ferite_buffer_merge( FeriteScript *script, FeriteBuff
 FERITE_API void            ferite_buffer_delete( FeriteScript *script, FeriteBuffer *buf );
 
 FERITE_API size_t          ferite_buffer_get_size( FeriteScript *script, FeriteBuffer *buf );
-FERITE_API void           *ferite_buffer_get( FeriteScript *script, FeriteBuffer *buf, int *len );
-FERITE_API int             ferite_buffer_to_fd( FeriteScript *script, FeriteBuffer *buf, int fd );
+FERITE_API void           *ferite_buffer_get( FeriteScript *script, FeriteBuffer *buf, size_t *len );
+FERITE_API size_t          ferite_buffer_to_fd( FeriteScript *script, FeriteBuffer *buf, int fd );
 FERITE_API int             ferite_buffer_to_file( FeriteScript *script, FeriteBuffer *buf, FILE *f );
 FERITE_API FeriteVariable *ferite_buffer_to_var( FeriteScript *script, FeriteBuffer *buf );
 FERITE_API FeriteString   *ferite_buffer_to_str( FeriteScript *script, FeriteBuffer *buf );

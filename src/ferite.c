@@ -78,8 +78,9 @@ int ferite_init( int argc, char **argv )
 		int memory_setup = FE_FALSE;
 		int gc_setup = FE_FALSE;
 
-		for( i = 0; i < 32; i++ )
+		for( i = 0; i < 32; i++ ) {
 			ferite_pow_lookup[i] = (int)pow( (double)2, (double)i );
+        }
 
 		if( argv != NULL )
 		{
@@ -409,8 +410,10 @@ void ferite_set_script_argv( int argc, char **argv )
 	int i = 0;
 	FeriteScript *script = NULL;
 	FE_ENTER_FUNCTION;
-	if( ferite_ARGV != NULL )
+
+    if( ferite_ARGV != NULL ) {
 		ferite_variable_destroy( NULL, ferite_ARGV );
+    }
 
 	ferite_ARGV = ferite_create_uarray_variable( NULL, "argv", argc, FE_STATIC );
 	if( argv != NULL )

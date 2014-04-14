@@ -95,7 +95,7 @@ FeriteOp *ferite_get_next_op( FeriteOpcodeList *list );
 FeriteOp *ferite_create_op(void);
 FeriteOp *ferite_current_op( FeriteOpcodeList *oplist );
 FeriteOp *ferite_get_next_op_address( FeriteOpcodeList *oplist );
-int       ferite_get_next_op_loc( FeriteOpcodeList *oplist ); /* same as ferite_get_next_op_address
+long ferite_get_next_op_loc(FeriteOpcodeList *oplist); /* same as ferite_get_next_op_address
                                                                * but will return an index rather than
                                                                * address :)
                                                                */

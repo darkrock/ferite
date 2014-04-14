@@ -269,7 +269,6 @@ char *ferite_compiler_build_current_path_wannotation_wfunction( int annotate, in
 {
 	FeriteCompileRecord *c = NULL;
 	char *currentPathNameBuffer = fmalloc_ngc(4096);
-	char *return_buffer = NULL;
 	char *sig = NULL;
 	int i;
 	
@@ -2406,7 +2405,7 @@ void ferite_do_after_then_statement()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *op = NULL;
-	int addr;
+    long addr;
 
 	FE_ENTER_FUNCTION;
 	addr = ferite_get_next_op_loc( CURRENT_FUNCTION->bytecode );
@@ -2425,7 +2424,7 @@ void ferite_do_after_then_before_else_statement()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *jump_else_op, *do_else_op;
-	int do_else_op_offset;
+	long do_else_op_offset;
 
 	FE_ENTER_FUNCTION;
 	/* we jump over the else block */
@@ -2454,7 +2453,7 @@ void ferite_do_after_else_statement()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *op = NULL;
-	int next_op;
+    long next_op;
 
 	FE_ENTER_FUNCTION;
 	next_op = ferite_get_next_op_loc( CURRENT_FUNCTION->bytecode );
@@ -2481,7 +2480,7 @@ void ferite_do_while_begin()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *op = NULL;
-	int next_op;
+	long next_op;
 
 	FE_ENTER_FUNCTION;
 	next_op = ferite_get_next_op_loc( CURRENT_FUNCTION->bytecode );
@@ -2516,7 +2515,7 @@ void ferite_do_while_end()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *op = NULL;
-	int next_addr;
+	long next_addr;
 
 	FE_ENTER_FUNCTION;
 	/* hook up jump back */
@@ -2554,7 +2553,7 @@ void ferite_do_for_loop_start()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *op = NULL;
-	int next_op;
+	long next_op;
 
 	FE_ENTER_FUNCTION;
 	next_op = ferite_get_next_op_loc( CURRENT_FUNCTION->bytecode );
@@ -2578,7 +2577,7 @@ void ferite_do_for_loop_itterate()
 
 	FeriteBkRequest *req = NULL;
 	FeriteOp *op = NULL;
-	int next_op;
+	long next_op;
 
 	FE_ENTER_FUNCTION;
 	/* jump out of the for loop */
@@ -2613,7 +2612,7 @@ void ferite_do_for_loop_block()
 {
 	FeriteBkRequest *req, *req_incr_start, *req_test_start;
 	FeriteOp *op = NULL;
-	int next_op;
+	long next_op;
 
 	FE_ENTER_FUNCTION;
 	/* so we dont lose this request */
@@ -2654,7 +2653,7 @@ void ferite_do_for_loop_end()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *op = NULL;
-	int next_op;
+	long next_op;
 
 	FE_ENTER_FUNCTION;
 	/* jump back to incr block */
@@ -2690,7 +2689,7 @@ void ferite_do_do_start()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *op = NULL;
-	int next_op;
+	long next_op;
 
 	FE_ENTER_FUNCTION;
 	next_op = ferite_get_next_op_loc( CURRENT_FUNCTION->bytecode );
@@ -2711,7 +2710,7 @@ void ferite_do_do_end()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *op = NULL;
-	int addr;
+	long addr;
 
 	FE_ENTER_FUNCTION;
 	op = ferite_get_next_op( CURRENT_FUNCTION->bytecode );
@@ -2772,7 +2771,7 @@ void ferite_do_before_handle_block()
 {
 	FeriteBkRequest *req, *req2;
 	FeriteOp *op, *op_two;
-	int addr;
+    long addr;
 
 	FE_ENTER_FUNCTION;
 
@@ -2811,7 +2810,7 @@ void ferite_do_before_handle_block()
 void ferite_do_after_fix_block()
 {
 	FeriteBkRequest *req = NULL;
-	int addr;
+	long addr;
 
 	/* we dont have an else block */
 	FE_ENTER_FUNCTION;
@@ -2836,12 +2835,12 @@ void ferite_do_after_fix_before_else_block()
 	/* we have an else block */
 	FeriteBkRequest *req, *req2;
 	FeriteOp *op = NULL;
-	int addr;
+    long addr;
 
 	FE_ENTER_FUNCTION;
 	op = ferite_get_next_op( CURRENT_FUNCTION->bytecode );
 	op->OP_TYPE = F_OP_JMP;
-	op->line = ferite_scanner_lineno;
+	op->line = (unsigned int)ferite_scanner_lineno;
 	op->block_depth = ferite_compiler_current_block_depth;
 	req2 = ferite_create_request( op, JMP_ERR_ELSE ); /* jump instruction to jump else block */
 
@@ -2850,7 +2849,7 @@ void ferite_do_after_fix_before_else_block()
 	op = ferite_get_next_op( CURRENT_FUNCTION->bytecode );
 	op->OP_TYPE = F_OP_ERR;
 	op->addr = -1;
-	op->line = ferite_scanner_lineno;
+	op->line = (unsigned int)ferite_scanner_lineno;
 	op->block_depth = ferite_compiler_current_block_depth;
 	MARK_VARIABLE_AS_COMPILED( PTR2VAR(op->opdata) );
 
@@ -2869,7 +2868,7 @@ void ferite_do_after_fix_else_statement()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *op = NULL;
-	int addr;
+    long addr;
 
 	/* we need this to jump over the else block */
 	FE_ENTER_FUNCTION;
@@ -2890,7 +2889,7 @@ void ferite_do_pre_switch()
 {
 	FeriteBkRequest *req = NULL;
 	FeriteOp *jmp_op, *pop_op;
-	int addr;
+	long addr;
 
 	FE_ENTER_FUNCTION;
 
@@ -2926,7 +2925,7 @@ void ferite_do_case_block_start()
 {
 	FeriteOp *op = NULL;
 	FeriteBkRequest *req = NULL;
-	int addr = 0;
+	long addr = 0;
 
 	FE_ENTER_FUNCTION;
 
@@ -2971,7 +2970,7 @@ void ferite_do_case_block_start()
 void ferite_do_default_block_start()
 {
 	FeriteBkRequest *req = NULL;
-	int addr = 0;
+	long addr = 0;
 
 	FE_ENTER_FUNCTION;
 
@@ -2998,7 +2997,7 @@ void ferite_do_case_block_end()
 {
 	FeriteOp *op = NULL;
 	FeriteBkRequest *req = NULL;
-	int addr= 0;
+	long addr= 0;
 
 	FE_ENTER_FUNCTION;
 
@@ -3033,7 +3032,7 @@ void ferite_do_post_switch()
 {
 	FeriteOp *op = NULL;
 	FeriteBkRequest *req = NULL;
-	int addr;
+	long addr;
 
 	FE_ENTER_FUNCTION;
 
@@ -3130,7 +3129,7 @@ void ferite_do_continue()
 	FE_LEAVE_FUNCTION( NOWT );
 }
 
-void ferite_process_breaks( int starttag, int address )
+void ferite_process_breaks( int starttag, long address )
 {
 	FeriteBkRequest *req = NULL;
 

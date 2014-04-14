@@ -313,10 +313,10 @@ int ferite_script_delete( FeriteScript *script )
 FeriteScript *ferite_duplicate_script( FeriteScript *script )
 {
     FeriteScript *ptr = NULL;
-    FeriteClass *klass = NULL;
-    FeriteStack *klass_list = NULL;
-    FeriteNamespaceBucket *nsb = NULL;
-    char *name = NULL;
+//    FeriteClass *klass = NULL;
+//    FeriteStack *klass_list = NULL;
+//    FeriteNamespaceBucket *nsb = NULL;
+//    char *name = NULL;
     int i = 0;
 
     FE_ENTER_FUNCTION;

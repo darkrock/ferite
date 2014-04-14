@@ -96,7 +96,7 @@ struct _ferite_amt_node {
 	} u;
 };
 struct _ferite_amt_tree {
-	unsigned int    map;
+	unsigned long   map;
 	FeriteAMTNode **base;
 	FeriteAMTTree  *parent;
 	char            index_type;
@@ -104,12 +104,12 @@ struct _ferite_amt_tree {
 };
 struct _ferite_amt {
 	FeriteAMTTree *root;
-	unsigned int (*index_function)(unsigned int, unsigned int);
-	unsigned int lower_bound;
-	unsigned int upper_bound;
-	unsigned int zero_bound;
-	unsigned int last_index;
-	unsigned int total;
+	unsigned long (*index_function)(unsigned long, unsigned long);
+	unsigned long lower_bound;
+	unsigned long upper_bound;
+	unsigned long zero_bound;
+	unsigned long last_index;
+	unsigned long total;
 };
 
 struct _ferite_stack
@@ -195,7 +195,7 @@ struct _ferite_op
     void *opdata;               /* Usually a pointer to a char* which holds a name */
     FeriteOpFncData *opdataf;   /* the function data we require */
     long  addr;                 /* The address to jump to [depending on instruction] */
-    int   line;                 /* The line the op was generated from in the source - for error reporting */
+    unsigned int line;                 /* The line the op was generated from in the source - for error reporting */
     int   block_depth;          /* block depth */
 	short           flags;
 };
@@ -220,7 +220,7 @@ struct ferite_memory_block     /* This is used by the classic memory manager for
 struct _ferite_bk_req  /* Used within the compiler for internal address resolving in loops and jumps */
 {
     FeriteOp *reqop;    /* The op that needs the address */
-    int       addr;     /* .. or an address to give to an op */
+    long       addr;     /* .. or an address to give to an op */
     int       type;     /* The type of op/block this is for - sanity check */
 };
 
@@ -279,7 +279,7 @@ struct _ferite_function  /* Encapsulate a native and script function */
     char                    state;      /* The state of the function - public, protected, private */
     char                    is_alias;   /* The structure is an alias and therefore can't have it's members freed */
     FeriteFunction         *next;
-	int                     length; /* The length of the function in the code */
+	size_t                  length; /* The length of the function in the code */
 	int                     cached; /* True if the function is cached */
 	int                     return_type; 
 	FeriteVariableSubType  *return_subtype;
@@ -312,7 +312,7 @@ struct _ferite_object_variable
 struct _ferite_object /* an actual instance of a FeriteClass */
 {
     char                 *name;       /* The objects name -> same as the class's name */
-    int                   oid;        /* It's id -> same as the class's id */
+    long                  oid;        /* It's id -> same as the class's id */
     void                 *odata;      /* A pointer in each object that can be used by a programmer writing
                                        * native code, this is _not_ touched by ferite. It is up to the
                                        * programmer using it to clear things up
@@ -530,10 +530,10 @@ typedef struct __ferite_array_interface {
 	void                 (*destroy)( FeriteScript *script, FeriteAbstractArray *array );
 	FeriteString        *(*to_str)( FeriteScript *script, FeriteAbstractArray *array );
 
-	void                 (*append)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *variable, char *key, size_t location );
+	void                 (*append)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *variable, char *key, int location );
 	FeriteVariable      *(*get)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *index );
 	FeriteVariable      *(*getByString)( FeriteScript *script, FeriteAbstractArray *array, char *index );
-	FeriteVariable      *(*getByIndex)( FeriteScript *script, FeriteAbstractArray *array, int index );
+	FeriteVariable      *(*getByIndex)( FeriteScript *script, FeriteAbstractArray *array, long index );
 	FeriteVariable      *(*set)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *index, FeriteVariable *value );
 	void                *(*_delete)( FeriteScript *script, FeriteAbstractArray *array, FeriteVariable *index );
 

@@ -86,19 +86,20 @@ void ferite_amtarray_add( FeriteScript *script, FeriteAMTArray *array, FeriteVar
 	ferite_amt_set( script, array->_array, index, entry );
 }
 #define REAL_INDEX( ARRAY, INDEX, REALINDEX ) do { \
-		if( INDEX < 0 ) \
+		if( INDEX < 0 ) { \
 			REALINDEX = (ARRAY->upperLimit + INDEX); \
-		else \
+        } else { \
 			REALINDEX = (ARRAY->lowerLimit + INDEX); \
+        } \
 		if( REALINDEX <= ARRAY->lowerLimit || REALINDEX >= ARRAY->upperLimit ) { \
 			ferite_error( script, 0, "Index %d is out of array bounds 0 to %u!\n", INDEX, (ARRAY->upperLimit - ARRAY->lowerLimit) ); \
 			return NULL; \
 		} \
 	} while(0)
 
-FeriteVariable *ferite_amtarray_get_index( FeriteScript *script, FeriteAMTArray *array, int index )
+FeriteVariable *ferite_amtarray_get_index(FeriteScript *script, FeriteAMTArray *array, long index)
 {    
-	unsigned int real_index = index;
+	unsigned long real_index = 0;
 	FeriteAMTArrayEntry *entry = NULL;
 	
 	REAL_INDEX( array, index, real_index );	
@@ -162,6 +163,8 @@ FeriteVariable *ferite_amtarray_get_exceptions( FeriteScript *script, FeriteAMTA
 			ferite_variable_destroy( script, hash_value );
 			FE_LEAVE_FUNCTION( return_value );	    
 		}
+        default:
+            FE_LEAVE_FUNCTION(NULL);
 	}
 	FE_LEAVE_FUNCTION( rval );
 }

@@ -21,4 +21,4 @@ libaphex_la_DEPENDENCIES = $(top_builddir)/config.h
 libaphex_la_LDFLAGS      = -no-undefined $(LDFLAGS) -m @aphex_LDFLAGS@
 libaphex_la_LIBADD       = @thread_libs@ @gc_libs@
 
-libaphex_la_SOURCES  = aphex_file.c aphex_directory.c aphex_config.c aphex_match.c aphex_thread.c aphex_notify.c poll.c poll.h
+libaphex_la_SOURCES  = aphex_file.c aphex_directory.c aphex_config.c aphex_match.c aphex_thread.c

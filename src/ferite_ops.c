@@ -1432,14 +1432,6 @@ FERITE_MANY_OP( array_index_assign )
 			b = (binaryop)( script, current_op, tmp, b );
 		}
 		if( NO_ERROR(script ) ) {
-			int can_assign = FE_FALSE;
-
-//			can_assign = ferite_can_assign( script, a, b, array->subtype->data._subtype, b->subtype );
-
-//			if( can_assign ) {
-//				printf("allowed to perform array set\n");
-//			}
-
 			(ferite_array->set)( script, VAUA(array), a, b );
 		}
 		
@@ -1457,7 +1449,8 @@ FERITE_MANY_OP( array_index_assign )
 FERITE_UNARY_OP( array_clear )
 {
     FeriteVariable *ptr = NULL;
-    long iteration = 0, iteration_type = 0;
+    long iteration = 0;
+    int iteration_type = 0;
     
     FE_ENTER_FUNCTION;
     LOCK_VARIABLE(a);

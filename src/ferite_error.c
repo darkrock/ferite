@@ -180,7 +180,7 @@ void ferite_raise_script_error( FeriteScript *script, int err, char *fmt, ... )
 void ferite_verror( FeriteScript *script, int err, char *errormsg, va_list *ap )
 {
 	char *real_errormsg = fstrdup(errormsg);
-	int  length = strlen(real_errormsg);
+	size_t  length = strlen(real_errormsg);
 	
 	FE_ENTER_FUNCTION;
 
@@ -203,7 +203,7 @@ void ferite_verror( FeriteScript *script, int err, char *errormsg, va_list *ap )
 	
 	if( script->error_state != FE_ERROR_THROWN ) {
 		if( ferite_is_executing( script ) ) {
-			int len = 0, sub_length = strlen("Error: ");
+			size_t len = 0, sub_length = strlen("Error: ");
 			char *ptr = ferite_buffer_get( script, script->error, &len );
 			char *real_ptr = ferite_replace_string( ptr, "%", "%%" );
 			char *msg = fmalloc(len + 1);
@@ -303,7 +303,7 @@ void ferite_warning( FeriteScript *script, char *errormsg, ... )
  */
 char *ferite_get_error_log( FeriteScript *script )
 {
-	int err_size = 0, warn_size = 0;
+	size_t err_size = 0, warn_size = 0;
 	char *msg, *err_ptr, *warn_ptr;
 
 	FE_ENTER_FUNCTION;
@@ -442,7 +442,7 @@ FE_NATIVE_FUNCTION( ferite_error_constructor_sn )
 	FeriteVariable *backtrace = NULL;
 
 	FeriteString *pstr = VAS(params[0]);
-	int pnum = VAI(params[1]);
+    long pnum = VAI(params[1]);
 
 	ferite_str_set( script, VAS(str), pstr->data, pstr->length, FE_CHARSET_DEFAULT );
 	VAI(num) = pnum;

@@ -107,7 +107,7 @@ int ferite_script_execute( FeriteScript *script )
 			{
 				if( F_VAR_TYPE(rval) == F_VAR_LONG && script->return_value == 0 )
 				{
-					script->return_value = VAI(rval);
+					script->return_value = (unsigned int)VAI(rval);
 				}
 				ferite_variable_destroy( script, rval );
 			}
@@ -1144,7 +1144,7 @@ INLINE_OP( ferite_exec_case )
 INLINE_OP( ferite_exec_vrst )
 {
 	FeriteVariable *varone = ferite_stack_pop( script, exec->stack );
-	ferite_variable_convert_to_type( script, varone, current_op->addr );	
+	ferite_variable_convert_to_type( script, varone, (int)current_op->addr );
 	return NULL;
 }
 INLINE_OP( ferite_exec_jmp )
@@ -1376,7 +1376,8 @@ FeriteVariable *ferite_script_real_function_execute( FeriteScript *script, void 
 	FeriteOp		**opcode_list = NULL;
 	FeriteVariable *return_val = NULL;
 	FeriteOpcodeContext *context, stack_context;
-	int			 error_op_location = 0, error_array[ERROR_UPPER_BOUND + 1];
+	int			 error_op_location = 0;
+    long         error_array[ERROR_UPPER_BOUND + 1];
 	/*}}}*/
 
 	FE_ENTER_FUNCTION;

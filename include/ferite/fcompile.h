@@ -176,7 +176,7 @@ void ferite_do_post_switch();
 
 void ferite_do_break();
 void ferite_do_continue();
-void ferite_process_breaks( int starttag, int address );
+void ferite_process_breaks( int starttag, long address );
 void ferite_do_raise();
 
 void ferite_clean_compiler();

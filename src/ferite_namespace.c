@@ -451,7 +451,7 @@ FeriteNamespace *ferite_namespace_dup( FeriteScript *script, FeriteNamespace *ns
 FeriteNamespaceBucket *ferite_namespace_bucket_dup( FeriteScript *script, FeriteNamespaceBucket *nsb, FeriteNamespace *parent )
 {
     FeriteNamespaceBucket *ptr = NULL;
-    FeriteClass *klass = NULL, *klass_dup = NULL;
+//    FeriteClass *klass = NULL, *klass_dup = NULL;
     //FeriteStack *stack = script->odata;
     
     FE_ENTER_FUNCTION;

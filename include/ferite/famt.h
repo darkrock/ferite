@@ -41,7 +41,7 @@
 #define FeriteAMTIndex_Direct     0
 #define FeriteAMTIndex_Compressed 1
 
-typedef void (*AMTWalkCallback)(FeriteScript*,FeriteAMT*,int,char*,void*,void*,void*);
+typedef void (*AMTWalkCallback)(FeriteScript*,FeriteAMT*,unsigned long,char*,void*,void*,void*);
 typedef int (*AMTCompareCallback)(FeriteScript*,void*,void*,void*);
 typedef FeriteString *(*AMTSerializeCallback)(FeriteScript*,void*);
 

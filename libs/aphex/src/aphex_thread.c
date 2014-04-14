@@ -292,8 +292,6 @@ void aphex_mutex_destroy( AphexMutex *mutex )
 int aphex_mutex_lock( AphexMutex *mutex )
 {
 #ifdef USE_PTHREAD
-    pthread_t self = pthread_self();
-
     if( mutex != NULL )
     {
         if( pthread_mutex_lock( &mutex->mutex ) == -1 )
@@ -302,6 +300,7 @@ int aphex_mutex_lock( AphexMutex *mutex )
 #if defined(USING_FAKE_RECURSIVE_MUTEX)
         if( mutex->recursive == 1 )
         {
+            pthread_t self = pthread_self();
             while (1)
             {
                 if( pthread_equal(mutex->owner, self) )

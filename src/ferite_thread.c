@@ -97,28 +97,29 @@ void ferite_thread_group_destroy( FeriteScript *script, FeriteThreadGroup *group
  */
 void ferite_thread_group_attach( FeriteScript *script, FeriteThreadGroup *group, FeriteThread *thread )
 {
-    int i = 0;
-
     FE_ENTER_FUNCTION;
 #ifdef THREAD_SAFE
-    if( group != NULL && thread != NULL )
     {
-        aphex_mutex_lock( group->lock );
-
-        /* search the thread list for a gap */
-        for( i = 1; i <= group->thread_list->stack_ptr; i++ )
+        int i = 0;
+        if( group != NULL && thread != NULL )
         {
-            if( group->thread_list->stack[i] == NULL )
-            {
-                group->thread_list->stack[i] = thread;
-                aphex_mutex_unlock( group->lock );
-                FE_LEAVE_FUNCTION(NOWT);
-            }
-        }
+            aphex_mutex_lock( group->lock );
 
-        /* we didn't find a spot, put the thread at the end of the list */
-        ferite_stack_push( FE_NoScript, group->thread_list, thread );
-        aphex_mutex_unlock( group->lock );
+            /* search the thread list for a gap */
+            for( i = 1; i <= group->thread_list->stack_ptr; i++ )
+            {
+                if( group->thread_list->stack[i] == NULL )
+                {
+                    group->thread_list->stack[i] = thread;
+                    aphex_mutex_unlock( group->lock );
+                    FE_LEAVE_FUNCTION(NOWT);
+                }
+            }
+
+            /* we didn't find a spot, put the thread at the end of the list */
+            ferite_stack_push( FE_NoScript, group->thread_list, thread );
+            aphex_mutex_unlock( group->lock );
+        }
     }
 #endif
     FE_LEAVE_FUNCTION(NOWT);

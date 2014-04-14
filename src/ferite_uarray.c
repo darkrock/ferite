@@ -201,18 +201,16 @@ void ferite_uarray_add( FeriteScript *script, FeriteUnifiedArray *array, FeriteV
  */
 void ferite_uarray_set_size( FeriteScript *script, FeriteUnifiedArray *array, int size )
 {
-    int i = array->size;
-    
     FE_ENTER_FUNCTION;
 	FE_ASSERT( array != NULL );
 	ferite_uarray_copy_on_write( script, array );
-    if( array->actual_size < size )
-    {
+    if( array->actual_size < size ) {
         array->actual_size = size;
         array->array = frealloc( array->array, sizeof(FeriteVariable*) * array->actual_size );
     }
-    for( i = array->size; i < array->actual_size; i++ )
+    for( long i = array->size; i < array->actual_size; i++ ) {
         array->array[i] = NULL;
+    }
     array->size = size;
     FE_LEAVE_FUNCTION( NOWT );
 }
@@ -225,31 +223,33 @@ void ferite_uarray_set_size( FeriteScript *script, FeriteUnifiedArray *array, in
  * @param int index The index to obtained
  * @return The variable if it exists, or NULL otherwise
  */
-FeriteVariable *ferite_uarray_get_index( FeriteScript *script, FeriteUnifiedArray *array, int index )
+FeriteVariable *ferite_uarray_get_index( FeriteScript *script, FeriteUnifiedArray *array, long index )
 {    
     FE_ENTER_FUNCTION;
-    FUD(( "trying to get index %d\n", index ));
+    FUD(( "trying to get index %ld\n", index ));
+
     if( array->size == 0 )
     {
         ferite_error( script, 0,"Invalid index: array size is 0\n");
         FE_LEAVE_FUNCTION( NULL );
     }
 
-    if(index < 0)
-    {
-        index = array->size + index;
+    long targetIndex = index;
+
+    if( index < 0 ) {
+        targetIndex = array->size + index;
     }
 
-    if( index >= array->size )
-    {
+    if( index >= array->size ) {
         ferite_error( script, 0,"Index %d is out of array bounds [indexes 0 to %d]\n", index, array->size - 1 );
         FE_LEAVE_FUNCTION( NULL );
     }
-    
-    if( array->array[index] == NULL )
-        array->array[index] = ferite_create_void_variable( script, "uvar", FE_STATIC );
-    
-    FE_LEAVE_FUNCTION( array->array[index] );
+
+    if( array->array[targetIndex] == NULL ) {
+        array->array[targetIndex] = ferite_create_void_variable( script, "uvar", FE_STATIC );
+    }
+
+    FE_LEAVE_FUNCTION( array->array[targetIndex] );
 }
 
 /**
@@ -277,7 +277,7 @@ FeriteVariable *ferite_uarray_get_from_string( FeriteScript *script, FeriteUnifi
  * @param FeriteUnifiedArray *array The array to delete from
  * @param int index The index to delete
  */
-void ferite_uarray_del_index( FeriteScript *script, FeriteUnifiedArray *array, int index )
+void ferite_uarray_del_index( FeriteScript *script, FeriteUnifiedArray *array, long index )
 {
     FeriteVariable *var = NULL;
     long i = 0;
@@ -324,7 +324,7 @@ void ferite_uarray_del_index( FeriteScript *script, FeriteUnifiedArray *array, i
  */
 FeriteVariable *ferite_uarray_delete_from_string( FeriteScript *script, FeriteUnifiedArray *array, char *id )
 {
-    int real_index = 0;
+    long real_index = 0;
 
     FeriteVariable *ptr = NULL;
     FE_ENTER_FUNCTION;
@@ -439,7 +439,7 @@ FeriteVariable *ferite_uarray_set(FeriteScript *script, FeriteUnifiedArray *arra
  */
 void ferite_uarray_del_var( FeriteScript *script, FeriteUnifiedArray *array, FeriteVariable *index )
 {
-    int  real_index = 0;
+    long real_index = 0;
     FeriteVariable *ptr = NULL;
 
     FE_ENTER_FUNCTION;
@@ -508,8 +508,6 @@ void ferite_uarray_copy_on_write( FeriteScript *script, FeriteUnifiedArray *out 
 FeriteUnifiedArray *ferite_uarray_dup( FeriteScript *script, FeriteUnifiedArray *array )
 {
 	FeriteUnifiedArray *out = NULL;
-	FeriteVariable *ptr = NULL;
-	int i;
 
 	FE_ENTER_FUNCTION;
 	out = fmalloc(sizeof(FeriteUnifiedArray));
@@ -729,10 +727,10 @@ FeriteAbstractArrayInterface *ferite_array_interface() {
 	interface->duplicate = (FeriteAbstractArray *(*)(FeriteScript *, FeriteAbstractArray *))ferite_uarray_dup;
 	interface->to_str = (FeriteString*(*)(FeriteScript *, FeriteAbstractArray *))ferite_uarray_to_str;
 
-	interface->append = (void(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable *, char *, size_t  ))ferite_uarray_add;
+	interface->append = (void(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable *, char *, int  ))ferite_uarray_add;
 	interface->get = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable * ))ferite_uarray_get;
 	interface->getByString = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, char * ))ferite_uarray_get_from_string;
-	interface->getByIndex = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, int  ))ferite_uarray_get_index;
+	interface->getByIndex = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, long  ))ferite_uarray_get_index;
 	
 	
 	interface->set = (FeriteVariable*(*)( FeriteScript *, FeriteAbstractArray *, FeriteVariable *, FeriteVariable * ))ferite_uarray_set;

@@ -3,7 +3,7 @@
 
   NAME
 
-	poll - select(2)-based poll() emulation function for BSD systems.
+	emu_poll - select(2)-based poll() emulation function for BSD systems.
 
   SYNOPSIS
 	#include "poll.h"
@@ -78,7 +78,7 @@
 #define POLLHUP		0x10
 #define POLLNVAL	0x20
 
-struct pollfd
+struct emu_pollfd
 {
     int     fd;
     short   events;
@@ -91,9 +91,9 @@ extern "C"
 #endif
 
 #if (__STDC__ > 0) || defined(__cplusplus)
-extern int poll (struct pollfd *pArray, unsigned long n_fds, int timeout);
+extern int emu_poll(struct emu_pollfd *pArray, unsigned long n_fds, int timeout);
 #else
-extern int poll();
+extern int emu_poll();
 #endif
 
 #ifdef __cplusplus

@@ -480,7 +480,7 @@ int ferite_load_native_module( char *module_name, FeriteScript *script )
 void ferite_add_library_search_path( char *path )
 {
 	char *p = fstrdup(path);
-	int  last = strlen(path) - 1;
+	size_t  last = strlen(path) - 1;
     FE_ENTER_FUNCTION;
 	if( p[last] == DIR_DELIM ) {
 		p[last] = '\0';

@@ -97,7 +97,7 @@ FERITE_API FeriteVariable     *ferite_create_number_long_variable( FeriteScript 
 FERITE_API FeriteVariable     *ferite_create_number_double_variable( FeriteScript *script, char *name, double data, int alloc );
 FERITE_API FeriteVariable     *ferite_create_object_variable( FeriteScript *script, char *name, int alloc );
 FERITE_API FeriteVariable     *ferite_create_object_variable_with_data( FeriteScript *script, char *name, FeriteObject *o, int alloc );
-FERITE_API FeriteVariable     *ferite_create_uarray_variable( FeriteScript *script, char *name, int size, int alloc );
+FERITE_API FeriteVariable     *ferite_create_uarray_variable( FeriteScript *script, char *name, long size, int alloc );
 FERITE_API FeriteVariable     *ferite_duplicate_variable( FeriteScript *script, FeriteVariable *var, void *extra );
 FERITE_API FeriteVariable     *ferite_create_void_variable( FeriteScript *script, char *name, int alloc );
 FERITE_API FeriteVariable     *ferite_create_class_variable( FeriteScript *script, char *name, FeriteClass *klass, int alloc );

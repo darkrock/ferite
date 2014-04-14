@@ -437,7 +437,7 @@ namespace Array
         FeriteString *str = NULL;
         FeriteBuffer *buf = ferite_buffer_new(script,0);
         FeriteVariable *var = NULL;
-        int i, len;
+        size_t i, len;
 
         for (i=0;i<a->size;i++)
         {
