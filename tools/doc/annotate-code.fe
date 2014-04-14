@@ -17,8 +17,9 @@ array variables = [
     "number",
     "string",
     "array",
-    "void",
-    "object" ];
+    "auto",
+    "object",
+	"auto" ];
 array keywords = [ 
     "class",
     "attribute_missing",

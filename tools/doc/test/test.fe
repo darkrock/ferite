@@ -49,7 +49,7 @@ class Parser
    /**
     * !function addFile
     * !brief    Add a file to the list of files the parser will process
-    * !return   void
+    * !return   auto
     * !param    string filename The file to add to the list
     * !declaration function addFile( string filename )
     */

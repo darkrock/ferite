@@ -67,7 +67,7 @@ class Parser
 	/**
 	 * @function addFile
 	 * @brief	Add a file to the list of files the parser will process
-	 * @return   void
+	 * @return   auto
 	 * @param	string filename The file to add to the list
 	 * @declaration function addFile( string filename )
 	 */
@@ -177,7 +177,7 @@ class Parser
 	 * @brief Dump the key/value pairs in the array
 	 * @declaration function dump_array( array v )
 	 * @param array v The array to dump
-	 * @return void
+	 * @return auto
 	 */
 	function dump_array( array v )
 	{
@@ -242,7 +242,7 @@ class Parser
 	{
 		object obj = .generateGeneralObject( new DocFunction(), values );
 		object reg = new Regexp( ' ', 'g' );
-		void params;
+		auto params;
 		number i = 0;
 		
 		obj.name = values["function"];

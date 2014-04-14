@@ -38,15 +38,15 @@ namespace Console
     /**
      * @function print
      * @brief Prints a string to stdout
-     * @param void s The information to print out.
-     * @declaration function print( void s )
+     * @param auto s The information to print out.
+     * @declaration function print( auto s )
      * @description You need to make sure to send a \n to the output at somepoint, otherwise 
      *              buffering is likely to stop anything being displayed. This function can take
      *              any type of variable and will automagically convert it into a string.
      * @example <nl/>
      *  <code>Console.print( "Hi!" )</code><nl/>
      */
-    function print( void s )
+    function print( auto s )
     {
         Console.stdout.write( ""+s );
     }
@@ -61,7 +61,7 @@ namespace Console
      * @example <nl/>
      *  <code>Console.println( "Hi!" )</code><nl/>
      */
-    function println( void s )
+    function println( auto s )
     {
         Console.stdout.writeln( ""+s );
     }
@@ -82,12 +82,12 @@ namespace Console
     /**
      * @function printErr
      * @brief Prints a string to stderr
-     * @param void s The information to output
-     * @declaration function printErr( void s )
+     * @param auto s The information to output
+     * @declaration function printErr( auto s )
      * @description This is equivalent to Console.print, but instead of sending output to standard out, it will
      * be sent to standard error.
      */
-    function printErr( void s )
+    function printErr( auto s )
     {
         Console.stderr.write( ""+s );
     }
@@ -95,12 +95,12 @@ namespace Console
     /**
      * @function printlnErr
      * @brief Print a string to stderr followed by a newline
-     * @param void s The information to output
-     * @declaration function printlnErr( void s )
+     * @param auto s The information to output
+     * @declaration function printlnErr( auto s )
      * @description This is equivalent to Console.println, but instead of sending output to standard out, it will
      * be sent to standard error.
      */
-    function printlnErr( void s )
+    function printlnErr( auto s )
     {
         Console.stderr.writeln( ""+s );
     }

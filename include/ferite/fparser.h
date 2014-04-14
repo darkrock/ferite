@@ -135,23 +135,24 @@
      T_VAR_BOOLEAN = 351,
      T_VAR_NUMBER_LNG = 352,
      T_VAR_NUMBER_DBL = 353,
-     T_DIRECTIVE = 354,
-     T_RAISE = 355,
-     T_CURRENT_LINE = 356,
-     T_CURRENT_FILE = 357,
-     T_EXPANSION = 358,
-     T_FUNCTION_JUMP = 359,
-     T_RET_UNDEF = 360,
-     T_QSTRING = 361,
-     T_LABEL = 362,
-     T_OBJPROPERTY = 363,
-     T_NATIVE_CODE_BLOCK = 364,
-     T_DOT_LABEL = 365,
-     T_DIRECTIVE_LABEL = 366,
-     T_NNUMBER = 367,
-     T_TRUE = 368,
-     T_FALSE = 369,
-     T_RNUMBER = 370
+     T_VAR_AUTO = 354,
+     T_DIRECTIVE = 355,
+     T_RAISE = 356,
+     T_CURRENT_LINE = 357,
+     T_CURRENT_FILE = 358,
+     T_EXPANSION = 359,
+     T_FUNCTION_JUMP = 360,
+     T_RET_UNDEF = 361,
+     T_QSTRING = 362,
+     T_LABEL = 363,
+     T_OBJPROPERTY = 364,
+     T_NATIVE_CODE_BLOCK = 365,
+     T_DOT_LABEL = 366,
+     T_DIRECTIVE_LABEL = 367,
+     T_NNUMBER = 368,
+     T_TRUE = 369,
+     T_FALSE = 370,
+     T_RNUMBER = 371
    };
 #endif
 /* Tokens.  */
@@ -251,37 +252,38 @@
 #define T_VAR_BOOLEAN 351
 #define T_VAR_NUMBER_LNG 352
 #define T_VAR_NUMBER_DBL 353
-#define T_DIRECTIVE 354
-#define T_RAISE 355
-#define T_CURRENT_LINE 356
-#define T_CURRENT_FILE 357
-#define T_EXPANSION 358
-#define T_FUNCTION_JUMP 359
-#define T_RET_UNDEF 360
-#define T_QSTRING 361
-#define T_LABEL 362
-#define T_OBJPROPERTY 363
-#define T_NATIVE_CODE_BLOCK 364
-#define T_DOT_LABEL 365
-#define T_DIRECTIVE_LABEL 366
-#define T_NNUMBER 367
-#define T_TRUE 368
-#define T_FALSE 369
-#define T_RNUMBER 370
+#define T_VAR_AUTO 354
+#define T_DIRECTIVE 355
+#define T_RAISE 356
+#define T_CURRENT_LINE 357
+#define T_CURRENT_FILE 358
+#define T_EXPANSION 359
+#define T_FUNCTION_JUMP 360
+#define T_RET_UNDEF 361
+#define T_QSTRING 362
+#define T_LABEL 363
+#define T_OBJPROPERTY 364
+#define T_NATIVE_CODE_BLOCK 365
+#define T_DOT_LABEL 366
+#define T_DIRECTIVE_LABEL 367
+#define T_NNUMBER 368
+#define T_TRUE 369
+#define T_FALSE 370
+#define T_RNUMBER 371
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 133 "ferite_parser.y"
+#line 134 "ferite_parser.y"
 {
-	char   *text;
-	long    inumber;
-	double  fnumber;
+    char   *text;
+    long    inumber;
+    double  fnumber;
 }
 /* Line 1529 of yacc.c.  */
-#line 285 "ferite_parser.tab.h"
+#line 287 "ferite_parser.tab.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

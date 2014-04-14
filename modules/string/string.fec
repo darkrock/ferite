@@ -914,13 +914,13 @@ namespace String
 	/* This is used as a utility function by sprintf to format a variable. You
 	 * probably shouldn't call this function directly from user scripts. The
 	 * format should be a printf type format for a single variable (eg. "%d"),
-	 * which is passed in in the void parameter. Some of the more rarely used
+	 * which is passed in in the auto parameter. Some of the more rarely used
 	 * or Gnu specific conversions aren't supported. Printing of objects and
 	 * arrays is not yet supported. On error an empty string is returned (this
 	 * doesn't trigger an error in sprintf() though because some valid formats
 	 * such as %s with an empty string will also produce an empty output
 	 * string). */
-	native function __printvar(string fmt, void var) : string
+	native function __printvar(string fmt, auto var) : string
 	{
 		long l;
 		int ret;
@@ -1023,7 +1023,7 @@ namespace String
 	 * @declaration function sprintf( string fmt, ... )
 	 * @brief Prints formatted text to a string
 	 * @param string fmt The format string
-	 * @param void ... The variables
+	 * @param auto ... The variables
 	 * @returns The formatted string
 	 * @description This function is analagous to the libc sprintf() function.
 	 *			  You should read your system libc manual for full details on
@@ -1910,7 +1910,7 @@ namespace String
 				else if( match.capture(1).in( '!') ) {
 					string key = match.capture(3);
 					array  parts = key.toArray('.');
-					void   r = a.getPath(parts);
+					auto   r = a.getPath(parts);
 					if( r )
 						result = "$r";
 					else

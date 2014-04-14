@@ -71,7 +71,7 @@ namespace Array
             
             for( i = 0; i < size; i++ )
             {
-                void rval = deliver( a[i] );
+                auto rval = deliver( a[i] );
                 if( rval == false or rval == null )
                     return false;
             }
@@ -101,7 +101,7 @@ namespace Array
             
             for( i = 0; i < size; i++ )
             {
-                void rval = deliver( a[i], i );
+                auto rval = deliver( a[i], i );
                 if( rval == false or rval == null )
                     return false;
             }
@@ -133,7 +133,7 @@ namespace Array
             
             for( i = 0; i < size; i++ )
             {
-                void rval = deliver( keys[i], copy[keys[i]] );
+                auto rval = deliver( keys[i], copy[keys[i]] );
                 if( rval == false or rval == null )
                     return false;
 				copy.del(keys[i]);
@@ -195,14 +195,14 @@ namespace Array
     /**
      * @function push
      * @brief Pushes a variable onto the end of an array
-     * @declaration function push( array a, void var )
+     * @declaration function push( array a, auto var )
      * @param array a The array to push the variable onto
-     * @param void var The variable to push onto the end of the array
+     * @param auto var The variable to push onto the end of the array
      * @example <nl/>
      * <code><type>array</type> a = [ 1, 2, 3 ];<nl/>
      * Array.push(a,4); &raquo; a = [ 1, 2, 3, 4 ]</code><nl/>
      */
-    native function push( array a, void var ) : undefined
+    native function push( array a, auto var ) : undefined
     {
 		(ferite_array->push)( script, a, var );
     }
@@ -217,7 +217,7 @@ namespace Array
     * <code><type>array</type> a = [ 1, 2, 3, 4 ];<nl/>
     * <type>number</type> size = Array.pop(a); &raquo a = [ 1, 2, 3 ]</code><nl/>
     */
-    native function pop( array a ) : void
+    native function pop( array a ) : auto
     {
         FeriteVariable *var = (ferite_array->pop)( script, a );
         FE_RETURN_VAR( var );
@@ -226,14 +226,14 @@ namespace Array
   /**
    * @function unshift
    * @brief Shifts a variable onto the start of an array
-   * @declaration function unshift( array a, void var )
+   * @declaration function unshift( array a, auto var )
    * @param array a The array to shift a variable onto
-   * @param void var The variable to shift onto the start of the array
+   * @param auto var The variable to shift onto the start of the array
      * @example <nl/>
      * <code><type>array</type> a = [ 1, 2, 3 ];<nl/>
      * Array.unshift(a, 4); &raquo a = [ 4, 1, 2, 3 ]</code><nl/>
    */
-    native function unshift( array a, void var ) : undefined
+    native function unshift( array a, auto var ) : undefined
     {
         (ferite_array->unshift)( script, a, var );
     }
@@ -248,7 +248,7 @@ namespace Array
      * <code><type>array</type> a = [ 1, 2, 3 ];<nl/>
      * <type>number</type> size = Array.shift(a); &raquo a = [ 2, 3 ]</code><nl/>
    */
-    native function shift( array a ) : void
+    native function shift( array a ) : auto
     {
         FeriteVariable *var = (ferite_array->shift)( script, a );
         FE_RETURN_VAR( var );
@@ -257,9 +257,9 @@ namespace Array
   /**
    * @function del
    * @brief Deletes an item from an array
-   * @declaration function del( array a, void var )
+   * @declaration function del( array a, auto var )
    * @param array a The array to delete an item from
-   * @param void var The index or key of the item to delete
+   * @param auto var The index or key of the item to delete
    * @description This function deletes an item from the specified array, if it
    *              exists. The var parameter can be either the index number or
    *              the key string of the item to delete.
@@ -268,7 +268,7 @@ namespace Array
      * Array.del(a, 0); &raquo a = [ 2, "Three" => 3 ]<nl/>
      * Array.del(a, "Three"); &raquo a = [ 2 ]</code><nl/>
    */
-    native function del( array a, void var ) : undefined
+    native function del( array a, auto var ) : undefined
     {
         (ferite_array->_delete)( script, a, var );
     }
@@ -375,16 +375,16 @@ namespace Array
   /**
    * @function valueExists
    * @brief Discovers whether there is an item with a particular value in an array
-   * @declaration function valueExists( array a, void value )
+   * @declaration function valueExists( array a, auto value )
    * @param array a The array
-   * @param void value The value to look for
+   * @param auto value The value to look for
    * @return True if it exists, false if it does not
      * @example <nl/>
      * <code><type>array</type> a = [ 1, 2, "Three" => 3 ];<nl/>
      * <keyword>if</keyword>( Array.valueExists(a, 4) )<nl/>
      * <tab/>Array.push(a, 4);</code><nl/>
    */
-    native function valueExists( array a, void value ) : boolean
+    native function valueExists( array a, auto value ) : boolean
     {
         int i;
 
@@ -515,13 +515,13 @@ namespace Array
      * @declaration function find(array a, string var)
      * @brief Locates an item in an array by value and returns its index number
      * @param array a The array to search through
-     * @param void var The value of the item to search for
+     * @param auto var The value of the item to search for
      * @return The index of the array item, or -1 if no match was found.
      * @example <nl/>
      * <code><type>array</type> a = [ "Four", "Five", "Six" ];<nl/>
      * <type>number</type> location = Array.find(a, "Four");</code><nl/>
      */
-    function find(array a, void var)
+    function find(array a, auto var)
     {
         number i, n = Array.size(a);
 
@@ -809,7 +809,7 @@ namespace Array
      * @return The last value within the array
      * @example <nl/>
      * <code><type>array</type> a = [ 5, 6, 4 ];<nl/>
-     * <type>void</type> v = Array.last(a); &raquo v = 6</code><nl/>
+     * <type>auto</type> v = Array.last(a); &raquo v = 6</code><nl/>
      */
     function last( array a ) 
     {
@@ -856,7 +856,7 @@ namespace Array
 	}
 	/**
 	 * @function setPath
-	 * @declaration function setPath( array &a, array path, void value )
+	 * @declaration function setPath( array &a, array path, auto value )
 	 * @brief With a given tree of arrays, set a value within a given path.
 	 * @description The aim of this function is to make setting values within a tree of arrays. 
 					<p>
@@ -880,9 +880,9 @@ namespace Array
 					</code>
 	 * @param array &a The array to inject into
 	 * @param array path The path to use
-	 * @param void value The data to set
+	 * @param auto value The data to set
 	 */
-	function setPath( array &a, array path, void value ) {
+	function setPath( array &a, array path, auto value ) {
 		if( path.size() > 1 ) {
 			if( not a.keyExists(path[0]) ) {
 				a[path[0]] = [];
@@ -903,7 +903,7 @@ namespace Array
 	 * @return The value if it exists
 	 */
 	function getPath( array &a, array path ) {
-		void r;
+		auto r;
 		if( path.size() > 1 ) {
 			if( not a.keyExists(path[0]) ) {
 				a[path[0]] = [];

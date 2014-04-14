@@ -18,7 +18,7 @@ class Template
         .name_stack = [];
     }
     
-    function process( void tree )
+    function process( auto tree )
     {
         number i = 0;
         
@@ -52,7 +52,7 @@ class Template
     
     function postprocess(){}
     
-    function print( void s )
+    function print( auto s )
     {
         Console.println( "${.name}: $s" );
     }
