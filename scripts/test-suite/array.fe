@@ -137,6 +137,7 @@ class ArrayTest extends Test
         }
         handle
         {
+			Console.println("hi");
         }
         else
         {
@@ -172,6 +173,7 @@ class ArrayTest extends Test
         }
         handle
         {
+			Console.println("Hi");
         }
         else
         {
