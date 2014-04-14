@@ -388,7 +388,7 @@ int			 	ferite_item_state = FE_ITEM_IS_PRIVATE;
 int			 	ferite_class_state = 0;
 int			 	ferite_current_arg_count = 0;
 int			 	ferite_var_array_count = 0;
-int			 	ferite_namespace_naturaln = 0;
+long		 	ferite_namespace_naturaln = 0;
 int			 	ferite_function_is_directive = 0;
 FeriteStack	   *ferite_directive_parameters = NULL;
 FeriteHash	   *ferite_expansion_hash = NULL;
@@ -464,7 +464,7 @@ typedef union YYSTYPE
 #line 133 "ferite_parser.y"
 {
 	char   *text;
-	int	    inumber;
+	long    inumber;
 	double  fnumber;
 }
 /* Line 193 of yacc.c.  */
@@ -3378,7 +3378,7 @@ yyreduce:
 										  ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", (yyvsp[(1) - (3)].text), ferite_scanner_lineno, ferite_scanner_file );
 										if( ferite_last_type == F_VAR_NUM )
 										{
-											FUD(("PARSER: Variable Declared		 %s(%d)=%d\n", (yyvsp[(1) - (3)].text), ferite_last_type, ferite_namespace_naturaln ));
+											FUD(("PARSER: Variable Declared		 %s(%d)=%ld\n", (yyvsp[(1) - (3)].text), ferite_last_type, ferite_namespace_naturaln ));
 											ferite_temp_variable = ferite_create_number_long_variable( NULL, (yyvsp[(1) - (3)].text), ferite_namespace_naturaln, FE_ALLOC );
 											if( ferite_var_is_final )
 											  MARK_VARIABLE_AS_FINALSET( ferite_temp_variable );
@@ -3452,7 +3452,7 @@ yyreduce:
 										 ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", (yyvsp[(1) - (3)].text), ferite_scanner_lineno, ferite_scanner_file );
 									   if( ferite_last_type == F_VAR_BOOL )
 									   {
-										   FUD(("PARSER: Variable Declared		 %s(%d)=%d\n", (yyvsp[(1) - (3)].text), ferite_last_type, (yyvsp[(3) - (3)].inumber)));
+										   FUD(("PARSER: Variable Declared		 %s(%d)=%ld\n", (yyvsp[(1) - (3)].text), ferite_last_type, (yyvsp[(3) - (3)].inumber)));
 										   ferite_temp_variable = ferite_create_boolean_variable( NULL, (yyvsp[(1) - (3)].text), FE_TRUE, FE_ALLOC );
 										   if( ferite_var_is_final )
 											 MARK_VARIABLE_AS_FINALSET( ferite_temp_variable );
@@ -3476,7 +3476,7 @@ yyreduce:
 										 ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", (yyvsp[(1) - (3)].text), ferite_scanner_lineno, ferite_scanner_file );
 									   if( ferite_last_type == F_VAR_BOOL )
 									   {
-										   FUD(("PARSER: Variable Declared		 %s(%d)=%d\n", (yyvsp[(1) - (3)].text), ferite_last_type, (yyvsp[(3) - (3)].inumber)));
+										   FUD(("PARSER: Variable Declared		 %s(%d)=%ld\n", (yyvsp[(1) - (3)].text), ferite_last_type, (yyvsp[(3) - (3)].inumber)));
 										   ferite_temp_variable = ferite_create_boolean_variable( NULL, (yyvsp[(1) - (3)].text), FE_FALSE, FE_ALLOC );
 										   if( ferite_var_is_final )
 											 MARK_VARIABLE_AS_FINALSET( ferite_temp_variable );
@@ -4091,7 +4091,7 @@ yyreduce:
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
 										MARK_VARIABLE_AS_FINALSET( ferite_temp_variable );
 										ferite_do_push( ferite_temp_variable );
-										FUD(("PARSER: push(int)		%d\n", (yyvsp[(1) - (1)].inumber)));
+										FUD(("PARSER: push(int)		%ld\n", (yyvsp[(1) - (1)].inumber)));
 									;}
     break;
 

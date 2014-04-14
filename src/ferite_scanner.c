@@ -22070,7 +22070,7 @@ YY_RULE_SETUP
 #line 251 "ferite_scanner.l"
 {
 							/* hex escape sequence */
-							unsigned int result = strtol( feptext+2, NULL, 16 );
+							unsigned long result = strtol( feptext+2, NULL, 16 );
 							if( result > 0xff )
 							   printf( "Error: Hexadecimal constant (%s) is out-of-bounds\n", feptext );
 							*ferite_cstrptr++ = result;
@@ -22081,7 +22081,7 @@ YY_RULE_SETUP
 #line 258 "ferite_scanner.l"
 {
 							/* binary escape sequence */
-							unsigned int result = strtol( feptext+2, NULL, 2 );
+							unsigned long result = strtol( feptext+2, NULL, 2 );
 							if( result > 0xff )
 							   printf( "Error: Binary constant (%s) is out-of-bounds\n", feptext );
 							*ferite_cstrptr++ = result;
@@ -22092,7 +22092,7 @@ YY_RULE_SETUP
 #line 265 "ferite_scanner.l"
 {
 							/* decimal escape sequence */
-							unsigned int result = strtol( feptext+2, NULL, 10 );
+							unsigned long result = strtol( feptext+2, NULL, 10 );
 							if( result > 0xff )
 							   printf( "Error: Decinmal constant (%s) is out-of-bounds\n", feptext );
 							*ferite_cstrptr++ = result;
@@ -22815,7 +22815,7 @@ YY_RULE_SETUP
 #line 473 "ferite_scanner.l"
 {
 							feplval->inumber = atoi( feptext );
-							FUD(( "SCANNER: Natural number: %d\n", feplval->inumber ));
+							FUD(( "SCANNER: Natural number: %ld\n", feplval->inumber ));
 							return T_NNUMBER;
 						 }
 	YY_BREAK
@@ -24399,7 +24399,7 @@ size_t ferite_lexer_offset( char *name, int start ) {
 
 void ferite_lexer_jump( size_t amount ) {
 	if( amount > 0 ) {
-		yyless(amount);
+		yyless((int)amount);
 	}
 	unput(';');
 	yy_push_state(S_KRIS_KROSSLL_MAKE_YOU_JUMP_JUMP);

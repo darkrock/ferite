@@ -250,21 +250,21 @@ DOTLABEL	  [a-zA-Z_][a-zA-Z0-9_]*([\.][a-zA-Z_][a-zA-Z0-9_]*)*
 						 }
 <S_STRING>\\x[0-9a-fA-F]{2} {
 							/* hex escape sequence */
-							unsigned int result = strtol( feptext+2, NULL, 16 );
+							unsigned long result = strtol( feptext+2, NULL, 16 );
 							if( result > 0xff )
 							   printf( "Error: Hexadecimal constant (%s) is out-of-bounds\n", feptext );
 							*ferite_cstrptr++ = result;
 						 }
 <S_STRING>\\b[0-1]{8}	{
 							/* binary escape sequence */
-							unsigned int result = strtol( feptext+2, NULL, 2 );
+							unsigned long result = strtol( feptext+2, NULL, 2 );
 							if( result > 0xff )
 							   printf( "Error: Binary constant (%s) is out-of-bounds\n", feptext );
 							*ferite_cstrptr++ = result;
 						 }
 <S_STRING>\\d[0-9]{1,3}  {
 							/* decimal escape sequence */
-							unsigned int result = strtol( feptext+2, NULL, 10 );
+							unsigned long result = strtol( feptext+2, NULL, 10 );
 							if( result > 0xff )
 							   printf( "Error: Decinmal constant (%s) is out-of-bounds\n", feptext );
 							*ferite_cstrptr++ = result;
@@ -472,7 +472,7 @@ DOTLABEL	  [a-zA-Z_][a-zA-Z0-9_]*([\.][a-zA-Z_][a-zA-Z0-9_]*)*
 
 <S_SCRIPTING,S_DIRECTIVE_EXPR,S_TYPING>{NNUM}	  {
 							feplval->inumber = atoi( feptext );
-							FUD(( "SCANNER: Natural number: %d\n", feplval->inumber ));
+							FUD(( "SCANNER: Natural number: %ld\n", feplval->inumber ));
 							return T_NNUMBER;
 						 }
 
@@ -959,7 +959,7 @@ size_t ferite_lexer_offset( char *name, int start ) {
 
 void ferite_lexer_jump( size_t amount ) {
 	if( amount > 0 ) {
-		yyless(amount);
+		yyless((int)amount);
 	}
 	unput(';');
 	yy_push_state(S_KRIS_KROSSLL_MAKE_YOU_JUMP_JUMP);

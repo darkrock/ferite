@@ -277,7 +277,7 @@ typedef union YYSTYPE
 #line 133 "ferite_parser.y"
 {
 	char   *text;
-	int	    inumber;
+	long    inumber;
 	double  fnumber;
 }
 /* Line 1529 of yacc.c.  */

@@ -77,7 +77,7 @@ int			 	ferite_item_state = FE_ITEM_IS_PRIVATE;
 int			 	ferite_class_state = 0;
 int			 	ferite_current_arg_count = 0;
 int			 	ferite_var_array_count = 0;
-int			 	ferite_namespace_naturaln = 0;
+long		 	ferite_namespace_naturaln = 0;
 int			 	ferite_function_is_directive = 0;
 FeriteStack	   *ferite_directive_parameters = NULL;
 FeriteHash	   *ferite_expansion_hash = NULL;
@@ -132,7 +132,7 @@ void ferite_scanner_stop_end_hint();
 
 %union {
 	char   *text;
-	int	    inumber;
+	long    inumber;
 	double  fnumber;
 }
 
@@ -817,7 +817,7 @@ namespace_variable_define_item:
 										  ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", $1, ferite_scanner_lineno, ferite_scanner_file );
 										if( ferite_last_type == F_VAR_NUM )
 										{
-											FUD(("PARSER: Variable Declared		 %s(%d)=%d\n", $1, ferite_last_type, ferite_namespace_naturaln ));
+											FUD(("PARSER: Variable Declared		 %s(%d)=%ld\n", $1, ferite_last_type, ferite_namespace_naturaln ));
 											ferite_temp_variable = ferite_create_number_long_variable( NULL, $1, ferite_namespace_naturaln, FE_ALLOC );
 											if( ferite_var_is_final )
 											  MARK_VARIABLE_AS_FINALSET( ferite_temp_variable );
@@ -879,7 +879,7 @@ namespace_variable_define_item:
 										 ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", $1, ferite_scanner_lineno, ferite_scanner_file );
 									   if( ferite_last_type == F_VAR_BOOL )
 									   {
-										   FUD(("PARSER: Variable Declared		 %s(%d)=%d\n", $1, ferite_last_type, $3));
+										   FUD(("PARSER: Variable Declared		 %s(%d)=%ld\n", $1, ferite_last_type, $3));
 										   ferite_temp_variable = ferite_create_boolean_variable( NULL, $1, FE_TRUE, FE_ALLOC );
 										   if( ferite_var_is_final )
 											 MARK_VARIABLE_AS_FINALSET( ferite_temp_variable );
@@ -899,7 +899,7 @@ namespace_variable_define_item:
 										 ferite_warning( CURRENT_SCRIPT, "Keyword 'native' can not be applied to variables ('%s' on line %d in %s)\n", $1, ferite_scanner_lineno, ferite_scanner_file );
 									   if( ferite_last_type == F_VAR_BOOL )
 									   {
-										   FUD(("PARSER: Variable Declared		 %s(%d)=%d\n", $1, ferite_last_type, $3));
+										   FUD(("PARSER: Variable Declared		 %s(%d)=%ld\n", $1, ferite_last_type, $3));
 										   ferite_temp_variable = ferite_create_boolean_variable( NULL, $1, FE_FALSE, FE_ALLOC );
 										   if( ferite_var_is_final )
 											 MARK_VARIABLE_AS_FINALSET( ferite_temp_variable );
@@ -1398,7 +1398,7 @@ cval:
 										MARK_VARIABLE_AS_COMPILED( ferite_temp_variable );
 										MARK_VARIABLE_AS_FINALSET( ferite_temp_variable );
 										ferite_do_push( ferite_temp_variable );
-										FUD(("PARSER: push(int)		%d\n", $1));
+										FUD(("PARSER: push(int)		%ld\n", $1));
 									}
 |	T_RNUMBER						{
 										ferite_temp_variable = ferite_create_number_double_variable( NULL, "doubleconst", $1, FE_STATIC );
