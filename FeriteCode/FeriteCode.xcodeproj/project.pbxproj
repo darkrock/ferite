@@ -1,0 +1,527 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5A41606194ECCC66033C32EA /* ferite_cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416002BA4376B32310992F /* ferite_cache.c */; };
+		5A41607D2FCC8ABF45BDD6AA /* ferite_scanner.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416ADBAD8A96186B96D776 /* ferite_scanner.c */; };
+		5A41607F7622268A926B56A0 /* ferite_amt.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4166A4C0CBD030E8B62AE3 /* ferite_amt.c */; };
+		5A4160CEF2F5DF7CCD53655C /* ferite_parser.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4166D52487B48C2E6084E3 /* ferite_parser.c */; };
+		5A4161B8D746F305934DA707 /* ferite_class.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4162C2C5121E448A6751D2 /* ferite_class.c */; };
+		5A4161C92059B91BF786B11D /* ferite_variables.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416CF6D6B7A005C31DB7A1 /* ferite_variables.c */; };
+		5A41622A41C4D3209606B601 /* ferite_compile.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416BCA6A735F942A492B33 /* ferite_compile.c */; };
+		5A41629335306D8ABD98F6AE /* ferite_script.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416ECCB938CD10AABEFED5 /* ferite_script.c */; };
+		5A41629A8AD348D3802E357E /* ferite_gc_libgc.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416B2B64366E1EC3D08E53 /* ferite_gc_libgc.c */; };
+		5A416364DA51F1707DE59AB6 /* ferite_mem_libgc.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A41684A18E242CE8DA14652 /* ferite_mem_libgc.c */; };
+		5A4163D794FB373CD5BEADBF /* ferite_string.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4161FB71D2642B04F389FD /* ferite_string.c */; };
+		5A41641034FDAA2EDEDE9ECA /* ferite_execute.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4166A05EA3CF275C36D58A /* ferite_execute.c */; };
+		5A416502FC39DD31AB9491E0 /* ferite_module.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4167063912937D8064199A /* ferite_module.c */; };
+		5A41656D8E7B2191AF57C908 /* ferite_globals.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416DB4EB24326074C1DBCE /* ferite_globals.c */; };
+		5A4165E01E71C79809BAD325 /* ferite_ops.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416A937B608064087159ED /* ferite_ops.c */; };
+		5A416605756A6C4FC658C64C /* ferite_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416A9C7DF97F44E80E31D2 /* ferite_utils.c */; };
+		5A41661F75A27A4665572704 /* ferite_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4165259947DB0B07853B6B /* ferite_thread.c */; };
+		5A4166746A12BC42AA708AE6 /* ferite_obj.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416E64AD27B2E74D31954B /* ferite_obj.c */; };
+		5A4167728FF339AE0E432419 /* ferite.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4167CFE09FB70C96652D32 /* ferite.c */; };
+		5A4167AADF662BDAD1AA2F22 /* ferite_mem_jedi.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416BB6EAC216EBC3990C50 /* ferite_mem_jedi.c */; };
+		5A4167EB888FEF3C573E799E /* ferite_gc_generation.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A41611F280BD7E71A3AF015 /* ferite_gc_generation.c */; };
+		5A4168978B1D252BB651C9B7 /* ferite_mem_classic.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416B87DC0010B396B85446 /* ferite_mem_classic.c */; };
+		5A41696AD4736692370C0B69 /* ferite_hash.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416A928F9C07C2D3C93B3F /* ferite_hash.c */; };
+		5A416AF14E919605E6174ADE /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4166255F11335BECF5F33C /* main.c */; };
+		5A416B4397780645651B79EE /* ferite_error.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416C59E7297169002661DF /* ferite_error.c */; };
+		5A416BCB9FFA3699B9C7DBF4 /* ferite_regex.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416E18AD7F8B137768EF85 /* ferite_regex.c */; };
+		5A416C8CF587781DBCFFB640 /* ferite_gc.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416F72546B370E6CCF8039 /* ferite_gc.c */; };
+		5A416CB9A0EC87318D2965E6 /* ferite_stack.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416A74D17C032AE0080B32 /* ferite_stack.c */; };
+		5A416CEB238FE4E0131FA5A8 /* ferite_opcode.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416C344A6D43F991F5BEF9 /* ferite_opcode.c */; };
+		5A416D195EA4E843FBA8F6B4 /* ferite_amtarray.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4164D37FB9D44EF6100EDC /* ferite_amtarray.c */; };
+		5A416E88542E7ACE543BCAE7 /* ferite_buffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416226877074A46A4E8B19 /* ferite_buffer.c */; };
+		5A416ECB2AECDCD8BCD5BBD0 /* ferite_namespace.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A4168A4F4DAAD68EF53A32B /* ferite_namespace.c */; };
+		5A416F22CC76DCBC43A219F7 /* ferite_function.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416C10D985361C8739847B /* ferite_function.c */; };
+		5A416F89CAEE5B3212375720 /* ferite_uarray.c in Sources */ = {isa = PBXBuildFile; fileRef = 5A416B4D93E0942467B9DC85 /* ferite_uarray.c */; };
+		83849B6618FBDB3F00C27E9F /* libpcre.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 83849B6518FBDB3F00C27E9F /* libpcre.dylib */; };
+		83849B7118FBDB9400C27E9F /* aphex_config.c in Sources */ = {isa = PBXBuildFile; fileRef = 83849B6918FBDB9400C27E9F /* aphex_config.c */; };
+		83849B7218FBDB9400C27E9F /* aphex_directory.c in Sources */ = {isa = PBXBuildFile; fileRef = 83849B6A18FBDB9400C27E9F /* aphex_directory.c */; };
+		83849B7318FBDB9400C27E9F /* aphex_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 83849B6B18FBDB9400C27E9F /* aphex_file.c */; };
+		83849B7418FBDB9400C27E9F /* aphex_match.c in Sources */ = {isa = PBXBuildFile; fileRef = 83849B6C18FBDB9400C27E9F /* aphex_match.c */; };
+		83849B7618FBDB9400C27E9F /* aphex_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 83849B6E18FBDB9400C27E9F /* aphex_thread.c */; };
+		83849B7E18FBDFB300C27E9F /* triton_core.c in Sources */ = {isa = PBXBuildFile; fileRef = 83849B7C18FBDFB300C27E9F /* triton_core.c */; };
+		83849B7F18FBDFB300C27E9F /* triton_loader_dlfcn.c in Sources */ = {isa = PBXBuildFile; fileRef = 83849B7D18FBDFB300C27E9F /* triton_loader_dlfcn.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5A4162A3BBFA15AAD741C161 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		5A416002BA4376B32310992F /* ferite_cache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_cache.c; path = ../../src/ferite_cache.c; sourceTree = "<group>"; };
+		5A41601A26A15984E8072DE4 /* FeriteCode.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = FeriteCode.1; sourceTree = "<group>"; };
+		5A41611201440C437870BD84 /* fbuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fbuffer.h; sourceTree = "<group>"; };
+		5A416116D0AF054D00E008A5 /* farray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = farray.h; sourceTree = "<group>"; };
+		5A41611F280BD7E71A3AF015 /* ferite_gc_generation.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_gc_generation.c; path = ../../src/ferite_gc_generation.c; sourceTree = "<group>"; };
+		5A41613FFB78BE67A39A3802 /* fops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fops.h; sourceTree = "<group>"; };
+		5A4161C628709A857C0E396C /* ferite_scanner.l */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.lex; name = ferite_scanner.l; path = ../../src/ferite_scanner.l; sourceTree = "<group>"; };
+		5A4161FB71D2642B04F389FD /* ferite_string.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_string.c; path = ../../src/ferite_string.c; sourceTree = "<group>"; };
+		5A416226877074A46A4E8B19 /* ferite_buffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_buffer.c; path = ../../src/ferite_buffer.c; sourceTree = "<group>"; };
+		5A41623F5865C8E97FE33B76 /* futils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = futils.h; sourceTree = "<group>"; };
+		5A4162C2C5121E448A6751D2 /* ferite_class.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_class.c; path = ../../src/ferite_class.c; sourceTree = "<group>"; };
+		5A4163126536808924701558 /* fstring.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fstring.h; sourceTree = "<group>"; };
+		5A41634EFC2C07CC0F99EAA9 /* fmem_jedi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fmem_jedi.h; sourceTree = "<group>"; };
+		5A41635AF7924D7872275005 /* fobj.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fobj.h; sourceTree = "<group>"; };
+		5A41647B465C85B73C67D20F /* ffunction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ffunction.h; sourceTree = "<group>"; };
+		5A4164A2FFE1790CEED4D967 /* fglobals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fglobals.h; sourceTree = "<group>"; };
+		5A4164BD375FA70FDE1264BA /* fcompile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fcompile.h; sourceTree = "<group>"; };
+		5A4164D37FB9D44EF6100EDC /* ferite_amtarray.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_amtarray.c; path = ../../src/ferite_amtarray.c; sourceTree = "<group>"; };
+		5A4164D85061431C82FF5188 /* fcache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fcache.h; sourceTree = "<group>"; };
+		5A4165259947DB0B07853B6B /* ferite_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_thread.c; path = ../../src/ferite_thread.c; sourceTree = "<group>"; };
+		5A4165E2102BE5853FCC2882 /* fns.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fns.h; sourceTree = "<group>"; };
+		5A4166214C334A6880AB0C6B /* fthread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fthread.h; sourceTree = "<group>"; };
+		5A4166255F11335BECF5F33C /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		5A416663AB664DEB81FDA9A7 /* ferite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ferite.h; path = ../ferite.h; sourceTree = "<group>"; };
+		5A4166A05EA3CF275C36D58A /* ferite_execute.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_execute.c; path = ../../src/ferite_execute.c; sourceTree = "<group>"; };
+		5A4166A4C0CBD030E8B62AE3 /* ferite_amt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_amt.c; path = ../../src/ferite_amt.c; sourceTree = "<group>"; };
+		5A4166A67D3452737C72378D /* foop.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = foop.h; sourceTree = "<group>"; };
+		5A4166D52487B48C2E6084E3 /* ferite_parser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_parser.c; path = ../../src/ferite_parser.c; sourceTree = "<group>"; };
+		5A4166D82A5B948AFE2D9D59 /* fvariables.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fvariables.h; sourceTree = "<group>"; };
+		5A4167063912937D8064199A /* ferite_module.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_module.c; path = ../../src/ferite_module.c; sourceTree = "<group>"; };
+		5A416710FCF67E8B2E0B7D3F /* fparser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fparser.h; sourceTree = "<group>"; };
+		5A4167A0692D0C5FF3607A1B /* fhash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fhash.h; sourceTree = "<group>"; };
+		5A4167CFE09FB70C96652D32 /* ferite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite.c; path = ../../src/ferite.c; sourceTree = "<group>"; };
+		5A41684A18E242CE8DA14652 /* ferite_mem_libgc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_mem_libgc.c; path = ../../src/ferite_mem_libgc.c; sourceTree = "<group>"; };
+		5A4168A4F4DAAD68EF53A32B /* ferite_namespace.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_namespace.c; path = ../../src/ferite_namespace.c; sourceTree = "<group>"; };
+		5A4168F636414A32DD754EF4 /* FeriteCode */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = FeriteCode; sourceTree = BUILT_PRODUCTS_DIR; };
+		5A416952CFEB066B5688C1A0 /* fmodule.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fmodule.h; sourceTree = "<group>"; };
+		5A4169EFBFA4139910876C49 /* fstack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fstack.h; sourceTree = "<group>"; };
+		5A416A2F6DC5A8EDEDA973ED /* ferror.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ferror.h; sourceTree = "<group>"; };
+		5A416A74D17C032AE0080B32 /* ferite_stack.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_stack.c; path = ../../src/ferite_stack.c; sourceTree = "<group>"; };
+		5A416A928F9C07C2D3C93B3F /* ferite_hash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_hash.c; path = ../../src/ferite_hash.c; sourceTree = "<group>"; };
+		5A416A937B608064087159ED /* ferite_ops.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_ops.c; path = ../../src/ferite_ops.c; sourceTree = "<group>"; };
+		5A416A9C7DF97F44E80E31D2 /* ferite_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_utils.c; path = ../../src/ferite_utils.c; sourceTree = "<group>"; };
+		5A416ADBAD8A96186B96D776 /* ferite_scanner.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_scanner.c; path = ../../src/ferite_scanner.c; sourceTree = "<group>"; };
+		5A416B2B64366E1EC3D08E53 /* ferite_gc_libgc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_gc_libgc.c; path = ../../src/ferite_gc_libgc.c; sourceTree = "<group>"; };
+		5A416B36E4D3560D06E5ED4E /* fopcode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fopcode.h; sourceTree = "<group>"; };
+		5A416B4D93E0942467B9DC85 /* ferite_uarray.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_uarray.c; path = ../../src/ferite_uarray.c; sourceTree = "<group>"; };
+		5A416B5E5C4B9DEC683F91B4 /* fregex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fregex.h; sourceTree = "<group>"; };
+		5A416B87DC0010B396B85446 /* ferite_mem_classic.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_mem_classic.c; path = ../../src/ferite_mem_classic.c; sourceTree = "<group>"; };
+		5A416BB6EAC216EBC3990C50 /* ferite_mem_jedi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_mem_jedi.c; path = ../../src/ferite_mem_jedi.c; sourceTree = "<group>"; };
+		5A416BCA6A735F942A492B33 /* ferite_compile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_compile.c; path = ../../src/ferite_compile.c; sourceTree = "<group>"; };
+		5A416BF5CE95F6E4A21E5E68 /* fstructs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fstructs.h; sourceTree = "<group>"; };
+		5A416C10D985361C8739847B /* ferite_function.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_function.c; path = ../../src/ferite_function.c; sourceTree = "<group>"; };
+		5A416C344A6D43F991F5BEF9 /* ferite_opcode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_opcode.c; path = ../../src/ferite_opcode.c; sourceTree = "<group>"; };
+		5A416C59E7297169002661DF /* ferite_error.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_error.c; path = ../../src/ferite_error.c; sourceTree = "<group>"; };
+		5A416C68A10410D35F1772B7 /* famt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = famt.h; sourceTree = "<group>"; };
+		5A416C6CEFFA2076683BBB3D /* ferite_parser.y */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.yacc; name = ferite_parser.y; path = ../../src/ferite_parser.y; sourceTree = "<group>"; };
+		5A416CF6D6B7A005C31DB7A1 /* ferite_variables.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_variables.c; path = ../../src/ferite_variables.c; sourceTree = "<group>"; };
+		5A416DB4EB24326074C1DBCE /* ferite_globals.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_globals.c; path = ../../src/ferite_globals.c; sourceTree = "<group>"; };
+		5A416DCBF0CF02791ACB8D15 /* fmem_libgc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fmem_libgc.h; sourceTree = "<group>"; };
+		5A416DF1150613AA71C8B6F5 /* fdebug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fdebug.h; sourceTree = "<group>"; };
+		5A416E18AD7F8B137768EF85 /* ferite_regex.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_regex.c; path = ../../src/ferite_regex.c; sourceTree = "<group>"; };
+		5A416E64AD27B2E74D31954B /* ferite_obj.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_obj.c; path = ../../src/ferite_obj.c; sourceTree = "<group>"; };
+		5A416E7191BD9C3959209A91 /* fgc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fgc.h; sourceTree = "<group>"; };
+		5A416ECCB938CD10AABEFED5 /* ferite_script.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_script.c; path = ../../src/ferite_script.c; sourceTree = "<group>"; };
+		5A416EFB546D595B6BDDBB48 /* freq.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = freq.h; sourceTree = "<group>"; };
+		5A416F54D0CD888C87960D29 /* fcontainer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fcontainer.h; sourceTree = "<group>"; };
+		5A416F72546B370E6CCF8039 /* ferite_gc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ferite_gc.c; path = ../../src/ferite_gc.c; sourceTree = "<group>"; };
+		5A416F73C772846B27FFEDEC /* fmem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fmem.h; sourceTree = "<group>"; };
+		83849B6518FBDB3F00C27E9F /* libpcre.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libpcre.dylib; path = /usr/local/Cellar/pcre/8.34/lib/libpcre.dylib; sourceTree = "<absolute>"; };
+		83849B6918FBDB9400C27E9F /* aphex_config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = aphex_config.c; path = ../libs/aphex/src/aphex_config.c; sourceTree = "<group>"; };
+		83849B6A18FBDB9400C27E9F /* aphex_directory.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = aphex_directory.c; path = ../libs/aphex/src/aphex_directory.c; sourceTree = "<group>"; };
+		83849B6B18FBDB9400C27E9F /* aphex_file.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = aphex_file.c; path = ../libs/aphex/src/aphex_file.c; sourceTree = "<group>"; };
+		83849B6C18FBDB9400C27E9F /* aphex_match.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = aphex_match.c; path = ../libs/aphex/src/aphex_match.c; sourceTree = "<group>"; };
+		83849B6E18FBDB9400C27E9F /* aphex_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = aphex_thread.c; path = ../libs/aphex/src/aphex_thread.c; sourceTree = "<group>"; };
+		83849B7C18FBDFB300C27E9F /* triton_core.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = triton_core.c; path = ../libs/triton/src/triton_core.c; sourceTree = "<group>"; };
+		83849B7D18FBDFB300C27E9F /* triton_loader_dlfcn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = triton_loader_dlfcn.c; path = ../libs/triton/src/triton_loader_dlfcn.c; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5A4162E4CB67618065B1DB23 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				83849B6618FBDB3F00C27E9F /* libpcre.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5A4163AD55B3E1DD9753FBC5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5A4168F636414A32DD754EF4 /* FeriteCode */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5A41669B4AEB31B94CFCE50E = {
+			isa = PBXGroup;
+			children = (
+				83849B7B18FBDE1F00C27E9F /* triton */,
+				83849B6818FBDB6D00C27E9F /* aphex */,
+				83849B6718FBDB6500C27E9F /* Link */,
+				5A4163AD55B3E1DD9753FBC5 /* Products */,
+				5A416BA2AD7625D627DF792C /* FeriteCode */,
+				5A41692D5BC597A3E2928387 /* ferite */,
+			);
+			sourceTree = "<group>";
+		};
+		5A41692D5BC597A3E2928387 /* ferite */ = {
+			isa = PBXGroup;
+			children = (
+				5A416E7191BD9C3959209A91 /* fgc.h */,
+				5A4165E2102BE5853FCC2882 /* fns.h */,
+				5A416C68A10410D35F1772B7 /* famt.h */,
+				5A416F73C772846B27FFEDEC /* fmem.h */,
+				5A41635AF7924D7872275005 /* fobj.h */,
+				5A4166A67D3452737C72378D /* foop.h */,
+				5A41613FFB78BE67A39A3802 /* fops.h */,
+				5A416EFB546D595B6BDDBB48 /* freq.h */,
+				5A4167A0692D0C5FF3607A1B /* fhash.h */,
+				5A416116D0AF054D00E008A5 /* farray.h */,
+				5A4164D85061431C82FF5188 /* fcache.h */,
+				5A416DF1150613AA71C8B6F5 /* fdebug.h */,
+				5A416A2F6DC5A8EDEDA973ED /* ferror.h */,
+				5A416B5E5C4B9DEC683F91B4 /* fregex.h */,
+				5A4169EFBFA4139910876C49 /* fstack.h */,
+				5A41623F5865C8E97FE33B76 /* futils.h */,
+				5A41611201440C437870BD84 /* fbuffer.h */,
+				5A416952CFEB066B5688C1A0 /* fmodule.h */,
+				5A416B36E4D3560D06E5ED4E /* fopcode.h */,
+				5A416710FCF67E8B2E0B7D3F /* fparser.h */,
+				5A4163126536808924701558 /* fstring.h */,
+				5A4166214C334A6880AB0C6B /* fthread.h */,
+				5A4164BD375FA70FDE1264BA /* fcompile.h */,
+				5A4164A2FFE1790CEED4D967 /* fglobals.h */,
+				5A416BF5CE95F6E4A21E5E68 /* fstructs.h */,
+				5A41647B465C85B73C67D20F /* ffunction.h */,
+				5A41634EFC2C07CC0F99EAA9 /* fmem_jedi.h */,
+				5A416F54D0CD888C87960D29 /* fcontainer.h */,
+				5A416DCBF0CF02791ACB8D15 /* fmem_libgc.h */,
+				5A4166D82A5B948AFE2D9D59 /* fvariables.h */,
+				5A416663AB664DEB81FDA9A7 /* ferite.h */,
+			);
+			name = ferite;
+			path = ../include/ferite;
+			sourceTree = "<group>";
+		};
+		5A416BA2AD7625D627DF792C /* FeriteCode */ = {
+			isa = PBXGroup;
+			children = (
+				5A4166255F11335BECF5F33C /* main.c */,
+				5A41601A26A15984E8072DE4 /* FeriteCode.1 */,
+				5A4166A4C0CBD030E8B62AE3 /* ferite_amt.c */,
+				5A4164D37FB9D44EF6100EDC /* ferite_amtarray.c */,
+				5A416226877074A46A4E8B19 /* ferite_buffer.c */,
+				5A416002BA4376B32310992F /* ferite_cache.c */,
+				5A4162C2C5121E448A6751D2 /* ferite_class.c */,
+				5A416BCA6A735F942A492B33 /* ferite_compile.c */,
+				5A416C59E7297169002661DF /* ferite_error.c */,
+				5A4166A05EA3CF275C36D58A /* ferite_execute.c */,
+				5A416C10D985361C8739847B /* ferite_function.c */,
+				5A41611F280BD7E71A3AF015 /* ferite_gc_generation.c */,
+				5A416B2B64366E1EC3D08E53 /* ferite_gc_libgc.c */,
+				5A416F72546B370E6CCF8039 /* ferite_gc.c */,
+				5A416DB4EB24326074C1DBCE /* ferite_globals.c */,
+				5A416A928F9C07C2D3C93B3F /* ferite_hash.c */,
+				5A416B87DC0010B396B85446 /* ferite_mem_classic.c */,
+				5A416BB6EAC216EBC3990C50 /* ferite_mem_jedi.c */,
+				5A41684A18E242CE8DA14652 /* ferite_mem_libgc.c */,
+				5A4167063912937D8064199A /* ferite_module.c */,
+				5A4168A4F4DAAD68EF53A32B /* ferite_namespace.c */,
+				5A416E64AD27B2E74D31954B /* ferite_obj.c */,
+				5A416C344A6D43F991F5BEF9 /* ferite_opcode.c */,
+				5A416A937B608064087159ED /* ferite_ops.c */,
+				5A4166D52487B48C2E6084E3 /* ferite_parser.c */,
+				5A416C6CEFFA2076683BBB3D /* ferite_parser.y */,
+				5A416E18AD7F8B137768EF85 /* ferite_regex.c */,
+				5A416ADBAD8A96186B96D776 /* ferite_scanner.c */,
+				5A4161C628709A857C0E396C /* ferite_scanner.l */,
+				5A416ECCB938CD10AABEFED5 /* ferite_script.c */,
+				5A416A74D17C032AE0080B32 /* ferite_stack.c */,
+				5A4161FB71D2642B04F389FD /* ferite_string.c */,
+				5A4165259947DB0B07853B6B /* ferite_thread.c */,
+				5A416B4D93E0942467B9DC85 /* ferite_uarray.c */,
+				5A416A9C7DF97F44E80E31D2 /* ferite_utils.c */,
+				5A416CF6D6B7A005C31DB7A1 /* ferite_variables.c */,
+				5A4167CFE09FB70C96652D32 /* ferite.c */,
+			);
+			path = FeriteCode;
+			sourceTree = "<group>";
+		};
+		83849B6718FBDB6500C27E9F /* Link */ = {
+			isa = PBXGroup;
+			children = (
+				83849B6518FBDB3F00C27E9F /* libpcre.dylib */,
+			);
+			name = Link;
+			sourceTree = "<group>";
+		};
+		83849B6818FBDB6D00C27E9F /* aphex */ = {
+			isa = PBXGroup;
+			children = (
+				83849B6918FBDB9400C27E9F /* aphex_config.c */,
+				83849B6A18FBDB9400C27E9F /* aphex_directory.c */,
+				83849B6B18FBDB9400C27E9F /* aphex_file.c */,
+				83849B6C18FBDB9400C27E9F /* aphex_match.c */,
+				83849B6E18FBDB9400C27E9F /* aphex_thread.c */,
+			);
+			name = aphex;
+			sourceTree = "<group>";
+		};
+		83849B7B18FBDE1F00C27E9F /* triton */ = {
+			isa = PBXGroup;
+			children = (
+				83849B7C18FBDFB300C27E9F /* triton_core.c */,
+				83849B7D18FBDFB300C27E9F /* triton_loader_dlfcn.c */,
+			);
+			name = triton;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5A41636F999AE0A7C3A9083A /* FeriteCode */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5A416911FB97027E50A20606 /* Build configuration list for PBXNativeTarget "FeriteCode" */;
+			buildPhases = (
+				5A41676D270FC734CF3EE12E /* Sources */,
+				5A4162E4CB67618065B1DB23 /* Frameworks */,
+				5A4162A3BBFA15AAD741C161 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FeriteCode;
+			productName = FeriteCode;
+			productReference = 5A4168F636414A32DD754EF4 /* FeriteCode */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		5A416D39522D4566A92DE0ED /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				ORGANIZATIONNAME = "hiddenMemory Limited";
+			};
+			buildConfigurationList = 5A416C42DB1CB81085B08284 /* Build configuration list for PBXProject "FeriteCode" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 5A41669B4AEB31B94CFCE50E;
+			productRefGroup = 5A4163AD55B3E1DD9753FBC5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5A41636F999AE0A7C3A9083A /* FeriteCode */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5A41676D270FC734CF3EE12E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5A416AF14E919605E6174ADE /* main.c in Sources */,
+				5A41607F7622268A926B56A0 /* ferite_amt.c in Sources */,
+				83849B7118FBDB9400C27E9F /* aphex_config.c in Sources */,
+				5A416D195EA4E843FBA8F6B4 /* ferite_amtarray.c in Sources */,
+				5A416E88542E7ACE543BCAE7 /* ferite_buffer.c in Sources */,
+				5A41606194ECCC66033C32EA /* ferite_cache.c in Sources */,
+				5A4161B8D746F305934DA707 /* ferite_class.c in Sources */,
+				5A41622A41C4D3209606B601 /* ferite_compile.c in Sources */,
+				5A416B4397780645651B79EE /* ferite_error.c in Sources */,
+				5A41641034FDAA2EDEDE9ECA /* ferite_execute.c in Sources */,
+				5A416F22CC76DCBC43A219F7 /* ferite_function.c in Sources */,
+				5A4167EB888FEF3C573E799E /* ferite_gc_generation.c in Sources */,
+				5A41629A8AD348D3802E357E /* ferite_gc_libgc.c in Sources */,
+				5A416C8CF587781DBCFFB640 /* ferite_gc.c in Sources */,
+				83849B7318FBDB9400C27E9F /* aphex_file.c in Sources */,
+				5A41656D8E7B2191AF57C908 /* ferite_globals.c in Sources */,
+				5A41696AD4736692370C0B69 /* ferite_hash.c in Sources */,
+				5A4168978B1D252BB651C9B7 /* ferite_mem_classic.c in Sources */,
+				5A4167AADF662BDAD1AA2F22 /* ferite_mem_jedi.c in Sources */,
+				83849B7618FBDB9400C27E9F /* aphex_thread.c in Sources */,
+				5A416364DA51F1707DE59AB6 /* ferite_mem_libgc.c in Sources */,
+				5A416502FC39DD31AB9491E0 /* ferite_module.c in Sources */,
+				83849B7F18FBDFB300C27E9F /* triton_loader_dlfcn.c in Sources */,
+				83849B7218FBDB9400C27E9F /* aphex_directory.c in Sources */,
+				5A416ECB2AECDCD8BCD5BBD0 /* ferite_namespace.c in Sources */,
+				5A4166746A12BC42AA708AE6 /* ferite_obj.c in Sources */,
+				83849B7418FBDB9400C27E9F /* aphex_match.c in Sources */,
+				5A416CEB238FE4E0131FA5A8 /* ferite_opcode.c in Sources */,
+				5A4165E01E71C79809BAD325 /* ferite_ops.c in Sources */,
+				5A4160CEF2F5DF7CCD53655C /* ferite_parser.c in Sources */,
+				5A416BCB9FFA3699B9C7DBF4 /* ferite_regex.c in Sources */,
+				83849B7E18FBDFB300C27E9F /* triton_core.c in Sources */,
+				5A41607D2FCC8ABF45BDD6AA /* ferite_scanner.c in Sources */,
+				5A41629335306D8ABD98F6AE /* ferite_script.c in Sources */,
+				5A416CB9A0EC87318D2965E6 /* ferite_stack.c in Sources */,
+				5A4163D794FB373CD5BEADBF /* ferite_string.c in Sources */,
+				5A41661F75A27A4665572704 /* ferite_thread.c in Sources */,
+				5A416F89CAEE5B3212375720 /* ferite_uarray.c in Sources */,
+				5A416605756A6C4FC658C64C /* ferite_utils.c in Sources */,
+				5A4161C92059B91BF786B11D /* ferite_variables.c in Sources */,
+				5A4167728FF339AE0E432419 /* ferite.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		5A416211BBBB3DAED1E74CCE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					"$(SRCROOT)/../include/**",
+					"$(SRCROOT)/../libs/triton/include/**",
+					"$(SRCROOT)/../libs/aphex/include/**",
+					/usr/local/Cellar/pcre/8.34/include,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/usr/local/Cellar/pcre/8.34/lib,
+				);
+				OTHER_CFLAGS = (
+					"-DUSE_PTHREAD",
+					"-DTHREAD_SAFE",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		5A4164AED314D2923A07B8C8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		5A416AEDE3F3FCD5E9D47CDC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					"$(SRCROOT)/../include/**",
+					"$(SRCROOT)/../libs/triton/include/**",
+					"$(SRCROOT)/../libs/aphex/include/**",
+					/usr/local/Cellar/pcre/8.34/include,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/usr/local/Cellar/pcre/8.34/lib,
+				);
+				OTHER_CFLAGS = (
+					"-DUSE_PTHREAD",
+					"-DTHREAD_SAFE",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		5A416D679406F019A4BD2796 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5A416911FB97027E50A20606 /* Build configuration list for PBXNativeTarget "FeriteCode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A416211BBBB3DAED1E74CCE /* Release */,
+				5A416AEDE3F3FCD5E9D47CDC /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5A416C42DB1CB81085B08284 /* Build configuration list for PBXProject "FeriteCode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A416D679406F019A4BD2796 /* Release */,
+				5A4164AED314D2923A07B8C8 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 5A416D39522D4566A92DE0ED /* Project object */;
+}
