@@ -165,8 +165,8 @@ FERITE_API int ferite_get_required_parameter_list_size( FeriteScript *script, Fe
    
 #define FE_RETURN_ARRAY( val ) do { \
    FeriteVariable *ferite_function_return= ferite_create_uarray_variable( script, "external_function_return_array_" , val->size, FE_STATIC ); \
-   (ferite_array)->destroy( script, val ); \
    VAUA(ferite_function_return) = (ferite_array->duplicate)( script, val ); \
+   (ferite_array)->destroy( script, val ); \
    MARK_VARIABLE_AS_DISPOSABLE( ferite_function_return ); \
    return ferite_function_return; } while(0)
    
