@@ -406,7 +406,7 @@ void ferite_show_help()
 	printf( " --fe-use-classic \t	 Run w/ alternate MM mode. (enables allocation tracking; will cause slow downs)\n" );
 	printf( " --fe-use-std-gc  \t	 Run w/ simple GC mode. (will cause slow downs)\n" );
 	printf( " --fe-show-mem-use\t	 Report memory use at script end.\n" );
-	printf( " --fe-profile=<file.json>\t Enable and save profiling data to <file.json> (may include strftime(3) formatters).\n" );
+	printf( " --fe-profile=<file.json>\t Enable and save profiling data to <file.json> (may include strftime(3) formatters, and additionally %%i for the process id).\n" );
 	printf( " --fe-use-mm-with-pcre\t Use PCRE [Regular Expression Engine] with ferite's MM\n" );
 	printf( "\n MM = Memory Manager\n" );
 	FE_LEAVE_FUNCTION( NOWT );

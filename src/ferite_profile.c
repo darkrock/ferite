@@ -236,7 +236,7 @@ static FeriteProfileEntry *get_or_create_profile_entry_in_hash(const char *filen
 }
 
 void save_profile(void) {
-	ferite_profile_save(0);
+	ferite_profile_save();
 }
 
 void ferite_profile_toggle(const int state)
@@ -583,47 +583,75 @@ void ferite_profile_add_caller(FeriteProfileFunction *callee, FeriteProfileFunct
 	UNLOCK_PROFILE();
 }
 
-static int append_pid(char *buf, pid_t pid)
+static int maybe_expand_pid(char *buf, size_t size)
 {
-	unsigned int len;
-	unsigned int pid_width;
-	char pid_str[10];
+	char *p = buf;
+	char len = strlen(buf);
+	pid_t pid = getpid();
 
-	pid_width = number_width(pid);
-	if (pid_width > 8) {
-		fprintf(stderr, "FIXME: pid too large? %d (%s:%d)\n",
-				pid, __FILE__, __LINE__);
-		return 0;
-	}
-	snprintf(pid_str, 10, ".%d", pid);
+	while (*p && p-buf < size) {
+		if (*p == '%' && *(p+1) == '%') {
+			p++;
+		} else if (*p == '%' && *(p+1) == 'i') {
+			size_t w = number_width(pid);
 
-	len = strlen(buf) + pid_width + 1;
-	if (len > PATH_MAX - 1) {
-		fprintf(stderr,
-			"Error: profile output '%s.{pid} exceeds PATH_MAX\n",
-			profile_output);
-		return 0;
+			if (w > 2) {
+				int add = w - 2; /*%p*/
+				if (len + add < PATH_MAX) {
+					char *j;
+					char save = *(p+2);
+					/* Shift chars to the right to make
+					 * space for the pid */
+					for (j = buf+len; j > p+1; j--) {
+						*(j+add) = *j;
+						*j = 'x';
+					}
+					snprintf(p, (buf+len+w)-p, "%d", pid);
+					*(p+w) = save;
+					len += add;
+				} else {
+					printf("Not enough buffer space to include process id\n");
+					return 0;
+				}
+			} else if (w < 2) {
+				char *j;
+				/* It must be 1 */
+				FE_ASSERT(w == 1);
+				*p = pid + '0';
+				/* Shift chars left by 1 */
+				for (j = p + 1; j <= buf + len; j++) {
+					*j = *(j+1);
+				}
+				len--;
+			} else { /* w == 2 */
+				char save = *(p+2);
+				snprintf(p, (buf+len+1)-p, "%d", pid);
+				*(p+2) = save;
+			}
+		}
+		p++;
 	}
-	strncat(buf, pid_str, 10);
-	return 1;
+	return len;
 }
 
-static int format_profile_filename(char *format, char *buf, pid_t pid)
+
+static int format_profile_filename(char *format, char *buf)
 {
 	struct tm now;
 	time_t t;
+	char fmt[PATH_MAX];
+
+	strncpy(fmt, format, PATH_MAX);
+	(void)maybe_expand_pid(fmt, PATH_MAX);
 
 	(void)time(&t);
 	(void)localtime_r(&t, &now);
 
-	if (strftime(buf, PATH_MAX, format, &now) == 0) {
+	if (strftime(buf, PATH_MAX, fmt, &now) == 0) {
 		fprintf(stderr, "Error: profile output pattern '%s' results in "
 				"empty filename\n", profile_output);
 		return 0;
 	}
-
-	if (pid != 0 && append_pid(buf, pid) == 0)
-		return 0;
 
 	return 1;
 }
@@ -863,7 +891,7 @@ static void write_json_profile_line_entries_for_one_file(FILE *f, FeriteProfileE
 	json_array_close(f);
 }
 
-static void save_json_profile(const pid_t pid)
+static void save_json_profile()
 {
 	int i;
 	FILE *f;
@@ -881,7 +909,7 @@ static void save_json_profile(const pid_t pid)
 #endif
 	total_duration = timespec_diff(&profile_start_ts, &profile_end_ts);
 
-	if (format_profile_filename(profile_output, filename, pid) == 0) {
+	if (format_profile_filename(profile_output, filename) == 0) {
 		UNLOCK_PROFILE();
 		return;
 	}
@@ -921,9 +949,9 @@ static void save_json_profile(const pid_t pid)
 
 }
 
-void ferite_profile_save(const pid_t pid)
+void ferite_profile_save()
 {
-  save_json_profile(pid);
+  save_json_profile();
 }
 
 void ferite_profile_set_filename_format(const char *filename)
