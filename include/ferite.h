@@ -84,6 +84,7 @@ FERITE_API int ferite_get_required_parameter_list_size( FeriteScript *script, Fe
 
 #ifdef FERITE_PROFILE
 FERITE_API void ferite_profile_toggle( int state );
+FERITE_API void ferite_profile_set_save_at_exit();
 FERITE_API void ferite_profile_save();
 FERITE_API void ferite_profile_set_filename_format(const char *filename);
 #endif

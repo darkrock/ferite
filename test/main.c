@@ -522,6 +522,12 @@ int main( int argc, char **argv )
 			/* delete the script */
             ferite_script_delete( script );
 
+#ifdef FERITE_PROFILE
+            if (ferite_profile_enabled) {
+                ferite_profile_save();
+            }
+#endif
+
 			/* deinitialise the engien */
             ferite_deinit();
             aphex_free( opt.scriptname );

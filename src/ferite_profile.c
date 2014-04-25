@@ -34,6 +34,7 @@ int ferite_profile_enabled = FE_FALSE;
 static char profile_output[PATH_MAX] = { 0 };
 static FeriteProfileEntry *profile_entries[FERITE_PROFILE_NHASH] = { NULL };
 static struct timespec profile_start_ts = { 0, 0 };
+static int atexit_registered = 0;
 
 //#define FERITE_FAKE_CLOCK
 #ifdef FERITE_FAKE_CLOCK
@@ -235,13 +236,8 @@ static FeriteProfileEntry *get_or_create_profile_entry_in_hash(const char *filen
 	return p;
 }
 
-void save_profile(void) {
-	ferite_profile_save();
-}
-
 void ferite_profile_toggle(const int state)
 {
-	static int atexit_registered = 0;
 	INIT_PROFILE_LOCK();
 
 #ifdef FERITE_FAKE_CLOCK
@@ -258,10 +254,6 @@ void ferite_profile_toggle(const int state)
 #else
 			clock_gettime(CLOCK_REALTIME, &profile_start_ts);
 #endif
-		}
-		if (! atexit_registered) {
-			atexit_registered = 1;
-			atexit(save_profile);
 		}
 	} else {
 		profile_start_ts.tv_sec = 0;
@@ -949,9 +941,24 @@ static void save_json_profile()
 
 }
 
+void save_profile(void) {
+	save_json_profile();
+}
+
+void ferite_profile_set_save_at_exit()
+{
+	if (! atexit_registered) {
+		atexit_registered = 1;
+		atexit(save_profile);
+	}
+}
+
 void ferite_profile_save()
 {
-  save_json_profile();
+	if (atexit_registered) {
+		fprintf(stderr, "Warning: save atexit was set but ferite_profile_save() is called.\n");
+	}
+	save_json_profile();
 }
 
 void ferite_profile_set_filename_format(const char *filename)
