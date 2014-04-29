@@ -1278,6 +1278,8 @@ int main( int argc, char **argv )
                 errmsg = ferite_get_error_log( script );
                 fprintf( stderr, "%s", errmsg );
                 ffree( errmsg );
+				
+				exit(-1);
             }
             ferite_script_delete( script );
             ffree( current_module );
