@@ -42,7 +42,7 @@ while test $# -gt 0; do
       if test @includedir@ != /usr/include ; then
         includes=-I@includedir@
       fi
-      echo $includes @debugdefs@ @thread_defs@ @gc_defs@ 
+      echo $includes @debugdefs@ @thread_defs@ @gc_defs@ @profile_defs@
       ;;
     --libs)
       libdirs=-L@libdir@

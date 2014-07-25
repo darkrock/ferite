@@ -937,6 +937,7 @@ void ferite_do_function_header( char *name, int is_static, int is_native, int is
 	}
 	
 	new_function = ferite_create_internal_function( CURRENT_SCRIPT, real_function_name );
+	new_function->line = ferite_scanner_lineno;
 	new_function->bytecode->filename = fstrdup( (ferite_scanner_file == NULL ? "" : ferite_scanner_file) );
 	new_function->is_static = is_static;
 	new_function->state = FE_ITEM_IS_PUBLIC;
@@ -1103,7 +1104,7 @@ void ferite_do_function_native_block( char *code, char *file, int line )
 	ptr = fmalloc_ngc( sizeof(FeriteFunctionNative) );
 	ptr->code = NULL;
 	ptr->file = fstrdup( file );
-	ptr->line = line;
+	CURRENT_FUNCTION->line = line;
 	CURRENT_FUNCTION->native_information = ptr;
 
 	if( ferite_keep_native_function_data == 1 )

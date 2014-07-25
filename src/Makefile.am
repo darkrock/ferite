@@ -12,7 +12,7 @@ LDFLAGS		     = -L${prefix}/lib -lm
 
 INCLUDES	     = -I$(top_srcdir) -I$(top_srcdir)/libs/aphex/include -I$(top_srcdir)/libs/triton/include -I${top_srcdir}/include -I${prefix}/include -I$(includedir) -I${top_srcdir}/include/ferite/ @pcre_cflags@
 
-DEFS                 = @debugdefs@ @thread_defs@ @gc_defs@
+DEFS                 = @debugdefs@ @thread_defs@ @gc_defs@ @profile_defs@
 
 lib_LTLIBRARIES      = libferite.la
 
@@ -31,6 +31,7 @@ ferite_gc_generation.c \
       ferite_execute.c \
       ferite_scanner.c \
       ferite_globals.c \
+      ferite_profile.c \
        ferite_script.c \
        ferite_parser.c \
        ferite_opcode.c \

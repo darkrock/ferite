@@ -195,7 +195,7 @@ FeriteOp *ferite_do_get_current_op();
 	exec.variable_list = NULL;      \
 	exec.stack = NULL;              \
 	exec.parent = script->gc_stack; \
-	exec.line = (FUNCTION->native_information ? FUNCTION->native_information->line : 0); \
+	exec.line = FUNCTION->line; \
 	script->gc_stack = &exec
 	
 #define EXTERNAL_EXIT()             \

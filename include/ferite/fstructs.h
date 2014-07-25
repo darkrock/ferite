@@ -70,6 +70,12 @@ typedef struct _ferite_compile_record              FeriteCompileRecord;
 typedef struct _ferite_bk_req                      FeriteBkRequest;
 typedef struct _ferite_variable_accessors          FeriteVariableAccessors;
 typedef struct _ferite_variable_subtype            FeriteVariableSubType;
+#ifdef FERITE_PROFILE
+typedef struct _ferite_profile_function_caller     FeriteProfileFunctionCaller;
+typedef struct _ferite_profile_function            FeriteProfileFunction;
+typedef struct _ferite_profile_line_entry          FeriteProfileLineEntry;
+typedef struct _ferite_profile_entry               FeriteProfileEntry;
+#endif
 
 typedef void (*FeriteVariableGetAccessor)(FeriteScript*,FeriteVariable*);
 typedef void (*FeriteVariableSetAccessor)(FeriteScript*,FeriteVariable*,FeriteVariable*);
@@ -258,7 +264,6 @@ struct _ferite_function_native_information /* Stores the native code info for bu
 {
     char *code;   /* The code in the block */
     char *file;   /* The file it was declared in */
-    int   line;   /* The line it was declared on */
 };
 
 struct _ferite_function  /* Encapsulate a native and script function */
@@ -268,6 +273,7 @@ struct _ferite_function  /* Encapsulate a native and script function */
     FeriteVariable         *(*fncPtr)( FeriteScript*,void*,FeriteObject*,FeriteFunction*,FeriteVariable**);
                                        /* If it is native, it's function pointer */
     FeriteFunctionNative   *native_information; /* The native infomation about the function */
+    int                    line;       /* The line it was declared on */
     void                   *odata;     /* If we happen to have any native data */
     int                     arg_count; /* The number of arguments in the signature */
     char                    is_static; /* If the function is a static class method */
@@ -429,6 +435,9 @@ struct _ferite_script
 
 	FeriteAMT          *globals;
 	FeriteAMT          *types;
+#ifdef FERITE_PROFILE
+	FeriteProfileFunction *caller;
+#endif
 };
 
 struct _ferite_script_attached_data 
@@ -517,5 +526,44 @@ struct _ferite_compile_record /* Used in the compiler */
 	int in_closure;
 	int want_container_finish;
 };
+
+#ifdef FERITE_PROFILE
+struct _ferite_profile_function_caller {
+	FeriteProfileFunction *caller;
+	int caller_line;
+	size_t frequency;
+	struct timespec total_duration;
+};
+
+struct _ferite_profile_function {
+	char *filename;
+	char *container; /* namespace or class fqn */
+	char *name;
+	int is_native;
+	size_t ncalls;
+	int start_line;
+	int end_line;
+	int calling_line;
+	struct timespec exclusive_duration;
+	struct timespec inclusive_duration;
+	FeriteHash *callers;
+};
+
+struct _ferite_profile_line_entry {
+	unsigned int ncalls;
+	struct timespec total_duration;
+	FeriteHash *functions; /* not null means this line has one or more function definitions */
+};
+
+struct _ferite_profile_entry {
+	char *filename;
+	int is_file;
+	unsigned int filename_len;
+	size_t line_count;
+	FeriteProfileLineEntry *lines; /* 1-based indexing */
+
+	FeriteProfileEntry *next; // next in hash table
+};
+#endif /* FERITE_PROFILE */
 
 #endif /* __FERITE_STRUCTS_H__ */

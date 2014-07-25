@@ -81,6 +81,13 @@ FERITE_API int ferite_get_parameters( FeriteVariable **list, int num_args, ... )
 FERITE_API int ferite_get_parameter_count( FeriteVariable **list );
 FERITE_API void *ferite_get_parameter( FeriteVariable **list, int num );
 FERITE_API int ferite_get_required_parameter_list_size( FeriteScript *script, FeriteFunction *function );
+
+#ifdef FERITE_PROFILE
+FERITE_API void ferite_profile_toggle( int state );
+FERITE_API void ferite_profile_set_save_at_exit();
+FERITE_API void ferite_profile_save();
+FERITE_API void ferite_profile_set_filename_format(const char *filename);
+#endif
    
    /* macros to cover internal functions */
 #define fe_new_lng( name, val )             ferite_create_number_long_variable( script, name, val, FE_ALLOC )
@@ -197,6 +204,9 @@ FERITE_API int ferite_get_required_parameter_list_size( FeriteScript *script, Fe
 #include <ferite/ferror.h>
 #include <ferite/farray.h>
 #include <ferite/fbuffer.h>
+#ifdef FERITE_PROFILE
+#include <ferite/fprofile.h>
+#endif
 
 #include <ferite/fobj.h> /* As this is the native class 'Obj' we need the macros here for compilation!*/    
 

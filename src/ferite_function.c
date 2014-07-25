@@ -536,6 +536,7 @@ FeriteFunction *ferite_function_dup( FeriteScript *script, FeriteFunction *funct
 		else
 		  ptr->name = NULL;
 		
+		ptr->line = function->line;
 		ptr->type = function->type;
 		ptr->is_static = function->is_static;
 		ptr->arg_count = function->arg_count;
@@ -567,7 +568,6 @@ FeriteFunction *ferite_function_dup( FeriteScript *script, FeriteFunction *funct
 			ptr->native_information = fmalloc(sizeof(FeriteFunctionNative));
 			ptr->native_information->code = fstrdup(function->native_information->code);
 			ptr->native_information->file = fstrdup(function->native_information->file);
-			ptr->native_information->line = function->native_information->line;
 		}
 		else
 		  ptr->native_information = NULL;

@@ -58,6 +58,11 @@ int                ferite_is_strict = 0;
 
 int                ferite_show_partial_implementation = 0;
 
+#ifdef FERITE_PROFILE
+int                ferite_enable_profiling = 0;
+char               *ferite_profile_filename_pattern = NULL;
+#endif
+
 /*! Generic function for memory management. Hides the actually memory manager */
 void  (*ferite_memory_init)(void);
 /*! Generic function for memory management. Hides the actually memory manager */

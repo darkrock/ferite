@@ -1,0 +1,42 @@
+Introduction
+------------
+
+  "Let there be profilers"
+	  - unknown
+
+Currently ferite support for profiling is enabled/disabled at compile time for
+the obvious performance overheads associated with keeping the profiling data
+during runtime. The configure switch for this is "--enable-profile"
+
+Enabling profiling support
+--------------------------
+
+  $ ./configure --enable-profile
+
+Profiling a ferite script
+-------------------------
+
+A ferite script to be profiled must be free of errors and exceptions otherwise
+the profiling data will be unavailable or incorrect.
+
+  $ ferite --fe-profile=foo.json foo.fe
+
+The above will run and profile the script foo.fe. The profiling data is saved
+in foo.json. The fprof[1] tool can be used to generate an html report from the
+profiling data and open the result in a browser (see fprof -h):
+
+  $ fprof foo.json
+
+[1] https://github.com/cention-nazri/fprof
+
+Caveats
+-------
+
+1. Tested only on linux.
+2. Does not support profiling in multithreaded environment.
+3. When run under mod_ferite, with FeriteCache on, the ferite script that is
+   loaded from the cache will have wrong line number information for its
+   !__start__ function. Reason: !__start__() function is not cached and
+   ferite_do_function_start() does a ferite_lexer_jump() for cached functions
+   which voids ferite_scanner_lineno because YY_LESS_LINENO is defined to do
+   nothing (maybe).
