@@ -634,9 +634,16 @@ void *ferite_amt_get( FeriteScript *script, FeriteAMT *tree, unsigned long index
 
 void *_ferite_amt_delete( FeriteScript *script, FeriteAMT *tree, unsigned long index, char *optional_key ) {
 	FeriteAMTTree *root = tree->root;
-	unsigned long shiftAmount = AMT_SHIFT_START;
+	int shiftAmount = AMT_SHIFT_START;
 	unsigned long baseIndex = AMT_APPLY_SHIFT(tree, index);
 	FeriteAMTNode *baseItem = NULL;
+	unsigned long rootIndex = baseIndex;
+	size_t amtDepth = 0;
+	size_t keyLen = 0;
+
+	if (optional_key != NULL) {
+		keyLen = strlen(optional_key);
+	}
 	
 	while( FE_TRUE ) {
 		if( !(GETBIT(root->map, baseIndex)) )
@@ -670,8 +677,16 @@ void *_ferite_amt_delete( FeriteScript *script, FeriteAMT *tree, unsigned long i
 				}
 				return data;
 			} else if( baseItem->type == FeriteAMTType_Tree ) {
-				AMT_SHIFT_AND_CHECK( NULL );
-				baseIndex = AMT_APPLY_SHIFT(tree, index);
+				amtDepth++;
+				if ((shiftAmount - AMT_SHIFT_AMOUNT) > 0) {
+					shiftAmount -= AMT_SHIFT_AMOUNT;
+					baseIndex = AMT_APPLY_SHIFT(tree, index);
+				} else {
+					// We ran out of the hash bits in index, use the key for
+					// the hash bits
+					baseIndex = ferite_hamt_index(index, optional_key, keyLen, amtDepth);
+				}
+
 				root = baseItem->u.tree;
 			}
 		}
