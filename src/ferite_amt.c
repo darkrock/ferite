@@ -194,6 +194,111 @@ unsigned int ferite_highorderindex( unsigned int index, unsigned int shiftAmount
 unsigned int ferite_loworderindex( unsigned int index, unsigned int shiftAmount ) {
 	return (index >> (AMT_SHIFT_START - shiftAmount)) & 0x1F;
 }
+
+/* Return the successive AMT_SHIFT_AMOUNT-bit sized value taken from the bits
+ * in hash and key based on depth. The bits in hash is exhausted first,
+ * followed by the bits in key, starting from the last character since that's
+ * the most likely place that the keys differ from each other.
+ *
+ * depth 0 corresponds to the first hamt level.
+ *
+ * The bits in key are used starting from msb.
+ *
+ * Note that the key could be an empty string, indicated by len == 0.
+ */
+size_t ferite_hamt_index(unsigned int hash, char *key, size_t len, unsigned int depth) {
+	const size_t nHashBits = 8 * sizeof(unsigned int);
+	size_t i;
+	int hi; // Index to key where the msb bits are to be taken from
+	int li; // Index to key where the lsb bits are to be taken from
+	unsigned char fbi; // offset to the first bit in the byte, from MSB
+
+	size_t keyBitsUsed;
+
+	// The MSB bit offset of index in key, starting from the MSB of the last
+	// character in key
+	size_t keyBitIdx;
+
+	size_t nbits = 8 * sizeof(hash);
+
+	// The number of complete AMT_SHIFT_AMOUNT bits that we can get from
+	// the hash
+	size_t nHashIndeces = nbits / AMT_SHIFT_AMOUNT;
+	size_t remBits = AMT_SHIFT_START % AMT_SHIFT_AMOUNT;
+
+	if (depth < nHashIndeces) {
+		return ferite_highorderindex(hash,
+				AMT_SHIFT_START - (depth * AMT_SHIFT_AMOUNT));
+	}
+
+	if (depth == nHashIndeces) {
+		// We're at the boundary between last bits of hash and the
+		// first character in key. Combine the MSB bits from the last
+		// character in key with the remainder bit from the hash
+		// to complete the AMT_SHIFT_AMOUNT-bit index.
+		//
+		// The bits from the hash forms the MSB portion, while the MSB bits
+		// from the last character of key will from the LSB portion.
+		unsigned char hv = hash & ((1 << remBits) - 1);
+		unsigned char k;
+		unsigned char lv;
+		if (len == 0) {
+			k = '\0';
+			lv = 0;
+		} else {
+			k = key[len-1];
+			lv = k >> (8 - (AMT_SHIFT_AMOUNT - remBits));
+		}
+		return (hv << (AMT_SHIFT_AMOUNT - remBits)) | lv;
+	}
+
+	if (len == 0) {
+		return 0;
+	}
+
+	i = depth - nHashIndeces - 1;
+
+	// The number of bits already used in key.
+	// We start using bits from the end of key, character by character, starting
+	// from the MSB.
+	keyBitsUsed = depth * AMT_SHIFT_AMOUNT - nHashBits;
+
+	// The MSB bit offset of index in key, starting from the MSB of the last
+	// character in key
+	keyBitIdx = keyBitsUsed;
+
+	hi = (len - 1) - ((keyBitIdx) / 8);
+	li = (len - 1) - ((keyBitIdx + AMT_SHIFT_AMOUNT - 1) / 8);
+
+	fbi = keyBitIdx % 8;
+
+	if (li >= 0 && hi == li) {
+		// The bits are contained in the same byte
+		unsigned char v = key[hi];
+		unsigned char sr = 8 - AMT_SHIFT_AMOUNT - fbi;
+		unsigned char indexMask = (1 << AMT_SHIFT_AMOUNT) - 1;
+		return (v >> sr) & indexMask;
+	} else if (li >= 0 && hi != li) {
+		// The bits are split across two bytes
+		unsigned char hv = key[hi];
+		unsigned char lv = key[li];
+		unsigned char nHiBits = 8 - fbi;
+		unsigned char nLoBits = AMT_SHIFT_AMOUNT - nHiBits;
+		unsigned char sr = 8 - nLoBits;
+
+		hv = hv & ((1 << (8 - fbi)) - 1);
+		lv = lv >> sr;
+		return (hv << nLoBits) | lv;
+	} else {
+		// li is negative - We are at the first character of the key
+		unsigned char v = key[hi];
+		unsigned char sl = fbi - (8 - AMT_SHIFT_AMOUNT);
+
+		return (v & ((1 << (8 - fbi))-1)) << sl;
+	}
+}
+
+
 FeriteAMTTree *ferite_amt_tree_create( FeriteScript *script, FeriteAMTTree *parent, int index_type ) {
 	FeriteAMTTree *tree = fmalloc(sizeof(FeriteAMTTree));
 	memset(tree, 0, sizeof(FeriteAMTTree));
