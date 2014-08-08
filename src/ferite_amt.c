@@ -192,7 +192,7 @@ unsigned int ferite_highorderindex( unsigned int index, unsigned int shiftAmount
 	return (((index << (AMT_SHIFT_START - shiftAmount)) >> 27) & 0x1F);
 }
 unsigned int ferite_loworderindex( unsigned int index, unsigned int shiftAmount ) {
-	return (((index << (shiftAmount - AMT_SHIFT_AMOUNT)) >> 27) & 0x1F);
+	return (index >> (AMT_SHIFT_START - shiftAmount)) & 0x1F;
 }
 FeriteAMTTree *ferite_amt_tree_create( FeriteScript *script, FeriteAMTTree *parent, int index_type ) {
 	FeriteAMTTree *tree = fmalloc(sizeof(FeriteAMTTree));

@@ -3,3 +3,4 @@ TESTS =
 check_PROGRAMS =
 
 TEST: ferite_amt-array.c
+TEST: ferite_amt-index-from-hash.c
