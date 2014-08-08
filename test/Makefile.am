@@ -4,6 +4,8 @@ ferite_SOURCES = main.c dot.c dot.h
 cache_ferite_SOURCES = cache-ferite.c
 ferite_script_SOURCES = main_script.c dot.c dot.h
 
+include $(srcdir)/MakefileTest.am
+
 EXTRA_DIST = dot.h
 		    
 ferite_DEPENDENCIES = $(top_builddir)/src/libferite.la
