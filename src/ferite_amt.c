@@ -741,11 +741,10 @@ int ferite_amt_cmp( FeriteScript *script, FeriteAMT *left, FeriteAMT *right, AMT
 }
 
 unsigned long ferite_hamt_hash_gen( char *key ) {
-    size_t i, keylen = strlen(key);
-    unsigned long hashval = 0;
-	
-    for( i = 0; i < keylen; i++ )
-      hashval = *key++ + 31 * hashval;
+	unsigned long hashval = 0;
+
+	while(*key)
+		hashval = *key++ + 31 * hashval;
 	return hashval;
 }
 
