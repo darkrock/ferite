@@ -1,3 +1,5 @@
 TEST_EXTENSIONS = .t
 TESTS =
 check_PROGRAMS =
+
+TEST: ferite_amt-array.c
