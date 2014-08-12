@@ -73,7 +73,6 @@ static inline int bitcount (unsigned int n)
 #define AMT_SHIFT_AMOUNT               5
 #define AMT_SHIFT_START                (32)
 #define AMT_APPLY_SHIFT( FE_FE_TRUEE, INDEX ) (FE_FE_TRUEE->index_function)( INDEX, shiftAmount )
-#define AMT_SHIFT_AND_CHECK( VALUE )   do { shiftAmount -= 5; if( shiftAmount <= 0 ) { return NULL; } } while(0)
 #define AMT_UNSHIFT_AND_CHECK( VALUE ) do { shiftAmount += 5; if( shiftAmount > AMT_SHIFT_START ) { return NULL; } } while(0)
 #define AMT_CompressedBaseSize         4
 
