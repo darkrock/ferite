@@ -1,0 +1,10 @@
+TEST_EXTENSIONS = .t
+TESTS =
+check_PROGRAMS =
+
+TEST: ferite_amt-array.c
+TEST: ferite_amt-index-from-hash.c
+TEST: ferite_amt-index-from-hash-and-string.c
+TEST: ferite_amt-hash-gen.c
+TEST: ferite_amt-hash-set-and-get.c test_amt.c
+TEST: ferite_amt-hash-delete.c test_amt.c

@@ -1,0 +1,15 @@
+To add a new test file:
+
+1. Create the new file, say, foo-test.c
+2. Edit MakefileTest.am.stub and add this entry:
+
+	TEST: foo-test.c
+
+3. Run bootstrap.sh to update MakefileTest.am:
+
+	$ ./bootstrap.sh
+
+4. Finally run make check. This will compile the new test and run it with all
+   the existing tests:
+
+	$ make check

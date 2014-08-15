@@ -73,7 +73,6 @@ static inline int bitcount (unsigned int n)
 #define AMT_SHIFT_AMOUNT               5
 #define AMT_SHIFT_START                (32)
 #define AMT_APPLY_SHIFT( FE_FE_TRUEE, INDEX ) (FE_FE_TRUEE->index_function)( INDEX, shiftAmount )
-#define AMT_SHIFT_AND_CHECK( VALUE )   do { shiftAmount -= 5; if( shiftAmount <= 0 ) { return NULL; } } while(0)
 #define AMT_UNSHIFT_AND_CHECK( VALUE ) do { shiftAmount += 5; if( shiftAmount > AMT_SHIFT_START ) { return NULL; } } while(0)
 #define AMT_CompressedBaseSize         4
 
@@ -192,8 +191,113 @@ unsigned int ferite_highorderindex( unsigned int index, unsigned int shiftAmount
 	return (((index << (AMT_SHIFT_START - shiftAmount)) >> 27) & 0x1F);
 }
 unsigned int ferite_loworderindex( unsigned int index, unsigned int shiftAmount ) {
-	return (((index << (shiftAmount - AMT_SHIFT_AMOUNT)) >> 27) & 0x1F);
+	return (index >> (AMT_SHIFT_START - shiftAmount)) & 0x1F;
 }
+
+/* Return the successive AMT_SHIFT_AMOUNT-bit sized value taken from the bits
+ * in hash and key based on depth. The bits in hash is exhausted first,
+ * followed by the bits in key, starting from the last character since that's
+ * the most likely place that the keys differ from each other.
+ *
+ * depth 0 corresponds to the first hamt level.
+ *
+ * The bits in key are used starting from msb.
+ *
+ * Note that the key could be an empty string, indicated by len == 0.
+ */
+size_t ferite_hamt_index(unsigned int hash, char *key, size_t len, unsigned int depth) {
+	const size_t nHashBits = 8 * sizeof(unsigned int);
+	size_t i;
+	int hi; // Index to key where the msb bits are to be taken from
+	int li; // Index to key where the lsb bits are to be taken from
+	unsigned char fbi; // offset to the first bit in the byte, from MSB
+
+	size_t keyBitsUsed;
+
+	// The MSB bit offset of index in key, starting from the MSB of the last
+	// character in key
+	size_t keyBitIdx;
+
+	size_t nbits = 8 * sizeof(hash);
+
+	// The number of complete AMT_SHIFT_AMOUNT bits that we can get from
+	// the hash
+	size_t nHashIndeces = nbits / AMT_SHIFT_AMOUNT;
+	size_t remBits = AMT_SHIFT_START % AMT_SHIFT_AMOUNT;
+
+	if (depth < nHashIndeces) {
+		return ferite_highorderindex(hash,
+				AMT_SHIFT_START - (depth * AMT_SHIFT_AMOUNT));
+	}
+
+	if (depth == nHashIndeces) {
+		// We're at the boundary between last bits of hash and the
+		// first character in key. Combine the MSB bits from the last
+		// character in key with the remainder bit from the hash
+		// to complete the AMT_SHIFT_AMOUNT-bit index.
+		//
+		// The bits from the hash forms the MSB portion, while the MSB bits
+		// from the last character of key will from the LSB portion.
+		unsigned char hv = hash & ((1 << remBits) - 1);
+		unsigned char k;
+		unsigned char lv;
+		if (len == 0) {
+			k = '\0';
+			lv = 0;
+		} else {
+			k = key[len-1];
+			lv = k >> (8 - (AMT_SHIFT_AMOUNT - remBits));
+		}
+		return (hv << (AMT_SHIFT_AMOUNT - remBits)) | lv;
+	}
+
+	if (len == 0) {
+		return 0;
+	}
+
+	i = depth - nHashIndeces - 1;
+
+	// The number of bits already used in key.
+	// We start using bits from the end of key, character by character, starting
+	// from the MSB.
+	keyBitsUsed = depth * AMT_SHIFT_AMOUNT - nHashBits;
+
+	// The MSB bit offset of index in key, starting from the MSB of the last
+	// character in key
+	keyBitIdx = keyBitsUsed;
+
+	hi = (len - 1) - ((keyBitIdx) / 8);
+	li = (len - 1) - ((keyBitIdx + AMT_SHIFT_AMOUNT - 1) / 8);
+
+	fbi = keyBitIdx % 8;
+
+	if (li >= 0 && hi == li) {
+		// The bits are contained in the same byte
+		unsigned char v = key[hi];
+		unsigned char sr = 8 - AMT_SHIFT_AMOUNT - fbi;
+		unsigned char indexMask = (1 << AMT_SHIFT_AMOUNT) - 1;
+		return (v >> sr) & indexMask;
+	} else if (li >= 0 && hi != li) {
+		// The bits are split across two bytes
+		unsigned char hv = key[hi];
+		unsigned char lv = key[li];
+		unsigned char nHiBits = 8 - fbi;
+		unsigned char nLoBits = AMT_SHIFT_AMOUNT - nHiBits;
+		unsigned char sr = 8 - nLoBits;
+
+		hv = hv & ((1 << (8 - fbi)) - 1);
+		lv = lv >> sr;
+		return (hv << nLoBits) | lv;
+	} else {
+		// li is negative - We are at the first character of the key
+		unsigned char v = key[hi];
+		unsigned char sl = fbi - (8 - AMT_SHIFT_AMOUNT);
+
+		return (v & ((1 << (8 - fbi))-1)) << sl;
+	}
+}
+
+
 FeriteAMTTree *ferite_amt_tree_create( FeriteScript *script, FeriteAMTTree *parent, int index_type ) {
 	FeriteAMTTree *tree = fmalloc(sizeof(FeriteAMTTree));
 	memset(tree, 0, sizeof(FeriteAMTTree));
@@ -326,10 +430,16 @@ void ferite_amt_print( FeriteScript *script, FeriteAMT *tree ) {
 
 void *_ferite_amt_set( FeriteScript *script, FeriteAMT *tree, unsigned long index, char *optional_key, void *value ) {
 	FeriteAMTTree *root = tree->root;
-	unsigned long shiftAmount = AMT_SHIFT_START;
+	int shiftAmount = AMT_SHIFT_START;
 	unsigned long baseIndex = AMT_APPLY_SHIFT(tree, index);
+	size_t amtDepth = 0;
+	size_t keyLen = 0;
 	FeriteAMTNode *baseItem = NULL;
-	
+
+	if (optional_key != NULL) {
+		keyLen = strlen(optional_key);
+	}
+
 	if( index > tree->upper_bound )
 		tree->upper_bound = index;
 	if( index < tree->lower_bound )
@@ -339,14 +449,45 @@ void *_ferite_amt_set( FeriteScript *script, FeriteAMT *tree, unsigned long inde
 	while( FE_TRUE ) {
 		if( !(GETBIT(root->map, baseIndex)) ) {
 			tree->total++;
-			AMT_SET( script, root, AMT_APPLY_SHIFT(tree, index), ferite_amt_create_value_node(script, index, optional_key, value) );
+			AMT_SET( script, root, baseIndex, ferite_amt_create_value_node(script, index, optional_key, value) );
 			return value;
 		}
 		else {
 			baseItem = AMT_GET( script, root, baseIndex );
 			if( IS_NODE(baseItem) ) {
-				if( (baseItem->type == FeriteAMTType_ANode && baseItem->u.value.id == index) ||
-				    (baseItem->type == FeriteAMTType_HNode && baseItem->u.value.id == index) ) {
+				int replace = 0;
+
+				// What to do on hash collision
+				// - Array: replace old with new
+				// - Hash: replace only if the keys exist and are matching.
+				//   Otherwise split the node and use the keys for getting the
+				//   unique hash bits.
+				if (baseItem->u.value.id == index) {
+					if ( baseItem->type == FeriteAMTType_ANode) {
+						replace = 1;
+					} else if (baseItem->type == FeriteAMTType_HNode) {
+						if (optional_key == NULL) {
+							fprintf(stderr, "ferite_amt_set(): "
+									"hash collides (%lu) but missing optional_key, "
+									"existing key = '%s'",
+									index, baseItem->u.value.key);
+							return NULL;
+						}
+						if (baseItem->u.value.key == NULL) {
+							fprintf(stderr, "ferite_amt_set(): "
+									"Error: Hash collides (%lu) but existing "
+									"key is NULL, while new "
+									"optional key = '%s'",
+									index, optional_key);
+							return NULL;
+						}
+						if (strcmp(baseItem->u.value.key, optional_key) == 0) {
+							replace = 1;
+						}
+					}
+				}
+
+				if( replace ) {
 					void *old_value = NODE_VALUE(baseItem);
 					if( baseItem->type == FeriteAMTType_HNode )
 						ffree(baseItem->u.value.key);
@@ -361,19 +502,33 @@ void *_ferite_amt_set( FeriteScript *script, FeriteAMT *tree, unsigned long inde
 					return old_value;
 				} else {
 					/* We have to split this node */
+					size_t oldKeyLen = 0;
 					FeriteAMTNode *old_node = baseItem;
-					int old_id = 0, new_id = 0;
-					while( AMT_APPLY_SHIFT(tree, old_node->u.value.id) == AMT_APPLY_SHIFT(tree, index) ) {
+					if (old_node->type == FeriteAMTType_HNode) {
+						oldKeyLen = strlen(old_node->u.value.key);
+					}
+					int old_id = AMT_APPLY_SHIFT(tree, old_node->u.value.id);
+					int new_id = AMT_APPLY_SHIFT(tree, index);
+					while( old_id == new_id ) {
+						amtDepth++;
 						FeriteAMTNode *new_node = ferite_amt_create_tree_node( script,root );
 						AMT_SET( script, root, baseIndex, new_node );
 						baseItem = AMT_GET( script, root, baseIndex );
 						root = baseItem->u.tree;
-						AMT_SHIFT_AND_CHECK( NULL );
-						baseIndex = AMT_APPLY_SHIFT(tree, index);
+
+						if ((shiftAmount - AMT_SHIFT_AMOUNT) > 0) {
+							shiftAmount -= AMT_SHIFT_AMOUNT;
+							old_id = AMT_APPLY_SHIFT(tree, old_node->u.value.id);
+							new_id = AMT_APPLY_SHIFT(tree, index);
+							baseIndex = new_id;
+						} else {
+							// We ran out of the hash bits in index, harvest
+							// additional hash bits from optional_key
+							old_id = ferite_hamt_index(index, old_node->u.value.key, oldKeyLen, amtDepth);
+							new_id = ferite_hamt_index(index, optional_key, keyLen, amtDepth);
+							baseIndex = new_id;
+						}
 					}
-					// Old Node
-					old_id = AMT_APPLY_SHIFT(tree, old_node->u.value.id);
-					new_id = AMT_APPLY_SHIFT(tree, index);
 					AMT_SET( script, root, old_id, old_node );
 					AMT_SET( script, root, new_id, ferite_amt_create_value_node(script, index, optional_key, value) );
 					tree->total++;
@@ -381,11 +536,22 @@ void *_ferite_amt_set( FeriteScript *script, FeriteAMT *tree, unsigned long inde
 				}
 				break;
 			} else if( baseItem->type == FeriteAMTType_Tree ) {
-				AMT_SHIFT_AND_CHECK( NULL );
-				baseIndex = AMT_APPLY_SHIFT(tree, index);
+				amtDepth++;
+				if ((shiftAmount - AMT_SHIFT_AMOUNT) > 0) {
+					shiftAmount -= AMT_SHIFT_AMOUNT;
+					baseIndex = AMT_APPLY_SHIFT(tree, index);
+				} else {
+					// Ran out of hash bits, optional_key is no longer
+					// optional
+					if (optional_key == NULL) {
+						fprintf(stderr, "ferite_amt_set(): "
+								"Error: Ran out of hash bits for index %lu, but optional_key is null",
+								index);
+						return NULL;
+					}
+					baseIndex = ferite_hamt_index(index, optional_key, keyLen, amtDepth);
+				}
 				root = baseItem->u.tree;
-			} else {
-				printf("base item: %p -> %d\n", baseItem, baseItem->type);
 			}
 		}
 	}
@@ -397,11 +563,10 @@ void *ferite_amt_set( FeriteScript *script, FeriteAMT *tree, unsigned long index
 void *ferite_amt_add( FeriteScript *script, FeriteAMT *tree, void *value ) {
 	return _ferite_amt_set( script, tree, tree->upper_bound++, NULL, value );
 }
-FeriteAMTNode *_ferite_amt_get( FeriteScript *script, FeriteAMT *tree, unsigned long _index ) {
+FeriteAMTNode *_ferite_amt_get( FeriteScript *script, FeriteAMT *tree, unsigned long index ) {
 	FeriteAMTTree *root = tree->root;
-	unsigned int index = _index;
-	unsigned int shiftAmount = AMT_SHIFT_START;
-	unsigned int baseIndex = AMT_APPLY_SHIFT(tree, index);
+	int shiftAmount = AMT_SHIFT_START;
+	unsigned long baseIndex = AMT_APPLY_SHIFT(tree, index);
 	FeriteAMTNode *baseItem = NULL;
 
 	tree->last_index = index;
@@ -413,13 +578,49 @@ FeriteAMTNode *_ferite_amt_get( FeriteScript *script, FeriteAMT *tree, unsigned 
 			if( IS_NODE(baseItem) ) {
 				return baseItem;
 			} else if( baseItem->type == FeriteAMTType_Tree ) {
-				AMT_SHIFT_AND_CHECK( NULL );
+				shiftAmount -= 5;
+				if( shiftAmount <= 0 ) {
+					return NULL;
+				}
 				baseIndex = AMT_APPLY_SHIFT(tree, index);
 				root = baseItem->u.tree;
 			}
 		}
 	}
 }
+
+FeriteAMTNode *_ferite_hamt_get_with_key( FeriteScript *script, FeriteAMT *tree, unsigned long index, char *key ) {
+	FeriteAMTTree *root = tree->root;
+	int shiftAmount = AMT_SHIFT_START;
+	unsigned long baseIndex = AMT_APPLY_SHIFT(tree, index);
+	FeriteAMTNode *baseItem = NULL;
+	size_t keyLen = strlen(key);
+	size_t amtDepth = 0;
+
+	tree->last_index = index;
+	while( FE_TRUE ) {
+		if( !(GETBIT(root->map, baseIndex)) )
+			return NULL;
+		else {
+			baseItem = AMT_GET( script, root, baseIndex );
+			if( baseItem->type == FeriteAMTType_ANode || baseItem->type == FeriteAMTType_HNode ) {
+				return baseItem;
+			} else if( baseItem->type == FeriteAMTType_Tree ) {
+				amtDepth++;
+				if ((shiftAmount - AMT_SHIFT_AMOUNT) > 0) {
+					shiftAmount -= AMT_SHIFT_AMOUNT;
+					baseIndex = AMT_APPLY_SHIFT(tree, index);
+				} else {
+					// We ran out of the hash bits in index, use the key for
+					// the hash bits
+					baseIndex = ferite_hamt_index(index, key, keyLen, amtDepth);
+				}
+				root = baseItem->u.tree;
+			}
+		}
+	}
+}
+
 
 void *ferite_amt_get( FeriteScript *script, FeriteAMT *tree, unsigned long index ) {
 	FeriteAMTNode *baseItem = _ferite_amt_get( script, tree, index );
@@ -432,9 +633,16 @@ void *ferite_amt_get( FeriteScript *script, FeriteAMT *tree, unsigned long index
 
 void *_ferite_amt_delete( FeriteScript *script, FeriteAMT *tree, unsigned long index, char *optional_key ) {
 	FeriteAMTTree *root = tree->root;
-	unsigned long shiftAmount = AMT_SHIFT_START;
+	int shiftAmount = AMT_SHIFT_START;
 	unsigned long baseIndex = AMT_APPLY_SHIFT(tree, index);
 	FeriteAMTNode *baseItem = NULL;
+	unsigned long rootIndex = baseIndex;
+	size_t amtDepth = 0;
+	size_t keyLen = 0;
+
+	if (optional_key != NULL) {
+		keyLen = strlen(optional_key);
+	}
 	
 	while( FE_TRUE ) {
 		if( !(GETBIT(root->map, baseIndex)) )
@@ -468,8 +676,16 @@ void *_ferite_amt_delete( FeriteScript *script, FeriteAMT *tree, unsigned long i
 				}
 				return data;
 			} else if( baseItem->type == FeriteAMTType_Tree ) {
-				AMT_SHIFT_AND_CHECK( NULL );
-				baseIndex = AMT_APPLY_SHIFT(tree, index);
+				amtDepth++;
+				if ((shiftAmount - AMT_SHIFT_AMOUNT) > 0) {
+					shiftAmount -= AMT_SHIFT_AMOUNT;
+					baseIndex = AMT_APPLY_SHIFT(tree, index);
+				} else {
+					// We ran out of the hash bits in index, use the key for
+					// the hash bits
+					baseIndex = ferite_hamt_index(index, optional_key, keyLen, amtDepth);
+				}
+
 				root = baseItem->u.tree;
 			}
 		}
@@ -524,11 +740,10 @@ int ferite_amt_cmp( FeriteScript *script, FeriteAMT *left, FeriteAMT *right, AMT
 }
 
 unsigned long ferite_hamt_hash_gen( char *key ) {
-    size_t i, keylen = strlen(key);
-    unsigned long hashval = 0;
-	
-    for( i = 0; i < keylen; i++ )
-      hashval = *key++ + 31 * hashval;
+	unsigned long hashval = 0;
+
+	while(*key)
+		hashval = *key++ + 31 * hashval;
 	return hashval;
 }
 
@@ -536,7 +751,7 @@ void *ferite_hamt_set( FeriteScript *script, FeriteAMT *tree, char *key, void *v
 	return _ferite_amt_set( script, tree, ferite_hamt_hash_gen(key), key, value );
 }
 void *ferite_hamt_get( FeriteScript *script, FeriteAMT *tree, char *key ) {
-	FeriteAMTNode *baseItem = _ferite_amt_get( script, tree, ferite_hamt_hash_gen(key) );
+	FeriteAMTNode *baseItem = _ferite_hamt_get_with_key( script, tree, ferite_hamt_hash_gen(key), key );
 	if( baseItem && strcmp(baseItem->u.value.key,key) == 0 )
 		return NODE_VALUE(baseItem);
 	return NULL;

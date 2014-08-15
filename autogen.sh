@@ -19,6 +19,9 @@ DIE=0
 cd modules;
 ./build_modules.sh bootstrap
 cd ../
+cd test
+./bootstrap.sh
+cd ../
 
 echo "running... [ "${BLD_SRT}"libtoolize"${BLD_END}" ]"
 (libtoolize --automake || glibtoolize --automake)
